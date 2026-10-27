@@ -1,0 +1,206 @@
+# Preise: Zahl mit Punkt (59.99). Leer lassen = "Preis auf Anfrage".
+# In "leistungen" erzeugt eine Zeile, die mit "## " beginnt, eine Zwischenüberschrift (z. B. "## Innen").
+intro: "Wählen Sie eine Kategorie. Mit „Anfragen“ landet das Paket direkt im Kontaktformular."
+kategorien:
+  - name: Innen
+    praefix: Innen
+    intro: "Für ein frisches und sauberes Interieur."
+    pakete:
+      - name: Basis
+        beschreibung: "Die schnelle Auffrischung für zwischendurch."
+        preis: 59.99
+        ab: false
+        empfohlen: false
+        leistungen:
+          - Aussaugen inkl. Kofferraum
+          - Scheibenreinigung innen
+          - Staubwischen Armaturen
+      - name: Comfort
+        beschreibung: "Gründliche Reinigung für ein gepflegtes Gefühl."
+        preis: 79.99
+        ab: false
+        empfohlen: true
+        leistungen:
+          - Alles aus Basis
+          - Kunststoffpflege
+          - Fußmatten-Intensivreinigung
+          - Geruchsneutralisierung
+      - name: Premium
+        beschreibung: "Tiefenreinigung für höchste Ansprüche."
+        preis: 99.99
+        ab: false
+        empfohlen: false
+        leistungen:
+          - Alles aus Comfort
+          - Polster & Teppich (Nasssaugen)
+          - Lederpflege
+          - Tierhaarentfernung
+
+  - name: Außen & Kombi
+    praefix: ""
+    intro: "Schonende Handwäsche – allein oder im Kombipaket mit der Innenreinigung."
+    pakete:
+      - name: Handwäsche
+        beschreibung: "Schonende Außenreinigung."
+        preis: 59.99
+        ab: false
+        empfohlen: false
+        leistungen:
+          - 2-Eimer-Handwäsche
+          - Inkl. Einstiegsleisten
+          - Felgenreinigung
+          - Scheibenreinigung außen
+      - name: Kombi Basis
+        beschreibung: "Innen Basis + Außen."
+        preis: 109.99
+        ab: false
+        empfohlen: false
+        leistungen:
+          - Innenreinigung Basis
+          - Außenwäsche komplett
+      - name: Kombi Comfort
+        beschreibung: "Innen Comfort + Außen."
+        preis: 129.99
+        ab: false
+        empfohlen: true
+        leistungen:
+          - Innenreinigung Comfort
+          - Außenwäsche komplett
+      - name: Kombi Premium
+        beschreibung: "Innen Premium + Außen."
+        preis: 149.99
+        ab: false
+        empfohlen: false
+        leistungen:
+          - Innenreinigung Premium
+          - Außenwäsche komplett
+
+  - name: Politur
+    praefix: ""
+    intro: "Lackkorrektur und brillanter Tiefenglanz."
+    pakete:
+      - name: Glanzpolitur
+        beschreibung: "Entfernung leichter Kratzer und Hologramme."
+        preis: 299.99
+        ab: true
+        empfohlen: false
+        leistungen:
+          - Inkl. Außenreinigung
+          - 1-Stufen-Hochglanzpolitur
+          - Mehr Glanz
+          - Standzeit ca. 3–6 Monate
+      - name: 2-Stufen-Politur
+        beschreibung: "Intensive Lackkorrektur für tiefere Defekte."
+        preis: 549.99
+        ab: true
+        empfohlen: true
+        leistungen:
+          - Inkl. Außenreinigung
+          - Schleif- & Hochglanzpolitur
+          - Entfernt 80–90 % der Kratzer
+          - Maximaler Tiefenglanz
+      - name: Politur Einzelteile
+        beschreibung: "Politur einzelner Karosserieteile."
+        preis:
+        ab: false
+        empfohlen: false
+        leistungen:
+          - Lokale Kratzerentfernung
+          - Scheinwerferaufbereitung
+          - Spot-Repair
+          - Individuelle Beratung
+
+  - name: Versiegelung
+    praefix: ""
+    intro: "Langzeitschutz für Lack, Scheiben und Felgen."
+    pakete:
+      - name: Keramikversiegelung
+        beschreibung: "Der stärkste Lackschutz in unserem Angebot."
+        preis: 699.99
+        ab: true
+        empfohlen: true
+        badge: "Bester Schutz"
+        leistungen:
+          - Inkl. Außenreinigung
+          - Inkl. 2-Stufen-Politur
+          - Starker Abperleffekt
+          - Standzeit 24–36 Monate
+      - name: Scheibenversiegelung
+        beschreibung: "Klare Sicht bei jedem Wetter."
+        preis: 29.99
+        ab: true
+        empfohlen: false
+        leistungen:
+          - Inkl. Außenreinigung
+          - Abperleffekt ab 60 km/h
+          - Leichtere Reinigung
+      - name: Felgenversiegelung
+        beschreibung: "Schutz vor hartnäckigem Bremsstaub."
+        preis: 39.99
+        ab: true
+        empfohlen: false
+        leistungen:
+          - Inkl. Außenreinigung
+          - Hitzebeständiger Schutz
+          - Einfachere Reinigung
+
+  - name: Leasingrückläufer
+    praefix: Leasing
+    intro: "Das Rundum-sorglos-Paket für die Leasingrückgabe."
+    pakete:
+      - name: Basic
+        beschreibung: "Die essenzielle Aufbereitung für eine problemlose Rückgabe."
+        preis: 179.99
+        ab: true
+        empfohlen: false
+        leistungen:
+          - "## Innen"
+          - Vorher-/Nachher-Zustandsprotokoll
+          - Gründliches Aussaugen
+          - Display & Armaturen
+          - Polster & Teppich
+          - Fußmatten
+          - Scheiben komplett
+          - Einstiegsleisten & Türfalze
+          - "## Außen"
+          - Außenwäsche komplett
+          - Felgen-Intensivreinigung
+          - Reifenpflege & Glanz
+      - name: Comfort
+        beschreibung: "Erweiterte Pflege für höhere Ansprüche."
+        preis: 249.99
+        ab: true
+        empfohlen: true
+        leistungen:
+          - "## Innen"
+          - Alle Basic-Leistungen
+          - Lederreinigung & -pflege
+          - Gummipflege Türdichtungen
+          - Kunststoff-Intensivpflege
+          - Fußmatten-Intensivreinigung
+          - Tierhaarentfernung
+          - "## Außen"
+          - Türfalze & Tankdeckel gepflegt
+      - name: Premium
+        beschreibung: "Maximale Sauberkeit und Werterhalt."
+        preis: 349.99
+        ab: true
+        empfohlen: false
+        leistungen:
+          - "## Innen"
+          - Alle Comfort-Leistungen
+          - Ozonbehandlung
+          - Desinfektion Innenraum
+          - Kofferraum inkl. Reserverad-Mulde
+          - Schimmelentfernung
+          - Sicherheitsgurt-Reinigung
+          - "## Außen"
+          - Felgenversiegelung
+          - Einzelne Kratzerentfernung
+
+geschaeftskunden:
+  titel: "Rabatt für Geschäftskunden"
+  text: "Fuhrpark oder regelmäßige Aufbereitung? Wir machen Ihnen ein individuelles Angebot mit Firmenkonditionen."
+hinweis:
+  titel: "Gut zu wissen"
+  text: "Bei sehr starker Verschmutzung kann ein Zuschlag anfallen. „ab“-Preise richten sich nach Fahrzeug und Zustand."
