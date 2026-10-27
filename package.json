@@ -1,0 +1,14 @@
+{
+  "name": "primedetailing",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "eleventy",
+    "start": "eleventy --serve"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.7",
+    "js-yaml": "^5.5.0"
+  },
+  "private": true,
+  "type": "module"
+}

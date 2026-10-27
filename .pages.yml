@@ -1,0 +1,211 @@
+# Konfiguration für Pages CMS (https://app.pagescms.org)
+media:
+  input: src/img
+  output: /img
+
+content:
+  - name: site
+    label: Kontakt & Allgemein
+    type: file
+    path: src/_data/site.yml
+    format: yaml
+    fields:
+      - { name: name, label: Name, type: string }
+      - { name: firma, label: Firmenname (Footer), type: string }
+      - { name: telefon, label: Telefon (Anzeige), type: string, description: "z. B. +49 171 5311177" }
+      - { name: whatsapp, label: WhatsApp-Nummer, type: string, description: "Nur Ziffern mit Ländervorwahl, ohne +, z. B. 491715311177" }
+      - { name: whatsapp_text, label: Vorgefertigte WhatsApp-Nachricht, type: string }
+      - { name: email, label: E-Mail (Formulare gehen hierhin), type: string }
+      - { name: instagram, label: Instagram-Name (ohne @), type: string }
+      - { name: einsatzgebiet, label: Einsatzgebiet, type: string }
+      - name: adresse
+        label: Adresse
+        type: object
+        fields:
+          - { name: strasse, label: Straße, type: string }
+          - { name: plz, label: PLZ, type: string }
+          - { name: ort, label: Ort, type: string }
+      - { name: seo_titel, label: Titel bei Google, type: string }
+      - { name: seo_beschreibung, label: Beschreibung bei Google, type: text }
+
+  - name: startseite
+    label: Startseite
+    type: file
+    path: src/_data/startseite.yml
+    format: yaml
+    fields:
+      - name: hero
+        label: Oberer Bereich
+        type: object
+        fields:
+          - { name: eyebrow, label: Kleine Zeile oben, type: string }
+          - { name: titel, label: Überschrift (weiß), type: string }
+          - { name: titel_gold, label: Überschrift (gold), type: string }
+          - { name: text, label: Text, type: text }
+          - { name: bild, label: Foto rechts (optional, Hochformat 4:5), type: image, description: "Leer lassen = goldene Lack-Grafik" }
+          - { name: hinweis_titel, label: Kärtchen auf dem Bild – Titel, type: string }
+          - { name: hinweis_text, label: Kärtchen auf dem Bild – Text, type: string }
+          - name: fakten
+            label: Kennzahlen
+            type: object
+            list: true
+            fields:
+              - { name: wert, label: Wert, type: string }
+              - { name: text, label: Beschriftung, type: string }
+      - name: ergebnisse
+        label: Vorher / Nachher
+        type: object
+        description: "Der Abschnitt erscheint erst, wenn beide Fotos gesetzt sind. Gleiche Perspektive, Querformat 16:10."
+        fields:
+          - { name: vorher, label: Foto vorher, type: image }
+          - { name: nachher, label: Foto nachher, type: image }
+      - name: ablauf
+        label: Ablauf (Schritte)
+        type: object
+        list: true
+        fields:
+          - { name: titel, label: Titel, type: string }
+          - { name: text, label: Text, type: text }
+      - name: ueber_uns
+        label: Über uns
+        type: object
+        fields:
+          - { name: titel, label: Überschrift, type: string }
+          - { name: text, label: Text, type: text, description: "Leerzeile = neuer Absatz" }
+      - name: team
+        label: Team
+        type: object
+        list: true
+        fields:
+          - { name: name, label: Name, type: string }
+          - { name: rolle, label: Rolle, type: string }
+          - { name: text, label: Text, type: text }
+          - { name: foto, label: Foto (Querformat 3:2), type: image }
+
+  - name: leistungen
+    label: Leistungen
+    type: file
+    path: src/_data/leistungen.yml
+    format: yaml
+    fields:
+      - { name: intro, label: Einleitung, type: text }
+      - name: liste
+        label: Leistungen
+        type: object
+        list: true
+        fields:
+          - { name: titel, label: Titel, type: string }
+          - { name: text, label: Beschreibung, type: text }
+          - { name: ab_preis, label: "ab-Preis (z. B. 59.99)", type: number, min: 0 }
+          - { name: punkte, label: Stichpunkte, type: string, list: true }
+      - name: demnaechst
+        label: Demnächst-Hinweis
+        type: object
+        fields:
+          - { name: aktiv, label: Anzeigen, type: boolean }
+          - { name: titel, label: Titel, type: string }
+          - { name: text, label: Text, type: string }
+
+  - name: preise
+    label: Preise & Pakete
+    type: file
+    path: src/_data/preise.yml
+    format: yaml
+    fields:
+      - { name: intro, label: Einleitung, type: text }
+      - name: kategorien
+        label: Kategorien (Tabs)
+        type: object
+        list: true
+        fields:
+          - { name: name, label: Tab-Name, type: string }
+          - { name: praefix, label: Vorsilbe im Formular, type: string, description: "z. B. 'Innen' → 'Innen Comfort'. Leer lassen, wenn der Paketname reicht." }
+          - { name: intro, label: Einleitung, type: string }
+          - name: pakete
+            label: Pakete
+            type: object
+            list: true
+            fields:
+              - { name: name, label: Paketname, type: string }
+              - { name: beschreibung, label: Kurzbeschreibung, type: string }
+              - { name: preis, label: "Preis in € (z. B. 79.99)", type: number, min: 0, description: "Leer lassen = 'Preis auf Anfrage'" }
+              - { name: ab, label: "„ab“ vor den Preis setzen", type: boolean }
+              - { name: empfohlen, label: Hervorheben (Empfohlen), type: boolean }
+              - { name: badge, label: Eigenes Etikett statt „Empfohlen“ (optional), type: string }
+              - { name: leistungen, label: Leistungen, type: string, list: true, description: "Zeile mit '## ' am Anfang = Zwischenüberschrift, z. B. '## Innen'" }
+      - name: geschaeftskunden
+        label: Kasten Geschäftskunden
+        type: object
+        fields:
+          - { name: titel, label: Titel, type: string }
+          - { name: text, label: Text, type: text }
+      - name: hinweis
+        label: Kasten Hinweis
+        type: object
+        fields:
+          - { name: titel, label: Titel, type: string }
+          - { name: text, label: Text, type: text }
+
+  - name: rechner
+    label: Preisrechner
+    type: file
+    path: src/_data/rechner.yml
+    format: yaml
+    fields:
+      - { name: aktiv, label: Preisrechner anzeigen, type: boolean }
+      - { name: titel, label: Überschrift, type: string }
+      - { name: text, label: Einleitung, type: text }
+      - name: groessen
+        label: Fahrzeuggrößen
+        type: object
+        list: true
+        fields:
+          - { name: name, label: Bezeichnung, type: string }
+          - { name: aufschlag, label: "Aufschlag in € (0 = keiner)", type: number, min: 0 }
+      - name: extras
+        label: Extras
+        type: object
+        list: true
+        fields:
+          - { name: name, label: Name, type: string }
+          - { name: preis, label: "Preis in €", type: number, min: 0 }
+          - { name: ab, label: "„ab“-Preis", type: boolean }
+      - { name: hinweis, label: Hinweis unter dem Preis, type: text }
+
+  - name: faq
+    label: FAQ
+    type: file
+    path: src/_data/faq.yml
+    format: yaml
+    fields:
+      - name: fragen
+        label: Fragen
+        type: object
+        list: true
+        fields:
+          - { name: frage, label: Frage, type: string }
+          - { name: antwort, label: Antwort, type: text }
+
+  - name: impressum
+    label: Impressum
+    type: file
+    path: src/recht/impressum.md
+    format: yaml-frontmatter
+    fields:
+      - { name: titel, label: Seitentitel (Browser-Tab), type: string }
+      - { name: beschreibung, label: Beschreibung bei Google, type: string }
+      - { name: ueberschrift, label: Überschrift, type: string }
+      - { name: body, label: Inhalt, type: rich-text }
+
+  - name: datenschutz
+    label: Datenschutz
+    type: file
+    path: src/recht/datenschutz.md
+    format: yaml-frontmatter
+    fields:
+      - { name: titel, label: Seitentitel (Browser-Tab), type: string }
+      - { name: beschreibung, label: Beschreibung bei Google, type: string }
+      - { name: ueberschrift, label: Überschrift, type: string }
+      - { name: lead, label: Kurzfassung oben, type: text }
+      - { name: stand, label: Stand, type: string }
+      - { name: body, label: Inhalt, type: rich-text }
