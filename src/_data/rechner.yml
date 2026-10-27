@@ -1,0 +1,21 @@
+# Preisrechner – nutzt automatisch alle Pakete aus den Preisen (außer "auf Anfrage").
+aktiv: true
+titel: "Was kostet mein Auto?"
+text: "Paket wählen, Fahrzeug angeben, Extras dazu – und Sie sehen sofort einen Richtpreis."
+# Aufschlag in Euro je Fahrzeuggröße (0 = kein Aufschlag)
+groessen:
+  - name: Kleinwagen
+    aufschlag: 0
+  - name: Mittelklasse / Kombi
+    aufschlag: 0
+  - name: SUV / Van
+    aufschlag: 0
+# Extras, die man zu jedem Paket dazubuchen kann
+extras:
+  - name: Scheibenversiegelung
+    preis: 29.99
+    ab: true
+  - name: Felgenversiegelung
+    preis: 39.99
+    ab: true
+hinweis: "Unverbindlicher Richtpreis. Den endgültigen Preis bestätigen wir Ihnen vor dem Termin."

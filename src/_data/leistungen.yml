@@ -1,0 +1,42 @@
+intro: "Von der schnellen Auffrischung bis zur Keramikversiegelung. Alles mit Profi-Produkten, alles bei Ihnen vor Ort."
+liste:
+  - titel: Außenwäsche
+    text: "Schonende Handwäsche für einen sauberen ersten Eindruck – ohne Waschstraßen-Kratzer."
+    ab_preis: 59.99
+    punkte:
+      - 2-Eimer-Handwäsche
+      - Felgen- & Reifenreinigung
+      - Flugrost- & Teerentfernung
+      - Kunststoffpflege außen
+      - Streifenfreie Scheiben
+  - titel: Innenreinigung
+    text: "Tiefenreinheit für den Innenraum – vom Kofferraum bis zum Cockpit."
+    ab_preis: 59.99
+    punkte:
+      - Intensives Aussaugen inkl. Kofferraum
+      - Polster & Teppich (Nasssaugen)
+      - Lederpflege
+      - Cockpit- & Kunststoffpflege
+      - Geruchsneutralisierung (Ozon)
+  - titel: Politur & Versiegelung
+    text: "Lackkorrektur für echten Tiefenglanz und Langzeitschutz gegen Umwelteinflüsse."
+    ab_preis: 299.99
+    punkte:
+      - 1- bis 3-Stufen-Lackkorrektur
+      - Kratzer- & Hologrammentfernung
+      - Carnaubawachs-Versiegelung
+      - Keramikversiegelung
+      - Scheinwerferaufbereitung
+  - titel: Leasingrückläufer
+    text: "Damit die Rückgabe ohne Nachforderung klappt – mit dokumentiertem Zustand."
+    ab_preis: 179.99
+    punkte:
+      - Vorher-/Nachher-Zustandsprotokoll
+      - Innen & außen komplett
+      - Polster, Teppich & Fußmatten
+      - Felgen-Intensivreinigung
+      - Auf Wunsch Ozon & Desinfektion
+demnaechst:
+  aktiv: true
+  titel: Klimareinigung
+  text: "professionelle Reinigung und Desinfektion der Klimaanlage."

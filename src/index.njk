@@ -1,0 +1,405 @@
+---
+layout: base.njk
+---
+{%- set waLink = "https://wa.me/" + site.whatsapp + "?text=" + (site.whatsapp_text | urlencode) -%}
+{%- set h = startseite.hero -%}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AutoWash",
+  "name": {{ site.name | dump | safe }},
+  "url": "https://primedetailing.eu/",
+  "telephone": {{ site.telefon | dump | safe }},
+  "email": {{ site.email | dump | safe }},
+  "areaServed": {{ site.einsatzgebiet | dump | safe }},
+  "address": { "@type": "PostalAddress", "streetAddress": {{ site.adresse.strasse | dump | safe }}, "postalCode": {{ site.adresse.plz | dump | safe }}, "addressLocality": {{ site.adresse.ort | dump | safe }}, "addressCountry": "DE" },
+  "sameAs": ["https://instagram.com/{{ site.instagram }}"]
+}
+</script>
+
+<!-- ============ HERO ============ -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">{{ h.eyebrow }}</p>
+      <h1 id="hero-title">{{ h.titel }} <span class="line2">{{ h.titel_gold }}</span></h1>
+      <p class="lead">{{ h.text }}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ waLink }}" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-wa"/></svg> Termin per WhatsApp</a>
+        <a class="btn btn-ghost" href="{{ '#rechner' if rechner.aktiv else '#preise' }}">{{ "Preis berechnen" if rechner.aktiv else "Preise ansehen" }}</a>
+      </div>
+      <ul class="hero-facts">
+        {%- for f in h.fakten %}
+        <li><strong>{{ f.wert }}</strong><span>{{ f.text }}</span></li>
+        {%- endfor %}
+      </ul>
+    </div>
+
+    <div class="lacquer" aria-hidden="true">
+      {%- if h.bild %}
+      <img class="photo" src="{{ h.bild }}" alt="" width="1200" height="1500" fetchpriority="high">
+      {%- else %}
+      <svg class="curves" viewBox="0 0 500 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="gl1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9ab2f" stop-opacity="0"/><stop offset=".55" stop-color="#f0c652" stop-opacity=".55"/><stop offset="1" stop-color="#d9ab2f" stop-opacity="0"/></linearGradient>
+          <linearGradient id="gl2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        </defs>
+        <path d="M-20 360 C 120 250, 300 230, 540 280" fill="none" stroke="url(#gl1)" stroke-width="2"/>
+        <path d="M-20 400 C 140 300, 320 285, 540 330" fill="none" stroke="url(#gl2)" stroke-width="1.2"/>
+        <path d="M-20 470 C 160 390, 330 380, 540 410" fill="none" stroke="url(#gl2)" stroke-width="1"/>
+        <path d="M-20 200 C 160 150, 300 160, 540 120" fill="none" stroke="url(#gl2)" stroke-width=".8"/>
+        <ellipse cx="380" cy="150" rx="150" ry="40" fill="url(#gl2)" opacity=".35" transform="rotate(-12 380 150)"/>
+      </svg>
+      {%- endif %}
+      <span class="gauge">Prime Detailing · St. Georgen</span>
+      {%- if h.hinweis_titel %}
+      <div class="tag"><b>{{ h.hinweis_titel }}</b><small>{{ h.hinweis_text }}</small></div>
+      {%- endif %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ LEISTUNGEN ============ -->
+<section id="leistungen" class="section-alt" aria-labelledby="leistungen-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">01</span> Leistungen</p>
+        <h2 id="leistungen-title">Was wir an Ihrem Fahrzeug machen</h2>
+      </div>
+      <p class="lead">{{ leistungen.intro }}</p>
+    </div>
+    <div class="services">
+      {%- set buchstaben = "ABCDEFGHIJ" %}
+      {%- for l in leistungen.liste %}
+      <article class="service reveal">
+        <span class="idx">{{ buchstaben[loop.index0] }}</span>
+        <div>
+          <h3>{{ l.titel }}</h3>
+          <p class="desc">{{ l.text }}</p>
+        </div>
+        <ul>
+          {%- for pkt in l.punkte %}<li>{{ pkt }}</li>{% endfor %}
+        </ul>
+        {%- if l.ab_preis %}<p class="from"><small>ab</small><strong>{{ l.ab_preis | euro }}</strong></p>{% else %}<span></span>{% endif %}
+      </article>
+      {%- endfor %}
+    </div>
+    {%- if leistungen.demnaechst.aktiv %}
+    <p class="soon"><span class="badge">Demnächst</span> <span><b>{{ leistungen.demnaechst.titel }}</b> – {{ leistungen.demnaechst.text }}</span></p>
+    {%- endif %}
+  </div>
+</section>
+
+<!-- ============ PREISE ============ -->
+<section id="preise" aria-labelledby="preise-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">02</span> Preise</p>
+        <h2 id="preise-title">Feste Pakete, klare Preise</h2>
+      </div>
+      <p class="lead">{{ preise.intro }}</p>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Preiskategorien">
+      {%- for k in preise.kategorien %}
+      <button class="tab" role="tab" id="t-{{ loop.index }}" aria-controls="p-{{ loop.index }}" aria-selected="{{ 'true' if loop.first else 'false' }}"{% if not loop.first %} tabindex="-1"{% endif %}>{{ k.name }}</button>
+      {%- endfor %}
+    </div>
+
+    {%- for k in preise.kategorien %}
+    <div class="panel" role="tabpanel" id="p-{{ loop.index }}" aria-labelledby="t-{{ loop.index }}" tabindex="0"{% if not loop.first %} hidden{% endif %}>
+      {%- if k.intro %}<p class="panel-intro">{{ k.intro }}</p>{% endif %}
+      <div class="packages {{ 'cols-4' if k.pakete.length >= 4 else 'cols-3' }}">
+        {%- for p in k.pakete %}
+        {%- set featured = p.empfohlen or p.badge %}
+        <article class="pkg{% if featured %} featured{% endif %}">
+          {%- if featured %}<span class="badge">{{ p.badge or "Empfohlen" }}</span>{% endif %}
+          <h3>{{ p.name }}</h3>
+          <p class="sub">{{ p.beschreibung }}</p>
+          {%- if p.preis or p.preis === 0 %}
+          <p class="price">{% if p.ab %}<small>ab</small>{% endif %}{{ p.preis | euro }}</p>
+          {%- else %}
+          <p class="price text">Preis auf Anfrage</p>
+          {%- endif %}
+          <ul>
+            {%- for z in p.leistungen %}
+            {%- if z.startsWith("## ") %}<li class="grp">{{ z | replace("## ", "") }}</li>
+            {%- else %}<li><svg aria-hidden="true"><use href="#i-check"/></svg>{{ z }}</li>{% endif %}
+            {%- endfor %}
+          </ul>
+          <a class="btn {{ 'btn-primary' if featured else 'btn-ghost' }} btn-block" href="#kontakt" data-pkg="{{ p | anfragename(k) }}">Anfragen</a>
+        </article>
+        {%- endfor %}
+      </div>
+    </div>
+    {%- endfor %}
+
+    <div class="price-notes">
+      <div class="note-card">
+        <svg aria-hidden="true"><use href="#i-fleet"/></svg>
+        <div>
+          <h3>{{ preise.geschaeftskunden.titel }}</h3>
+          <p>{{ preise.geschaeftskunden.text }}</p>
+          <a class="btn btn-ghost btn-sm" href="#kontakt" data-pkg="Geschäftskunden / Fuhrpark">Firmenangebot anfragen</a>
+        </div>
+      </div>
+      <div class="note-card">
+        <svg aria-hidden="true"><use href="#i-info"/></svg>
+        <div>
+          <h3>{{ preise.hinweis.titel }}</h3>
+          <p>{{ preise.hinweis.text }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{%- if rechner.aktiv %}
+<!-- ============ PREISRECHNER ============ -->
+<section id="rechner" class="section-alt" aria-labelledby="rechner-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">03</span> Preisrechner</p>
+        <h2 id="rechner-title">{{ rechner.titel }}</h2>
+      </div>
+      <p class="lead">{{ rechner.text }}</p>
+    </div>
+
+    <form class="calc" id="calc" onsubmit="return false">
+      <div class="calc-steps">
+        <div class="calc-step">
+          <label class="calc-label" for="c-pkg"><span>1</span> Paket</label>
+          <div class="field">
+            <select id="c-pkg">
+              {%- for k in preise.kategorien %}
+              <optgroup label="{{ k.name }}">
+                {%- for p in k.pakete %}{% if p.preis or p.preis === 0 %}
+                <option value="{{ p | anfragename(k) }}" data-preis="{{ p.preis }}" data-ab="{{ 'true' if p.ab else 'false' }}" data-name="{{ (k.praefix + ' ' if k.praefix else '') + p.name }}"{% if k.praefix == 'Innen' and p.empfohlen %} selected{% endif %}>{{ (k.praefix + ' ' if k.praefix else '') + p.name }} – {{ p | preistext }}</option>
+                {%- endif %}{% endfor %}
+              </optgroup>
+              {%- endfor %}
+            </select>
+          </div>
+        </div>
+
+        {%- if rechner.groessen.length %}
+        <fieldset class="calc-step">
+          <legend class="calc-label"><span>2</span> Fahrzeug</legend>
+          <div class="chips">
+            {%- for g in rechner.groessen %}
+            <label class="chip">
+              <input type="radio" name="c-size" value="{{ g.name }}" data-aufschlag="{{ g.aufschlag or 0 }}"{% if loop.first %} checked{% endif %}>
+              <span>{{ g.name }}{% if g.aufschlag %} <em>+{{ g.aufschlag | euro }}</em>{% endif %}</span>
+            </label>
+            {%- endfor %}
+          </div>
+        </fieldset>
+        {%- endif %}
+
+        {%- if rechner.extras.length %}
+        <fieldset class="calc-step">
+          <legend class="calc-label"><span>{{ 3 if rechner.groessen.length else 2 }}</span> Extras <small>(optional)</small></legend>
+          <div class="chips">
+            {%- for e in rechner.extras %}
+            <label class="chip chip-check">
+              <input type="checkbox" name="c-extra" value="{{ e.name }}" data-preis="{{ e.preis }}" data-ab="{{ 'true' if e.ab else 'false' }}">
+              <span>{{ e.name }} <em>+{% if e.ab %}ab {% endif %}{{ e.preis | euro }}</em></span>
+            </label>
+            {%- endfor %}
+          </div>
+        </fieldset>
+        {%- endif %}
+      </div>
+
+      <aside class="calc-sum" aria-labelledby="calc-sum-title">
+        <h3 id="calc-sum-title">Ihr Richtpreis</h3>
+        <ul class="calc-lines" id="calc-lines"></ul>
+        <p class="calc-total" aria-live="polite"><small id="calc-ab">ab</small><output id="calc-total" for="c-pkg">–</output></p>
+        <p class="calc-note">{{ rechner.hinweis }}</p>
+        <a class="btn btn-wa btn-block" id="calc-wa" href="{{ waLink }}" target="_blank" rel="noopener" data-wa="{{ site.whatsapp }}"><svg aria-hidden="true"><use href="#i-wa"/></svg> Per WhatsApp anfragen</a>
+        <a class="btn btn-ghost btn-block" id="calc-form" href="#kontakt">Ins Formular übernehmen</a>
+      </aside>
+    </form>
+  </div>
+</section>
+{%- endif %}
+
+{%- if startseite.ergebnisse.vorher and startseite.ergebnisse.nachher %}
+<!-- ============ ERGEBNISSE ============ -->
+<section id="ergebnisse" aria-labelledby="ergebnisse-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">—</span> Ergebnisse</p>
+        <h2 id="ergebnisse-title">Vorher. Nachher.</h2>
+      </div>
+      <p class="lead">Ziehen Sie den Regler, um den Unterschied zu sehen.</p>
+    </div>
+    <div class="ba" style="--pos:50%">
+      <img src="{{ startseite.ergebnisse.vorher }}" alt="Fahrzeug vor der Aufbereitung" width="1600" height="1000" loading="lazy">
+      <img class="after" src="{{ startseite.ergebnisse.nachher }}" alt="Dasselbe Fahrzeug nach der Aufbereitung" width="1600" height="1000" loading="lazy">
+      <span class="lbl l">Vorher</span><span class="lbl r">Nachher</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Vorher-Nachher-Vergleich verschieben">
+      <span class="handle"></span>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+<!-- ============ ABLAUF ============ -->
+<section id="ablauf" aria-labelledby="ablauf-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow"><span class="num">{{ "04" if rechner.aktiv else "03" }}</span> Ablauf</p>
+      <h2 id="ablauf-title">So läuft ein Termin</h2>
+    </div>
+    <ol class="steps">
+      {%- for s in startseite.ablauf %}
+      <li class="reveal"><h3>{{ s.titel }}</h3><p>{{ s.text }}</p></li>
+      {%- endfor %}
+    </ol>
+  </div>
+</section>
+
+<!-- ============ TEAM ============ -->
+<section id="team" class="section-alt" aria-labelledby="team-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">{{ "05" if rechner.aktiv else "04" }}</span> Über uns</p>
+        <h2 id="team-title">{{ startseite.ueber_uns.titel }}</h2>
+      </div>
+      <div class="about-text">
+        {%- for a in startseite.ueber_uns.text | absaetze %}<p>{{ a }}</p>{% endfor %}
+      </div>
+    </div>
+    <div class="team">
+      {%- for m in startseite.team %}
+      <article class="person reveal">
+        <div class="ph">
+          {%- set ini = m.name.split(" ") %}
+          <span class="initials" aria-hidden="true">{% for t in ini %}{{ t[0] }}{% endfor %}</span>
+          {%- if m.foto %}<img src="{{ m.foto }}" alt="{{ m.name }}" width="1600" height="1065" loading="lazy">{% endif %}
+        </div>
+        <div class="body">
+          <h3>{{ m.name }}</h3>
+          <p class="role">{{ m.rolle }}</p>
+          <p>{{ m.text }}</p>
+        </div>
+      </article>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq" aria-labelledby="faq-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow"><span class="num">{{ "06" if rechner.aktiv else "05" }}</span> FAQ</p>
+      <h2 id="faq-title">Häufige Fragen</h2>
+    </div>
+    <div class="faq">
+      {%- for f in faq.fragen %}
+      <details><summary>{{ f.frage }}</summary><p>{{ f.antwort }}</p></details>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ KONTAKT ============ -->
+<section id="kontakt" class="section-alt" aria-labelledby="kontakt-title">
+  <div class="wrap">
+    <div class="section-head split">
+      <div>
+        <p class="eyebrow"><span class="num">{{ "07" if rechner.aktiv else "06" }}</span> Kontakt</p>
+        <h2 id="kontakt-title">Termin anfragen</h2>
+      </div>
+      <p class="lead">Am schnellsten per WhatsApp. Lieber schriftlich? Dann nutzen Sie das Formular – wir melden uns zeitnah.</p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="card">
+        <form id="contact-form" action="https://formsubmit.co/{{ site.email }}" method="POST" novalidate>
+          <input type="hidden" name="_subject" value="Neue Terminanfrage über primedetailing.eu">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_captcha" value="false">
+          <input type="hidden" name="_next" value="https://primedetailing.eu/danke/">
+          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <div class="form-grid">
+            <div class="field">
+              <label for="f-name">Name</label>
+              <input id="f-name" name="Name" type="text" autocomplete="name" required>
+              <span class="err">Bitte geben Sie Ihren Namen an.</span>
+            </div>
+            <div class="field">
+              <label for="f-tel">Telefon</label>
+              <input id="f-tel" name="Telefon" type="tel" autocomplete="tel" inputmode="tel" required>
+              <span class="err">Bitte geben Sie eine Telefonnummer an.</span>
+            </div>
+            <div class="field full">
+              <label for="f-mail">E-Mail <span class="opt">(optional)</span></label>
+              <input id="f-mail" name="email" type="email" autocomplete="email">
+              <span class="err">Diese E-Mail-Adresse sieht nicht richtig aus.</span>
+            </div>
+            <div class="field">
+              <label for="f-pkg">Paket</label>
+              <select id="f-pkg" name="Paket">
+                <option>Noch unsicher – bitte beraten</option>
+                {%- for k in preise.kategorien %}
+                <optgroup label="{{ k.name }}">
+                  {%- for p in k.pakete %}<option>{{ p | anfragename(k) }}</option>{% endfor %}
+                </optgroup>
+                {%- endfor %}
+                <optgroup label="Sonstiges">
+                  <option>Geschäftskunden / Fuhrpark</option>
+                  <option>Sonstiges</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-car">Fahrzeug <span class="opt">(optional)</span></label>
+              <input id="f-car" name="Fahrzeug" type="text" placeholder="z. B. VW Golf 8, schwarz">
+            </div>
+            <div class="field full">
+              <label for="f-msg">Nachricht <span class="opt">(optional)</span></label>
+              <textarea id="f-msg" name="Nachricht" placeholder="Wunschtermin, Ort, Besonderheiten …"></textarea>
+            </div>
+            <div class="field full">
+              <label class="consent">
+                <input type="checkbox" name="Datenschutz" value="akzeptiert" required>
+                <span>Ich bin einverstanden, dass meine Angaben zur Bearbeitung der Anfrage verarbeitet werden. Details in der <a class="textlink" href="/datenschutz/">Datenschutzerklärung</a>.</span>
+              </label>
+              <span class="err">Bitte bestätigen Sie die Datenschutzerklärung.</span>
+            </div>
+            <div class="form-foot full">
+              <button class="btn btn-primary btn-block" type="submit">Anfrage senden <svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+              <p class="form-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="direct">
+        <div class="wa">
+          <h3><svg aria-hidden="true"><use href="#i-wa"/></svg> WhatsApp</h3>
+          <p>Kurze Frage oder schnell einen Termin ausmachen? Schreiben Sie uns einfach – gern mit Fotos vom Fahrzeug.</p>
+          <a class="btn btn-wa btn-block" href="{{ waLink }}" target="_blank" rel="noopener">Chat starten</a>
+        </div>
+        <div class="card">
+          <ul class="contact-list">
+            <li><a href="tel:{{ site.telefon | tel }}"><svg aria-hidden="true"><use href="#i-phone"/></svg><span><small>Telefon</small><strong>{{ site.telefon }}</strong></span></a></li>
+            <li><a href="mailto:{{ site.email }}"><svg aria-hidden="true"><use href="#i-mail"/></svg><span><small>E-Mail</small><strong>{{ site.email }}</strong></span></a></li>
+            <li><div><svg aria-hidden="true"><use href="#i-pin"/></svg><span><small>Einsatzgebiet</small><strong>{{ site.einsatzgebiet }} (mobil)</strong></span></div></li>
+            {%- if site.instagram %}
+            <li><a href="https://instagram.com/{{ site.instagram }}" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-ig"/></svg><span><small>Instagram</small><strong>@{{ site.instagram }}</strong></span></a></li>
+            {%- endif %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

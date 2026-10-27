@@ -1,0 +1,46 @@
+hero:
+  eyebrow: "Mobil in St. Georgen & Umgebung"
+  titel: "Aufbereitung,"
+  titel_gold: "die zu Ihnen kommt."
+  text: "Handwäsche, Innenreinigung, Politur und Keramikversiegelung – direkt bei Ihnen vor Ort. Mit festen Paketpreisen statt Überraschungen."
+  bild: ""          # optional: eigenes Foto (Hochformat ca. 4:5). Leer = Lack-Grafik
+  hinweis_titel: "2-Stufen-Politur"
+  hinweis_text: "Entfernt 80–90 % der Kratzer"
+  fakten:
+    - wert: "ab 59,99 €"
+      text: "Innen oder außen"
+    - wert: "Mobil"
+      text: "Wir kommen zu Ihnen"
+    - wert: "24–36 Mon."
+      text: "Standzeit Keramik"
+
+ergebnisse:
+  vorher: ""        # Foto vorher (16:10)
+  nachher: ""       # Foto nachher, gleiche Perspektive. Abschnitt erscheint erst, wenn beide gesetzt sind.
+
+ablauf:
+  - titel: Anfrage
+    text: "Per WhatsApp, Telefon oder Formular. Sagen Sie uns Fahrzeug und Wunschpaket."
+  - titel: Termin
+    text: "Wir stimmen Termin und Ort mit Ihnen ab – so, wie es in Ihren Alltag passt."
+  - titel: Aufbereitung
+    text: "Wir kommen zu Ihnen und bereiten Ihr Fahrzeug vor Ort auf. Kein Weg zur Werkstatt."
+  - titel: Übergabe
+    text: "Gemeinsamer Blick aufs Ergebnis, danach bekommen Sie Ihre Rechnung."
+
+ueber_uns:
+  titel: "Zwei Leute, ein Anspruch"
+  text: |
+    Prime Detailing hat als Hobby angefangen und ist heute eine GbR aus St. Georgen. Wir behandeln jedes Auto so, als wäre es unser eigenes.
+
+    Unser Hintergrund in der IT merkt man: Wir arbeiten strukturiert, dokumentieren sauber und gehen jedes Fahrzeug einzeln an.
+
+team:
+  - name: Tom Schindler
+    rolle: "Gründer & Aufbereitung"
+    text: "Fachinformatiker mit Faible für Autos. Kümmert sich um Reinigung, Politur und Versiegelung – und darum, dass jedes Fahrzeug unseren Standard erfüllt."
+    foto: ""        # z. B. /img/tom.jpg (Querformat 3:2)
+  - name: Jonas Tillack
+    rolle: "Mitgründer & Management"
+    text: "Verantwortlich für Buchhaltung, Social Media und Kundenservice. Sorgt dafür, dass hinter den Kulissen alles rund läuft."
+    foto: ""

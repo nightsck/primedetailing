@@ -1,0 +1,97 @@
+---
+layout: base.njk
+permalink: /feedback/
+titel: "Feedback – Prime Detailing"
+beschreibung: "Wie zufrieden waren Sie mit Ihrer Fahrzeugaufbereitung? Ihr Feedback hilft uns, besser zu werden."
+noindex: false
+---
+
+
+<div class="page-head"><div class="wrap">
+  <p class="eyebrow">Feedback</p>
+  <h1>Wie war's?</h1>
+  <p class="lead">Danke, dass Sie uns Ihr Fahrzeug anvertraut haben. Zwei Minuten Feedback helfen uns, noch besser zu werden.</p>
+</div></div>
+<section style="padding-top:clamp(40px,6vw,72px)"><div class="wrap" style="max-width:860px">
+  <div class="card">
+    <form action="https://formsubmit.co/{{ site.email }}" method="POST" novalidate>
+      <input type="hidden" name="_subject" value="Neues Kundenfeedback über primedetailing.eu">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_next" value="https://primedetailing.eu/danke/?feedback">
+      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="form-grid">
+        <div class="field">
+          <label for="fb-name">Ihr Name</label>
+          <input id="fb-name" name="Name" type="text" autocomplete="name" required>
+          <span class="err">Bitte geben Sie Ihren Namen an.</span>
+        </div>
+        <div class="field">
+          <label for="fb-date">Datum der Leistung</label>
+          <input id="fb-date" name="Datum" type="date" required>
+          <span class="err">Bitte wählen Sie ein Datum.</span>
+        </div>
+        <div class="field">
+          <label for="fb-type">Leistung</label>
+          <select id="fb-type" name="Leistung" required>
+            <option value="">Bitte wählen</option>
+            <option>Außenwäsche</option>
+            <option>Innenreinigung</option>
+            <option>Kombipaket</option>
+            <option>Politur</option>
+            <option>Versiegelung</option>
+            <option>Leasingrückläufer</option>
+          </select>
+          <span class="err">Bitte wählen Sie eine Leistung.</span>
+        </div>
+        <div class="field">
+          <label for="fb-car">Fahrzeug <span class="opt">(optional)</span></label>
+          <input id="fb-car" name="Fahrzeug" type="text" placeholder="z. B. Audi A4">
+        </div>
+        <fieldset class="field full rating">
+  <legend>Ergebnis der Aufbereitung</legend>
+  <div class="stars"><input type="radio" id="q5" name="Ergebnis der Aufbereitung" value="5 von 5" required><label for="q5" title="5 von 5 – sehr gut"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">5 von 5 Sternen (sehr gut)</span></label><input type="radio" id="q4" name="Ergebnis der Aufbereitung" value="4 von 5" required><label for="q4" title="4 von 5 – gut"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">4 von 5 Sternen (gut)</span></label><input type="radio" id="q3" name="Ergebnis der Aufbereitung" value="3 von 5" required><label for="q3" title="3 von 5 – okay"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">3 von 5 Sternen (okay)</span></label><input type="radio" id="q2" name="Ergebnis der Aufbereitung" value="2 von 5" required><label for="q2" title="2 von 5 – schlecht"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">2 von 5 Sternen (schlecht)</span></label><input type="radio" id="q1" name="Ergebnis der Aufbereitung" value="1 von 5" required><label for="q1" title="1 von 5 – sehr schlecht"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">1 von 5 Sternen (sehr schlecht)</span></label></div>
+  <span class="err">Bitte wählen Sie eine Bewertung.</span>
+</fieldset>
+        <fieldset class="field full rating">
+  <legend>Gesamteindruck</legend>
+  <div class="stars"><input type="radio" id="s5" name="Gesamteindruck" value="5 von 5" required><label for="s5" title="5 von 5 – sehr gut"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">5 von 5 Sternen (sehr gut)</span></label><input type="radio" id="s4" name="Gesamteindruck" value="4 von 5" required><label for="s4" title="4 von 5 – gut"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">4 von 5 Sternen (gut)</span></label><input type="radio" id="s3" name="Gesamteindruck" value="3 von 5" required><label for="s3" title="3 von 5 – okay"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">3 von 5 Sternen (okay)</span></label><input type="radio" id="s2" name="Gesamteindruck" value="2 von 5" required><label for="s2" title="2 von 5 – schlecht"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">2 von 5 Sternen (schlecht)</span></label><input type="radio" id="s1" name="Gesamteindruck" value="1 von 5" required><label for="s1" title="1 von 5 – sehr schlecht"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span class="sr-only">1 von 5 Sternen (sehr schlecht)</span></label></div>
+  <span class="err">Bitte wählen Sie eine Bewertung.</span>
+</fieldset>
+        <div class="field full">
+          <label for="fb-good">Was hat Ihnen gefallen?</label>
+          <textarea id="fb-good" name="Gefallen" required></textarea>
+          <span class="err">Ein, zwei Sätze reichen völlig.</span>
+        </div>
+        <div class="field full">
+          <label for="fb-better">Was können wir besser machen? <span class="opt">(optional)</span></label>
+          <textarea id="fb-better" name="Verbesserung"></textarea>
+        </div>
+        <div class="field full">
+          <label for="fb-contact">E-Mail oder Telefon für Rückfragen <span class="opt">(optional)</span></label>
+          <input id="fb-contact" name="Kontakt" type="text">
+        </div>
+        <div class="field full">
+          <label class="consent">
+            <input type="checkbox" name="Datenschutz" value="akzeptiert" required>
+            <span>Ich bin einverstanden, dass mein Feedback gespeichert und ausgewertet wird. Details in der <a class="textlink" href="/datenschutz/">Datenschutzerklärung</a>.</span>
+          </label>
+          <span class="err">Bitte bestätigen Sie die Datenschutzerklärung.</span>
+        </div>
+        <div class="form-foot full">
+          <button class="btn btn-primary btn-block" type="submit">Feedback senden</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card qr-card no-print-bg" style="margin-top:24px">
+    <img src="/img/feedback-qr.svg" alt="QR-Code zu primedetailing.eu/feedback" width="180" height="180">
+    <div>
+      <h2 style="font-size:24px">QR-Code für den Ausdruck</h2>
+      <p style="color:var(--muted);margin:10px 0 18px">Führt direkt auf diese Seite – zum Beispiel als Karte, die Sie nach der Übergabe im Auto lassen.</p>
+      <button class="btn btn-ghost btn-sm no-print" type="button" onclick="window.print()">QR-Code drucken</button>
+    </div>
+  </div>
+</div></section>

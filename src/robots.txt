@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://primedetailing.eu/sitemap.xml
