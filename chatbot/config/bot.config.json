@@ -33,7 +33,7 @@
   },
   "start": {
     "begruessung": "Hallo! Ich bin der digitale Assistent von Prime Detailing. Ich beantworte Fragen zu Leistungen und Preisen und bereite gern eine Terminanfrage für Sie vor.",
-    "kiHinweis": "Sie schreiben mit einer KI. Für verbindliche Absprachen melden sich Tom oder Jonas persönlich.",
+    "kiHinweis": "Sie schreiben mit einer KI. Termine und endgültige Preise bestätigen Tom oder Jonas persönlich.",
     "buttons": [
       "Innenreinigung",
       "Außen/Kombi",

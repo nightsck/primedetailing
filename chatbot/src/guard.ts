@@ -31,6 +31,9 @@ const ZUSAGE = [
   /\bich (?:bestätige|sage .* zu)\b/i,
   /\btermin (?:ist|wurde|steht) (?:jetzt |fest |verbindlich )?(?:bestätigt|gebucht|eingetragen|reserviert)/i,
   /\b(?:ist|sind) (?:jetzt |fest )?(?:für sie )?(?:gebucht|reserviert)\b/i,
+  // Der Bot kann nichts weiterleiten – nur der Kunde sendet ab
+  /\bich (?:habe|hab)\b[^.!?]{0,60}\b(?:weitergegeben|weitergeleitet|übermittelt|übergeben|abgeschickt|gesendet|geschickt)\b/i,
+  /\b(?:wurde|ist) (?:an (?:das|unser) team )?(?:weitergegeben|weitergeleitet|übermittelt)\b/i,
 ];
 const RABATT = /(rabatt|nachlass|skonto|preisnachlass|discount|günstiger machen|sonderpreis)/i;
 
@@ -56,6 +59,21 @@ export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
 }
 
 export const ERSATZ_ANTWORT = texte.ersatz;
+
+/**
+ * Entfernt ein fälschlich vorangestelltes „ab“, wenn im selben Satz ein Paket
+ * mit genau diesem Festpreis genannt wird („Innen Premium (ab 99,99 €)“ →
+ * „Innen Premium (99,99 €)“). „Innenreinigung gibt es ab 59,99 €“ bleibt so.
+ */
+export function korrigiereAb(satz: string, _toolBetraege: number[] = []): string {
+  const klein = satz.toLowerCase();
+  return satz.replace(/\bab\s+(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)(\s*(?:€|eur(?:o)?\b))/gi, (m, zahl, waehrung) => {
+    const b = parseBetrag(zahl);
+    const fest = allePakete.some((p) => !p.ab && p.preis !== null && Math.abs(p.preis - b) < 0.006 && klein.includes(p.name.toLowerCase()));
+    const auchAb = allePakete.some((p) => p.ab && p.preis !== null && Math.abs(p.preis - b) < 0.006 && klein.includes(p.name.toLowerCase()));
+    return fest && !auchAb ? zahl + waehrung : m;
+  });
+}
 
 // Eingaben, die offensichtlich versuchen, den Bot umzuprogrammieren.
 const INJECTION = [

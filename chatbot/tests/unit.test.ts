@@ -252,3 +252,33 @@ test("Prompt enthält Foto-Regeln nur, wenn Foto-Check aktiv", () => {
   const text = systemBlocks().map((b) => b.text).join("\n");
   assert.equal(text.includes("## Foto-Check"), !!config.foto?.aktiv);
 });
+
+// --- Aus dem Live-Test ------------------------------------------------------
+import { korrigiereAb } from "../src/guard.ts";
+
+test("Fälschliches „ab“ vor Festpreis wird entfernt, echtes „ab“ bleibt", () => {
+  const fest = allePakete.find((p) => !p.ab && p.preis !== null && !allePakete.some((q) => q.ab && q.preis === p.preis));
+  const ab = allePakete.find((p) => p.ab && p.preis !== null);
+  if (fest) assert.equal(korrigiereAb(`${fest.name} (ab ${euro(fest.preis!)})`), `${fest.name} (${euro(fest.preis!)})`);
+  if (ab) assert.equal(korrigiereAb(`${ab.name} ab ${euro(ab.preis!)}`), `${ab.name} ab ${euro(ab.preis!)}`);
+  if (fest) assert.equal(korrigiereAb(`Das gibt es ab ${euro(fest.preis!)}.`), `Das gibt es ab ${euro(fest.preis!)}.`, "ohne Paketnamen bleibt „ab“");
+});
+
+test("Bot behauptet nicht, etwas weitergeleitet zu haben", () => {
+  for (const s of ["Ich habe Ihre Anfrage an das Team weitergegeben.", "Ich hab das gerade weitergeleitet.", "Ihre Anfrage wurde an das Team übermittelt."])
+    assert.equal(pruefeAntwort(s, katalogBetraege).ok, false, s);
+  for (const s of ["Unten finden Sie den direkten Draht zu unserem Team.", "Ich habe Ihnen unten eine Anfrage vorbereitet."])
+    assert.equal(pruefeAntwort(s, katalogBetraege).ok, true, s);
+});
+
+test("Summe aus einer früheren Antwort darf wiederholt werden", async () => {
+  if (katalogBetraege.some((k) => Math.abs(k - SUMME) < 0.006)) return;
+  _setClient(fakeClient([{ text: `Wie gesagt: zusammen ${euro(SUMME)}.` }]));
+  const events: any[] = [];
+  await antworte([
+    { role: "user", content: "Was kostet beides zusammen?" },
+    { role: "assistant", content: `Zusammen ${euro(SUMME)}.` },
+    { role: "user", content: "Nochmal bitte?" },
+  ], (e) => { events.push(e); });
+  assert.ok(!events.some((e) => e.type === "blockiert"), "früher geprüfter Betrag wird nicht blockiert");
+});
