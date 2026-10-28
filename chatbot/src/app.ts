@@ -12,7 +12,7 @@ import { streamSSE } from "hono/streaming";
 import { config, env, texte } from "./config.ts";
 import { antworte, type Msg } from "./llm.ts";
 import { istInjection, INJECTION_ANTWORT } from "./guard.ts";
-import { sendeAnfrage } from "./benachrichtigung.ts";
+import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
 import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
 import { pruefeBild, fotoAktiv, maxFotos, fotosImVerlauf, FOTO_MARKER, type Bild } from "./foto.ts";
@@ -139,8 +139,10 @@ app.post("/api/anfrage", async (c) => {
   if (await pruefeLimit(c, "anfrage")) return c.json({ ok: false, fehler: "Zu viele Anfragen. Bitte per WhatsApp oder Telefon melden." }, 429);
   const verlauf = (await pruefeToken(b.verlauf)).map((m) => `${m.role === "user" ? "Kunde" : "Bot"}: ${m.content}`).join("\n");
   try {
-    const r = await sendeAnfrage({ name, kontakt, fahrzeug: f("fahrzeug"), paket: f("paket"), wunschtermin: f("wunschtermin"), notiz: f("notiz", 1000), verlauf });
-    return c.json({ ok: r.ok });
+    const anfrage = { name, kontakt, fahrzeug: f("fahrzeug"), paket: f("paket"), wunschtermin: f("wunschtermin"), notiz: f("notiz", 1000), verlauf };
+    const r = await sendeAnfrage(anfrage);
+    // FormSubmit schickt der Browser selbst ab (von Servern aus blockiert FormSubmit)
+    return c.json({ ok: r.ok, formsubmit: formsubmitDaten(anfrage) });
   } catch (e: any) {
     console.error("[anfrage]", e.message);
     return c.json({ ok: false, fehler: "Senden fehlgeschlagen. Bitte per WhatsApp melden." }, 500);

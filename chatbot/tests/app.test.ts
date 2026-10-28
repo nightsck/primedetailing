@@ -134,3 +134,14 @@ test("Modell liefert leere Antwort auf Terminwunsch: trotzdem Formular + Text", 
   assert.ok(r.ui.some((u) => u.typ === "anfrage_formular"));
   _setClient(null);
 });
+
+test("Anfrage: FormSubmit-Daten gehen an den Browser zurück (Server sendet nicht selbst)", async () => {
+  process.env.FORMSUBMIT_ZIEL = "info@example.com";
+  const res = await app.request("/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": "10.8.0.1" }, body: JSON.stringify({ name: "Max Test", kontakt: "max@example.com", paket: "Innen Comfort", einwilligung: true }) });
+  const j: any = await res.json();
+  delete process.env.FORMSUBMIT_ZIEL;
+  assert.equal(j.ok, true);
+  assert.equal(j.formsubmit.url, "https://formsubmit.co/ajax/info%40example.com");
+  assert.equal(j.formsubmit.daten.Name, "Max Test");
+  assert.equal(j.formsubmit.daten._replyto, "max@example.com");
+});

@@ -24,6 +24,22 @@ function alsText(a: Anfrage) {
   ].join("\n");
 }
 
+/** Was der Browser an FormSubmit schickt (Adresse + Felder). */
+export function formsubmitDaten(a: Anfrage): { url: string; daten: Record<string, string> } | null {
+  if (!E("FORMSUBMIT_ZIEL")) return null;
+  const betreff = `Chat-Anfrage: ${a.paket || "Allgemein"} – ${a.name}`;
+  return {
+    url: `https://formsubmit.co/ajax/${encodeURIComponent(E("FORMSUBMIT_ZIEL"))}`,
+    daten: {
+      _subject: betreff, _template: "box", _captcha: "false",
+      Name: a.name, Kontakt: a.kontakt, [config.formular?.objektLabel || "Fahrzeug"]: a.fahrzeug || "-",
+      Paket: a.paket || "-", Wunschtermin: a.wunschtermin || "-", Notiz: a.notiz || "-",
+      Gesprächsverlauf: a.verlauf || "(nicht übermittelt)",
+      ...(a.kontakt.includes("@") ? { _replyto: a.kontakt } : {}),
+    },
+  };
+}
+
 export async function sendeAnfrage(a: Anfrage): Promise<{ ok: boolean; kanal: string }> {
   const text = alsText(a);
   const betreff = `Chat-Anfrage: ${a.paket || "Allgemein"} – ${a.name}`;
@@ -31,15 +47,10 @@ export async function sendeAnfrage(a: Anfrage): Promise<{ ok: boolean; kanal: st
 
   if (E("WHATSAPP_TOKEN")) await whatsapp(a).then(() => kanaele.push("whatsapp")).catch((e) => console.error("[whatsapp]", e.message));
 
-  if (E("FORMSUBMIT_ZIEL")) {
-    const r = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(E("FORMSUBMIT_ZIEL"))}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json", Referer: config.betrieb.website || "" },
-      body: JSON.stringify({ _subject: betreff, _template: "box", _captcha: "false", Name: a.name, Kontakt: a.kontakt, [config.formular?.objektLabel || "Fahrzeug"]: a.fahrzeug, Paket: a.paket, Wunschtermin: a.wunschtermin, Notiz: a.notiz, Verlauf: a.verlauf }),
-    });
-    if (!r.ok) throw new Error(`FormSubmit ${r.status}`);
-    kanaele.push("formsubmit");
-  }
+  // FormSubmit läuft im Browser des Kunden (siehe formsubmitDaten): Von
+  // Cloudflare-Servern aus blockt FormSubmit Anfragen (429), vom Browser auf der
+  // eigenen Website aus funktioniert es wie das normale Kontaktformular.
+  if (E("FORMSUBMIT_ZIEL")) kanaele.push("formsubmit-browser");
 
   if (E("RESEND_API_KEY")) {
     const r = await fetch("https://api.resend.com/emails", {

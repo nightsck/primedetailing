@@ -335,6 +335,11 @@
         try {
           const r = await (await fetch(API + "/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, einwilligung: true, verlauf: this.verlauf }) })).json();
           if (!r.ok) throw new Error(r.fehler);
+          if (r.formsubmit) {
+            const fs = await fetch(r.formsubmit.url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(r.formsubmit.daten) })
+              .then((x) => x.json()).catch(() => ({}));
+            if (!(fs.success === true || fs.success === "true")) throw new Error("Senden fehlgeschlagen. Bitte kurz per WhatsApp oder Telefon melden.");
+          }
           d.innerHTML = `<h4>Danke, ${esc(data.name.split(" ")[0])}!</h4><div>Die Anfrage ist angekommen. Wir melden uns ${du ? "bei dir" : "bei Ihnen"} schnellstmöglich persönlich – der Termin ist erst fest, wenn wir ihn bestätigt haben.</div>`;
         } catch (x) {
           btn.disabled = false; btn.textContent = "Anfrage senden";
