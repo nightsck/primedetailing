@@ -94,15 +94,25 @@ app.post("/api/chat", async (c) => {
     // (Überlastung, Netzwerk, vereinzelte 403 vom Anbieter) – aber nur, solange
     // der Kunde noch nichts von dieser Antwort gesehen hat.
     let schonGesendet = false;
+    const uiGesendet = new Set<string>();
     const emit = async (e: any) => {
-      if (e.type === "text") { schonGesendet = true; await send("text", { text: e.text }); }
-      else if (e.type === "ui") await send("ui", e.ui);
+      if (e.type === "text") { if (e.text.trim()) schonGesendet = true; await send("text", { text: e.text }); }
+      else if (e.type === "ui") { uiGesendet.add(e.ui?.typ); await send("ui", e.ui); }
       else if (e.type === "blockiert") console.warn(`[blockiert] ${e.grund}: ${e.detail}`);
     };
     for (let versuch = 1; versuch <= 2; versuch++) {
       try {
         const antwort = await antworte(verlauf, emit, { bild });
-        verlauf.push({ role: "assistant", content: antwort || "…" });
+        let text = antwort;
+        // Nie stumm bleiben: Kam keine Antwort, trotzdem weiterhelfen
+        if (!schonGesendet) {
+          const terminWunsch = /termin|anfrag|buch|reserv|vorbei|wann|zeit/i.test(nachricht) || uiGesendet.has("anfrage_formular");
+          text = terminWunsch ? texte.fehlerTermin : texte.fehler;
+          await send("text", { text });
+          if (terminWunsch && !uiGesendet.has("anfrage_formular")) await send("ui", { typ: "anfrage_formular", felder: { wunschtermin: nachricht.slice(0, 120) } });
+          if (!terminWunsch && !uiGesendet.has("uebergabe")) await send("ui", { typ: "uebergabe", grund: "leer" });
+        }
+        verlauf.push({ role: "assistant", content: text || "…" });
         break;
       } catch (err: any) {
         console.error(`[llm] Versuch ${versuch}:`, err?.status || "", err?.message || err);

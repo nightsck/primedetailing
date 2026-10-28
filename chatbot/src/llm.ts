@@ -57,6 +57,7 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
     return gesendet;
   };
 
+  let letzteRunde: { stop: string; inhalt: string } | null = null;
   for (let runde = 0; runde < 5; runde++) {
     const puffer = new SatzPuffer();
     const stream = (await getClient()).messages.stream({
@@ -98,6 +99,7 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
       await emit({ type: "text", text: rest });
     }
 
+    letzteRunde = { stop: final.stop_reason, inhalt: (final.content || []).map((b: any) => b.type + (b.type === "tool_use" ? ":" + b.name : b.type === "text" ? ":" + String(b.text).length : "")).join(",") };
     if (final.stop_reason !== "tool_use") break;
 
     messages.push({ role: "assistant", content: final.content });
@@ -113,6 +115,7 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
     messages.push({ role: "user", content: results });
     if (gesendet && !gesendet.endsWith(" ") && !gesendet.endsWith("\n")) { gesendet += " "; await emit({ type: "text", text: " " }); }
   }
+  if (!gesendet.trim()) console.warn("[leer] Modell ohne Text:", JSON.stringify(letzteRunde));
   return gesendet;
 }
 

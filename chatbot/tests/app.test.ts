@@ -125,3 +125,12 @@ test("KI dauerhaft weg + Terminwunsch: Formular statt Abbruch", async () => {
   assert.ok(r.ui.some((u) => u.typ === "anfrage_formular"));
   _setClient(null);
 });
+
+test("Modell liefert leere Antwort auf Terminwunsch: trotzdem Formular + Text", async () => {
+  const { _setClient } = await import("../src/llm.ts");
+  _setClient({ messages: { stream() { return { abort() {}, async *[Symbol.asyncIterator]() {}, async finalMessage() { return { content: [], stop_reason: "end_turn" }; } }; } } });
+  const r = await chat({ nachricht: "gerne den nächst besten termin" }, "10.7.0.3");
+  assert.equal(r.text, texte.fehlerTermin);
+  assert.ok(r.ui.some((u) => u.typ === "anfrage_formular"));
+  _setClient(null);
+});
