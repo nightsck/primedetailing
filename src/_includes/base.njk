@@ -112,5 +112,6 @@
 {% endif %}
 
 <script src="/assets/main.js" defer></script>
+{% if site.chatbot_url %}<script src="{{ site.chatbot_url }}/widget.js" defer></script>{% endif %}
 </body>
 </html>

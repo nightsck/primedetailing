@@ -49,7 +49,9 @@ export function canary(): string {
 
 export const env = {
   port: Number(process.env.PORT || 8787),
-  sessionSecret: process.env.SESSION_SECRET || "",
+  // Ohne eigenes SESSION_SECRET wird es aus dem API-Key abgeleitet: bleibt stabil
+  // und geheim, und auf Cloudflare muss nur ein einziges Secret gesetzt werden.
+  sessionSecret: process.env.SESSION_SECRET || (process.env.ANTHROPIC_API_KEY ? "abgeleitet|" + process.env.ANTHROPIC_API_KEY : ""),
   provider: (process.env.LLM_PROVIDER || config.llm.provider) as "anthropic" | "bedrock" | "demo",
   anthropicKey: process.env.ANTHROPIC_API_KEY || "",
   killSwitch: process.env.KILL_SWITCH === "1",

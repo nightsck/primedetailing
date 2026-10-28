@@ -32,7 +32,18 @@ Für den Versand nutzen wir den Dienst FormSubmit (formsubmit.co). Ihre Eingaben
 
 Wir löschen Anfragen, sobald sie erledigt sind und keine gesetzlichen Aufbewahrungspflichten (z. B. für Rechnungen) bestehen.
 
-## 5. Kontakt per E-Mail, Telefon oder WhatsApp
+{% if site.chatbot_url %}
+## 4a. KI-Chat-Assistent
+
+Auf unserer Website können Sie freiwillig einen Chat-Assistenten nutzen. Sie schreiben dabei mit einer KI, nicht mit einem Menschen. Der Chat wird erst geladen, wenn Sie auf „Chat starten“ klicken. Er beantwortet Fragen zu Leistungen und Preisen und kann eine Anfrage vorbereiten, die Sie selbst absenden.
+
+Verarbeitet werden Ihre Nachrichten, Fotos, die Sie freiwillig hochladen, sowie technisch notwendige Daten wie Ihre IP-Adresse. Der Chat läuft über Cloudflare Workers (Cloudflare, Inc., USA); die Antworten erzeugt das KI-Modell Claude der Anthropic PBC (USA). Beide verarbeiten die Daten in unserem Auftrag; eine Übermittlung in die USA stützt sich auf das EU-US Data Privacy Framework bzw. Standardvertragsklauseln. Nach Angaben von Anthropic werden über die Schnittstelle übermittelte Daten nicht zum Training der KI verwendet und nur für begrenzte Zeit gespeichert.
+
+Wir speichern Ihre Chatverläufe nicht. Der Verlauf liegt nur in Ihrem Browser (Sitzungsspeicher, kein Cookie) und ist weg, sobald Sie das Fenster schließen. Fotos werden in Ihrem Browser verkleinert und von Standortdaten befreit, nur zur Auswertung übermittelt und nicht gespeichert. Zum Schutz vor Missbrauch zählen wir, wie viele Nachrichten von einer IP-Adresse kommen; die IP-Adresse wird dafür nur verschlüsselt (als Hash) und höchstens 24 Stunden gespeichert. Senden Sie über den Chat eine Anfrage ab, gilt Abschnitt 4; der Chatverlauf wird dann mit Ihrer Einwilligung mitgeschickt.
+
+Rechtsgrundlage ist unser berechtigtes Interesse, Fragen von Interessenten schnell zu beantworten (Art. 6 Abs. 1 lit. f DSGVO), bei Terminanfragen Art. 6 Abs. 1 lit. b DSGVO. Bitte geben Sie im Chat keine sensiblen Daten ein.
+
+{% endif %}## 5. Kontakt per E-Mail, Telefon oder WhatsApp
 
 Wenn Sie uns per E-Mail, Telefon oder WhatsApp kontaktieren, verarbeiten wir Ihre Angaben zur Bearbeitung Ihres Anliegens. Die WhatsApp-Buttons sind einfache Links: Erst wenn Sie einen anklicken, wird WhatsApp (WhatsApp Ireland Limited bzw. Meta) geöffnet und es gelten die Datenschutzbestimmungen von WhatsApp. Wenn Sie das nicht möchten, erreichen Sie uns jederzeit per Telefon oder E-Mail.
 

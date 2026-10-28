@@ -25,6 +25,7 @@ content:
           - { name: strasse, label: Straße, type: string }
           - { name: plz, label: PLZ, type: string }
           - { name: ort, label: Ort, type: string }
+      - { name: chatbot_url, label: "KI-Chat: Adresse", type: string, description: "Adresse des Chat-Servers, z. B. https://primedetailing-chat.tom-schindler999.workers.dev. Leer lassen = kein Chat auf der Website." }
       - { name: seo_titel, label: Titel bei Google, type: string }
       - { name: seo_beschreibung, label: Beschreibung bei Google, type: text }
 
