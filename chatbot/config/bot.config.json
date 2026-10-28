@@ -1,0 +1,113 @@
+{
+  "_hinweis": "Pro Kunde nur diese Datei + data/wissen.md + data/preise.json anpassen.",
+  "betrieb": {
+    "name": "Prime Detailing",
+    "branche": "mobile Fahrzeugaufbereitung",
+    "botName": "Prime Detailing Assistent",
+    "website": "https://primedetailing.eu",
+    "telefon": "+49 171 5311177",
+    "whatsapp": "491715311177",
+    "email": "support@primedetailing.eu",
+    "datenschutzUrl": "https://primedetailing.eu/datenschutz/",
+    "buchungsUrl": ""
+  },
+  "preisQuelle": {
+    "_hinweis": "Preise kommen bei jedem Bauen aus dem Website-CMS (src/_data). Pakete/Preise also im CMS ändern, nicht in data/preise.json.",
+    "preise": "../src/_data/preise.yml",
+    "rechner": "../src/_data/rechner.yml",
+    "kategorieNamen": {
+      "Innen": "Innenreinigung"
+    }
+  },
+  "ton": {
+    "anrede": "Sie",
+    "sprache": "de",
+    "stil": "freundlich, kurz, konkret, ohne Floskeln"
+  },
+  "design": {
+    "primaer": "#1f2a37",
+    "akzent": "#c99a2e",
+    "hintergrund": "#ffffff",
+    "radius": "14px",
+    "position": "rechts"
+  },
+  "start": {
+    "begruessung": "Hallo! Ich bin der digitale Assistent von Prime Detailing. Ich beantworte Fragen zu Leistungen und Preisen und bereite gern eine Terminanfrage für Sie vor.",
+    "kiHinweis": "Sie schreiben mit einer KI. Für verbindliche Absprachen melden sich Tom oder Jonas persönlich.",
+    "buttons": [
+      "Innenreinigung",
+      "Außen/Kombi",
+      "Politur/Versiegelung",
+      "Leasingrückgabe",
+      "Frage stellen"
+    ]
+  },
+  "foto": {
+    "_hinweis": "Foto-Check: Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket. aktiv=false schaltet ihn ab.",
+    "aktiv": true,
+    "button": "📷 Foto-Check",
+    "hinweis": "Foto vom Innenraum, Lack oder den Felgen – bitte ohne Kennzeichen und Personen.",
+    "worauf": "Innenraum: Verschmutzungsgrad von Sitzen, Teppichen und Kofferraum, Tierhaare, Flecken, Krümel. Außen: Schmutzfilm, Insekten, Wasserflecken, stumpfer Lack, Swirls und Kratzer, Felgen. Bei Leasingrückgabe: was ein Gutachter typischerweise bemängeln würde (Flecken, starke Gebrauchsspuren, Lackkratzer) und welches Paket das verbessert."
+  },
+  "rueckfragen": {
+    "fahrzeugklasse": [
+      "Kleinwagen",
+      "Mittelklasse / Kombi",
+      "SUV / Van"
+    ],
+    "zustand": [
+      "Normal",
+      "Stark verschmutzt",
+      "Tierhaare"
+    ]
+  },
+  "formular": {
+    "objektLabel": "Fahrzeug",
+    "objektPlatzhalter": "z. B. VW Golf 8, Kombi",
+    "buchungsText": "Online-Termin buchen"
+  },
+  "uebergabe": {
+    "text": "Das klärt am besten unser Team persönlich. Schreiben Sie uns gern direkt per WhatsApp oder ich bereite eine Anfrage für Sie vor."
+  },
+  "llm": {
+    "provider": "anthropic",
+    "modell": "claude-haiku-5-5",
+    "bedrockModell": "",
+    "bedrockRegion": "eu-central-1",
+    "maxTokens": 600,
+    "temperatur": 0.2
+  },
+  "limits": {
+    "_hinweis": "Spam-Schutz. Ein normales Kundengespräch hat 5–15 Nachrichten. Harte Kostengrenze: Ausgabenlimit in der Anthropic Console.",
+    "maxZeichenProNachricht": 800,
+    "maxZeichenProGespraech": 12000,
+    "maxNachrichtenProGespraech": 30,
+    "maxFotosProGespraech": 3,
+    "proIp": {
+      "minute": 8,
+      "stunde": 40,
+      "tag": 100
+    },
+    "fotosProIp": {
+      "minute": 3,
+      "stunde": 6,
+      "tag": 10
+    },
+    "anfragenFormularProIp": {
+      "minute": 2,
+      "stunde": 5,
+      "tag": 10
+    },
+    "tagesbudgetNachrichten": 1500
+  },
+  "pruefung": {
+    "_hinweis": "Formulierungen, die trotz Zusage-Filter erlaubt sind, weil sie in der Wissensbasis stehen (Groß/Klein egal).",
+    "erlaubtePhrasen": [
+      "Anfahrt ist kostenlos",
+      "Anfahrt kostenlos",
+      "kostenlose Anfahrt",
+      "kostenlos verschieben",
+      "ohne Anfahrtskosten"
+    ]
+  }
+}

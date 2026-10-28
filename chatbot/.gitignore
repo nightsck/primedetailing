@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/anfragen.log
+tests/eval-ergebnis.json
+.wrangler/
+src/daten.generated.ts

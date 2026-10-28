@@ -1,0 +1,30 @@
+{
+  "name": "website-chatbot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "KI-Website-Chatbot (Prototyp Prime Detailing)",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "daten": "node scripts/daten-bauen.mjs",
+    "start": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env src/node.ts",
+    "dev": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env --watch src/node.ts",
+    "test": "node scripts/daten-bauen.mjs && node --test tests/*.test.ts",
+    "evals": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/run-evals.ts",
+    "worker:dev": "node scripts/daten-bauen.mjs && wrangler dev",
+    "deploy": "node scripts/daten-bauen.mjs && wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.26.0",
+    "@anthropic-ai/sdk": "^0.71.0",
+    "@hono/node-server": "^1.19.0",
+    "hono": "^4.10.0",
+    "nodemailer": "^7.0.0"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.3.2",
+    "wrangler": "^4.0.0"
+  }
+}

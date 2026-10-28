@@ -1,0 +1,262 @@
+{
+  "_hinweis": "Einzige Quelle für Preise. Der Bot nennt nur Beträge aus dieser Datei. 'ab: true' = Startpreis, abhängig von Fahrzeug und Zustand. preis null = auf Anfrage. Stand: Website-Daten (preise.yml), Oktober 2026.",
+  "waehrung": "EUR",
+  "kategorien": [
+    {
+      "name": "Innenreinigung",
+      "pakete": [
+        {
+          "id": "innen-basis",
+          "name": "Innen Basis",
+          "preis": 59.99,
+          "ab": false,
+          "beschreibung": "Die schnelle Auffrischung für zwischendurch.",
+          "leistungen": [
+            "Aussaugen inkl. Kofferraum",
+            "Scheibenreinigung innen",
+            "Staubwischen Armaturen"
+          ]
+        },
+        {
+          "id": "innen-comfort",
+          "name": "Innen Comfort",
+          "preis": 79.99,
+          "ab": false,
+          "empfohlen": true,
+          "beschreibung": "Gründliche Reinigung für ein gepflegtes Gefühl.",
+          "leistungen": [
+            "Alles aus Basis",
+            "Kunststoffpflege",
+            "Fußmatten-Intensivreinigung",
+            "Geruchsneutralisierung"
+          ]
+        },
+        {
+          "id": "innen-premium",
+          "name": "Innen Premium",
+          "preis": 99.99,
+          "ab": false,
+          "beschreibung": "Tiefenreinigung für höchste Ansprüche.",
+          "leistungen": [
+            "Alles aus Comfort",
+            "Polster & Teppich (Nasssaugen)",
+            "Lederpflege",
+            "Tierhaarentfernung"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Außen & Kombi",
+      "pakete": [
+        {
+          "id": "handwaesche",
+          "name": "Handwäsche",
+          "preis": 59.99,
+          "ab": false,
+          "beschreibung": "Schonende Außenreinigung.",
+          "leistungen": [
+            "2-Eimer-Handwäsche",
+            "Inkl. Einstiegsleisten",
+            "Felgenreinigung",
+            "Scheibenreinigung außen"
+          ]
+        },
+        {
+          "id": "kombi-basis",
+          "name": "Kombi Basis",
+          "preis": 109.99,
+          "ab": false,
+          "beschreibung": "Innen Basis + Außen.",
+          "leistungen": [
+            "Innenreinigung Basis",
+            "Außenwäsche komplett"
+          ]
+        },
+        {
+          "id": "kombi-comfort",
+          "name": "Kombi Comfort",
+          "preis": 129.99,
+          "ab": false,
+          "empfohlen": true,
+          "beschreibung": "Innen Comfort + Außen.",
+          "leistungen": [
+            "Innenreinigung Comfort",
+            "Außenwäsche komplett"
+          ]
+        },
+        {
+          "id": "kombi-premium",
+          "name": "Kombi Premium",
+          "preis": 149.99,
+          "ab": false,
+          "beschreibung": "Innen Premium + Außen.",
+          "leistungen": [
+            "Innenreinigung Premium",
+            "Außenwäsche komplett"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Politur",
+      "pakete": [
+        {
+          "id": "glanzpolitur",
+          "name": "Glanzpolitur",
+          "preis": 299.99,
+          "ab": true,
+          "beschreibung": "Entfernung leichter Kratzer und Hologramme.",
+          "leistungen": [
+            "Inkl. Außenreinigung",
+            "1-Stufen-Hochglanzpolitur",
+            "Mehr Glanz",
+            "Standzeit ca. 3–6 Monate"
+          ]
+        },
+        {
+          "id": "politur-2stufen",
+          "name": "2-Stufen-Politur",
+          "preis": 549.99,
+          "ab": true,
+          "empfohlen": true,
+          "beschreibung": "Intensive Lackkorrektur für tiefere Defekte.",
+          "leistungen": [
+            "Inkl. Außenreinigung",
+            "Schleif- & Hochglanzpolitur",
+            "Entfernt 80–90 % der Kratzer",
+            "Maximaler Tiefenglanz"
+          ]
+        },
+        {
+          "id": "politur-einzelteile",
+          "name": "Politur Einzelteile",
+          "preis": null,
+          "ab": false,
+          "beschreibung": "Politur einzelner Karosserieteile.",
+          "leistungen": [
+            "Lokale Kratzerentfernung",
+            "Scheinwerferaufbereitung",
+            "Spot-Repair",
+            "Individuelle Beratung"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Versiegelung",
+      "pakete": [
+        {
+          "id": "keramik",
+          "name": "Keramikversiegelung",
+          "preis": 699.99,
+          "ab": true,
+          "empfohlen": true,
+          "beschreibung": "Der stärkste Lackschutz in unserem Angebot.",
+          "leistungen": [
+            "Inkl. Außenreinigung",
+            "Inkl. 2-Stufen-Politur",
+            "Starker Abperleffekt",
+            "Standzeit 24–36 Monate"
+          ]
+        },
+        {
+          "id": "scheibenversiegelung",
+          "name": "Scheibenversiegelung",
+          "preis": 29.99,
+          "ab": true,
+          "beschreibung": "Klare Sicht bei jedem Wetter.",
+          "leistungen": [
+            "Inkl. Außenreinigung",
+            "Abperleffekt ab 60 km/h",
+            "Leichtere Reinigung"
+          ]
+        },
+        {
+          "id": "felgenversiegelung",
+          "name": "Felgenversiegelung",
+          "preis": 39.99,
+          "ab": true,
+          "beschreibung": "Schutz vor hartnäckigem Bremsstaub.",
+          "leistungen": [
+            "Inkl. Außenreinigung",
+            "Hitzebeständiger Schutz",
+            "Einfachere Reinigung"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Leasingrückläufer",
+      "pakete": [
+        {
+          "id": "leasing-basic",
+          "name": "Leasing Basic",
+          "preis": 179.99,
+          "ab": true,
+          "beschreibung": "Die essenzielle Aufbereitung für eine problemlose Rückgabe.",
+          "leistungen": [
+            "Vorher-/Nachher-Zustandsprotokoll",
+            "Gründliches Aussaugen",
+            "Display & Armaturen",
+            "Polster & Teppich",
+            "Fußmatten",
+            "Scheiben komplett",
+            "Einstiegsleisten & Türfalze",
+            "Außenwäsche komplett",
+            "Felgen-Intensivreinigung",
+            "Reifenpflege & Glanz"
+          ]
+        },
+        {
+          "id": "leasing-comfort",
+          "name": "Leasing Comfort",
+          "preis": 249.99,
+          "ab": true,
+          "empfohlen": true,
+          "beschreibung": "Erweiterte Pflege für höhere Ansprüche.",
+          "leistungen": [
+            "Alle Basic-Leistungen",
+            "Lederreinigung & -pflege",
+            "Gummipflege Türdichtungen",
+            "Kunststoff-Intensivpflege",
+            "Fußmatten-Intensivreinigung",
+            "Tierhaarentfernung",
+            "Türfalze & Tankdeckel gepflegt"
+          ]
+        },
+        {
+          "id": "leasing-premium",
+          "name": "Leasing Premium",
+          "preis": 349.99,
+          "ab": true,
+          "beschreibung": "Maximale Sauberkeit und Werterhalt.",
+          "leistungen": [
+            "Alle Comfort-Leistungen",
+            "Ozonbehandlung",
+            "Desinfektion Innenraum",
+            "Kofferraum inkl. Reserverad-Mulde",
+            "Schimmelentfernung",
+            "Sicherheitsgurt-Reinigung",
+            "Felgenversiegelung",
+            "Einzelne Kratzerentfernung"
+          ]
+        }
+      ]
+    }
+  ],
+  "aufschlaege": {
+    "_hinweis": "Aufschlag je Variante in Euro auf den Grundpreis. offen=true: Werte noch nicht festgelegt, der Bot nennt keinen Aufschlag.",
+    "bezeichnung": "Fahrzeuggröße",
+    "offen": true,
+    "optionen": {
+      "Kleinwagen": 0,
+      "Mittelklasse / Kombi": 0,
+      "SUV / Van": 0
+    }
+  },
+  "zuschlaege": {
+    "starke_verschmutzung": "möglich, Höhe nach Fotos/Besichtigung — Bot nennt keinen Betrag"
+  },
+  "geschaeftskunden": "Individuelles Angebot mit Firmenrabatt — Bot nennt keinen Betrag, übergibt an Team"
+}

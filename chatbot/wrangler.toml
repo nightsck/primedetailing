@@ -1,0 +1,33 @@
+# Cloudflare Worker für den Website-Chat
+name = "primedetailing-chat"
+main = "src/worker.ts"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+# Variablen, die im Cloudflare-Dashboard geändert werden (z. B. KILL_SWITCH),
+# beim nächsten Deploy nicht überschreiben
+keep_vars = true
+
+# Öffentliche Einstellungen (Geheimnisse NICHT hier, sondern per `npx wrangler secret put …`)
+[vars]
+LLM_PROVIDER = "anthropic"
+ALLOWED_ORIGINS = "https://primedetailing.eu,https://www.primedetailing.eu"
+FORMSUBMIT_ZIEL = "support@primedetailing.eu"
+# Notbremse: KILL_SWITCH = "1" pausiert den Chat sofort. Am einfachsten im
+# Cloudflare-Dashboard setzen (Worker → Einstellungen → Variablen), siehe CLOUDFLARE.md.
+
+# Geheimnisse (einmalig setzen):
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put SESSION_SECRET      (beliebige lange Zufallszeichenkette)
+
+# Zähler für die Spam-Limits (Minute/Stunde/Tag pro Besucher + Tagesbudget).
+# Läuft im kostenlosen Workers-Tarif.
+[[durable_objects.bindings]]
+name = "LIMITS"
+class_name = "LimitZaehler"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LimitZaehler"]
+
+[observability]
+enabled = true
