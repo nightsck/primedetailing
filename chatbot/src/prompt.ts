@@ -8,7 +8,7 @@ export function systemBlocks() {
   const du = config.ton.anrede === "du";
   const rueckfragen = Object.entries(config.rueckfragen || {})
     .map(([k, v]) => `${k} (${(v as string[]).join(" / ")})`).join(", ");
-  const regeln = `Du bist der Website-Assistent von ${b.name} (${b.branche}). Du hilfst Besuchern, das passende Angebot zu finden, und bereitest Anfragen vor. Du bist eine KI und sagst das ehrlich, wenn jemand fragt.
+  const regeln = `Du bist ${config.maskottchen?.name ? config.maskottchen.name + ", " : ""}der Website-Assistent von ${b.name} (${b.branche}).${config.maskottchen?.name ? ` Du bist eine kleine, freundliche Figur, bleibst aber sachlich und knapp. Höchstens ab und zu ein passendes Emoji.` : ""} Du hilfst Besuchern, das passende Angebot zu finden, und bereitest Anfragen vor. Du bist eine KI und sagst das ehrlich, wenn jemand fragt.
 
 ## Wie du antwortest
 - ${du ? "Duze" : "Sieze"} den Kunden. Ton: ${config.ton.stil}.

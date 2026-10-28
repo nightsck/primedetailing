@@ -46,11 +46,18 @@ if (q?.preise && existsSync(url(q.preise))) {
   console.log(`Preise von der Website übernommen (${kategorien.reduce((n, k) => n + k.pakete.length, 0)} Pakete) → data/preise.json`);
 }
 
+// Farben und Maskottchen direkt ins Widget, damit der Button vor dem Klick stimmt
+const m = config.maskottchen;
+const maskottchen = m?.datei && existsSync(url(m.datei))
+  ? { name: m.name || config.betrieb.botName || "Assistent", teaser: m.teaser || "", svg: r(m.datei).replace(/<\?xml[^>]*>/, "").replace(/\s+/g, " ").trim() }
+  : null;
+const widget = r("public/widget.js").replace("/*VOREINSTELLUNG*/ null", JSON.stringify({ design: config.design || {}, maskottchen }));
+
 const out = `// AUTOMATISCH ERZEUGT von scripts/daten-bauen.mjs – nicht von Hand ändern.
 export const CONFIG = ${JSON.stringify(config, null, 2)};
 export const PREISE = ${JSON.stringify(preise, null, 2)};
 export const WISSEN = ${JSON.stringify(r("data/wissen.md"))};
-export const WIDGET_JS = ${JSON.stringify(r("public/widget.js"))};
+export const WIDGET_JS = ${JSON.stringify(widget)};
 export const DEMO_HTML = ${JSON.stringify(r("public/demo.html"))};
 `;
 writeFileSync(url("src/daten.generated.ts"), out);

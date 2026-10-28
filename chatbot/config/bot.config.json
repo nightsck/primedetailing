@@ -3,7 +3,7 @@
   "betrieb": {
     "name": "Prime Detailing",
     "branche": "mobile Fahrzeugaufbereitung",
-    "botName": "Prime Detailing Assistent",
+    "botName": "Tropfi",
     "website": "https://primedetailing.eu",
     "telefon": "+49 171 5311177",
     "whatsapp": "491715311177",
@@ -29,10 +29,19 @@
     "akzent": "#c99a2e",
     "hintergrund": "#ffffff",
     "radius": "14px",
-    "position": "rechts"
+    "position": "rechts",
+    "launcherHintergrund": "#ffffff",
+    "launcherTextfarbe": "#1f2a37",
+    "launcherText": "Frag Tropfi"
+  },
+  "maskottchen": {
+    "_hinweis": "Optional. Figur auf dem Chat-Button, im Kopf des Chats und beim Tippen. Datei = SVG im Ordner config/. Leer lassen = klassisches Sprechblasen-Symbol.",
+    "name": "Tropfi",
+    "datei": "config/maskottchen.svg",
+    "teaser": "Hi, ich bin Tropfi! Fragen zu Preisen oder Terminen?"
   },
   "start": {
-    "begruessung": "Hallo! Ich bin der digitale Assistent von Prime Detailing. Ich beantworte Fragen zu Leistungen und Preisen und bereite gern eine Terminanfrage für Sie vor.",
+    "begruessung": "Hallo! Ich bin Tropfi 💧, der digitale Assistent von Prime Detailing. Ich beantworte Fragen zu Leistungen und Preisen und bereite gern eine Terminanfrage für Sie vor.",
     "kiHinweis": "Sie schreiben mit einer KI. Termine und endgültige Preise bestätigen Tom oder Jonas persönlich.",
     "buttons": [
       "Innenreinigung",

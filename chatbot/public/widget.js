@@ -5,6 +5,10 @@
   const SCRIPT = document.currentScript;
   const API = (SCRIPT && SCRIPT.dataset.api) || (SCRIPT ? new URL(SCRIPT.src).origin : location.origin);
 
+  // Beim Bauen eingesetzt (scripts/daten-bauen.mjs): Farben und Maskottchen,
+  // damit der Button schon vor dem Klick richtig aussieht – ohne Serveranfrage.
+  const V = /*VOREINSTELLUNG*/ null || { design: {}, maskottchen: null };
+  const M = V.maskottchen;
   const ICON_CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   const ICON_CAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5h6l1.4 2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
@@ -18,6 +22,25 @@
     border:0;border-radius:999px;background:var(--p);color:#fff;padding:13px 18px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;
     box-shadow:0 6px 20px rgba(16,24,40,.18)}
   .launch svg{width:20px;height:20px}
+  .launch.mit-figur{background:${d.launcherHintergrund||"var(--p)"};color:${d.launcherTextfarbe||"#fff"};padding:5px 18px 5px 6px;border:2px solid var(--a)}
+  .figur{display:grid;place-items:center;flex:none}
+  .figur svg{width:100%;height:100%;overflow:visible}
+  .launch .figur{width:44px;height:44px;transform-origin:50% 90%;animation:winken 7s ease-in-out 2s infinite}
+  .launch:hover .figur{animation:huepf .6s ease-in-out}
+  @keyframes winken{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(-12deg)}90%{transform:rotate(10deg)}93%{transform:rotate(-7deg)}96%{transform:rotate(4deg)}}
+  @keyframes huepf{0%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}70%{transform:translateY(1px)}}
+  .figur .tuch{transform-origin:150px 135px;animation:wisch 1.2s ease-in-out infinite}
+  .launch .figur .tuch{animation:none}
+  @keyframes wisch{0%,100%{transform:rotate(0)}50%{transform:rotate(-18deg)}}
+  .avatar{width:38px;height:38px;border-radius:50%;background:#eaf6fd;padding:3px}
+  .teaser{position:fixed;${d.position==="links"?"left":"right"}:20px;bottom:86px;z-index:2147483000;max-width:240px;background:#fff;color:var(--t);
+    border-radius:14px;padding:10px 32px 10px 13px;font-size:14px;box-shadow:0 10px 30px rgba(16,24,40,.2);animation:rein .35s ease-out}
+  .teaser:after{content:"";position:absolute;${d.position==="links"?"left":"right"}:34px;bottom:-7px;width:14px;height:14px;background:#fff;transform:rotate(45deg)}
+  .teaser button{position:absolute;top:4px;right:4px;border:0;background:none;color:var(--m);font-size:18px;line-height:1;cursor:pointer;padding:4px}
+  .teaser[hidden]{display:none}
+  @keyframes rein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .typing.figur-tippt{background:none;padding:0;gap:6px;align-items:center}
+  .typing .figur{width:30px;height:30px;animation:huepf .9s ease-in-out infinite}
   .launch:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--a);outline-offset:2px}
   .panel{position:fixed;${d.position==="links"?"left":"right"}:20px;bottom:20px;z-index:2147483001;width:380px;max-width:calc(100vw - 32px);
     height:min(620px,calc(100vh - 40px));background:var(--bg);border:1px solid var(--line);border-radius:var(--r);
@@ -41,7 +64,7 @@
   .typing i{width:6px;height:6px;border-radius:50%;background:var(--m);opacity:.4;animation:b 1s infinite}
   .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
   @keyframes b{50%{opacity:1;transform:translateY(-2px)}}
-  @media (prefers-reduced-motion:reduce){.typing i{animation:none}.log{scroll-behavior:auto}}
+  @media (prefers-reduced-motion:reduce){.typing i,.figur,.figur .tuch,.launch .figur,.typing .figur,.teaser{animation:none!important}.log{scroll-behavior:auto}}
   .chips{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start}
   .chip{border:1px solid var(--line);background:#fff;color:var(--t);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
   .chip:hover{border-color:var(--p)}
@@ -79,13 +102,27 @@
   class WebsiteChat extends HTMLElement {
     connectedCallback() {
       this.root = this.attachShadow({ mode: "open" });
-      this.root.innerHTML = `<style>${css({})}</style><button class="launch" part="launcher" aria-label="Chat öffnen">${ICON_CHAT}<span>Fragen? Chat starten</span></button>`;
+      this.root.innerHTML = `<style>${css(V.design || {})}</style>` + (M
+        ? `<button class="launch mit-figur" part="launcher" aria-label="Chat mit ${esc(M.name)} öffnen"><span class="figur">${M.svg}</span><span>${esc((V.design || {}).launcherText || "Fragen? Chat starten")}</span></button>`
+        : `<button class="launch" part="launcher" aria-label="Chat öffnen">${ICON_CHAT}<span>Fragen? Chat starten</span></button>`);
+      if (M && M.teaser && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        this.teaserTimer = setTimeout(() => {
+          if (this.geladen) return;
+          const tz = document.createElement("div"); tz.className = "teaser"; tz.setAttribute("role", "status");
+          tz.innerHTML = `${esc(M.teaser)}<button type="button" aria-label="Hinweis schließen">×</button>`;
+          tz.querySelector("button").addEventListener("click", (e) => { e.stopPropagation(); tz.remove(); });
+          tz.addEventListener("click", () => { tz.remove(); this.oeffnen(); });
+          this.root.appendChild(tz); this.teaserEl = tz;
+          setTimeout(() => tz.remove(), 9000);
+        }, 6000);
+      }
       this.root.querySelector(".launch").addEventListener("click", () => this.oeffnen(), { once: false });
       this.geladen = false;
       this.verlauf = ss.get("wc_verlauf") || "";
     }
 
     async oeffnen() {
+      clearTimeout(this.teaserTimer); if (this.teaserEl) this.teaserEl.remove();
       if (!this.geladen) {
         try { this.cfg = await (await fetch(API + "/api/config")).json(); }
         catch { this.cfg = null; }
@@ -106,13 +143,13 @@
       const c = this.cfg || { betrieb: { botName: "Assistent" }, design: {}, start: { begruessung: "Der Chat ist gerade nicht erreichbar.", kiHinweis: "", buttons: [] }, ton: { anrede: "Sie" } };
       this.du = c.ton.anrede === "du";
       const style = this.root.querySelector("style");
-      style.textContent = css(c.design || {});
+      style.textContent = css({ ...(V.design || {}), ...(c.design || {}) });
       const p = document.createElement("section");
       p.className = "panel"; p.hidden = true;
       p.setAttribute("role", "dialog"); p.setAttribute("aria-label", c.betrieb.botName);
       p.innerHTML = `
-        <header><div class="who"><b>${esc(c.betrieb.name || c.betrieb.botName)}<span class="badge">KI-Assistent</span></b>
-        <span>Antwortet sofort · Team meldet sich persönlich</span></div>
+        <header>${M ? `<span class="figur avatar">${M.svg}</span>` : ""}<div class="who"><b>${esc(M ? M.name : (c.betrieb.name || c.betrieb.botName))}<span class="badge">KI-Assistent</span></b>
+        <span>${M ? esc(c.betrieb.name) + " · antwortet sofort" : "Antwortet sofort · Team meldet sich persönlich"}</span></div>
         <button class="x" aria-label="Chat schließen">${ICON_X}</button></header>
         <div class="log" aria-live="polite"></div>
         <form class="send">${c.foto ? `<button type="button" class="cam" aria-label="Foto senden" title="${esc(c.foto.hinweis || "Foto senden")}">${ICON_CAM}</button><input type="file" accept="image/*" hidden>` : ""}<textarea rows="1" maxlength="${Number(c.maxZeichen) || 800}" placeholder="${this.du ? "Schreib" : "Schreiben Sie"} Ihre Frage …" aria-label="Nachricht"></textarea>
@@ -215,7 +252,9 @@
       const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = text; u.appendChild(cap);
       this.log.appendChild(u);
       this.eingabe.value = ""; this.eingabe.style.height = "42px";
-      const typing = document.createElement("div"); typing.className = "typing"; typing.innerHTML = "<i></i><i></i><i></i>";
+      const typing = document.createElement("div"); typing.className = "typing" + (M ? " figur-tippt" : "");
+      typing.innerHTML = (M ? `<span class="figur">${M.svg}</span>` : "") + "<i></i><i></i><i></i>";
+      typing.setAttribute("aria-label", (M ? M.name : "Assistent") + " schreibt …");
       this.log.appendChild(typing); this.scroll();
 
       let bubble = null, voll = "";
