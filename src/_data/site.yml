@@ -15,4 +15,4 @@ seo_titel: "Prime Detailing – Mobile Fahrzeugaufbereitung in St. Georgen"
 seo_beschreibung: "Mobile Fahrzeugaufbereitung in St. Georgen und Umgebung: Handwäsche, Innenreinigung, Politur, Keramikversiegelung und Leasingrückläufer-Pakete. Feste Preise ab 59,99 €."
 
 # KI-Chat (Ordner chatbot/). Leer = kein Chat auf der Website.
-chatbot_url: ""
+chatbot_url: "https://primedetailing-chat.tom-schindler999.workers.dev"
