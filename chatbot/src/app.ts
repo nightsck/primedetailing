@@ -90,18 +90,30 @@ app.post("/api/chat", async (c) => {
       verlauf.push({ role: "assistant", content: INJECTION_ANTWORT });
       return fertig();
     }
-    try {
-      const antwort = await antworte(verlauf, async (e) => {
-        if (e.type === "text") await send("text", { text: e.text });
-        else if (e.type === "ui") await send("ui", e.ui);
-        else if (e.type === "blockiert") console.warn(`[blockiert] ${e.grund}: ${e.detail}`);
-      }, { bild });
-      verlauf.push({ role: "assistant", content: antwort || "…" });
-    } catch (err: any) {
-      console.error("[llm]", err?.message || err);
-      await send("text", { text: texte.fehler });
-      await send("ui", { typ: "uebergabe", grund: "fehler" });
-      verlauf.pop();
+    // Einmal automatisch neu versuchen, wenn die KI kurz nicht erreichbar ist
+    // (Überlastung, Netzwerk, vereinzelte 403 vom Anbieter) – aber nur, solange
+    // der Kunde noch nichts von dieser Antwort gesehen hat.
+    let schonGesendet = false;
+    const emit = async (e: any) => {
+      if (e.type === "text") { schonGesendet = true; await send("text", { text: e.text }); }
+      else if (e.type === "ui") await send("ui", e.ui);
+      else if (e.type === "blockiert") console.warn(`[blockiert] ${e.grund}: ${e.detail}`);
+    };
+    for (let versuch = 1; versuch <= 2; versuch++) {
+      try {
+        const antwort = await antworte(verlauf, emit, { bild });
+        verlauf.push({ role: "assistant", content: antwort || "…" });
+        break;
+      } catch (err: any) {
+        console.error(`[llm] Versuch ${versuch}:`, err?.status || "", err?.message || err);
+        if (versuch === 1 && !schonGesendet) { await new Promise((r) => setTimeout(r, 700)); continue; }
+        // Auch im Fehlerfall weiterhelfen: bei Terminwunsch direkt das Formular zeigen
+        const terminWunsch = /termin|anfrag|buch|reserv|vorbei|wann|zeit/i.test(nachricht);
+        await send("text", { text: terminWunsch ? texte.fehlerTermin : texte.fehler });
+        if (terminWunsch) await send("ui", { typ: "anfrage_formular", felder: { wunschtermin: nachricht.slice(0, 120) } });
+        else await send("ui", { typ: "uebergabe", grund: "fehler" });
+        verlauf.pop();
+      }
     }
     return fertig();
   });

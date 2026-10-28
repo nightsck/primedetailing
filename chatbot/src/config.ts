@@ -33,7 +33,8 @@ const standardTexte = {
   zuVieleFotos: du ? "Für den Moment sind genug Fotos angekommen. Schick weitere gern direkt per WhatsApp." : "Für den Moment sind genug Fotos angekommen. Weitere Fotos schicken Sie uns gern direkt per WhatsApp.",
   ausgelastet: du ? "Der Chat ist für heute ausgelastet. Schreib uns gern direkt per WhatsApp oder ruf an." : "Der Chat ist für heute ausgelastet. Schreiben Sie uns gern direkt per WhatsApp oder rufen Sie an.",
   zuLang: du ? "Unser Gespräch ist sehr lang geworden. Schreib uns am besten direkt – oder lade die Seite neu." : "Dieses Gespräch ist sehr lang geworden. Am besten schreiben Sie uns direkt – oder laden Sie die Seite neu.",
-  fehler: "Da ist gerade etwas schiefgelaufen. " + config.uebergabe.text,
+  fehler: (du ? "Ich hänge gerade kurz. " : "Ich komme gerade kurz nicht weiter. ") + config.uebergabe.text,
+  fehlerTermin: du ? "Gern! Ich habe dir unten das Anfrageformular geöffnet – trag kurz Name und Kontakt ein und schick es ab, dann meldet sich das Team mit dem nächsten freien Termin." : "Gern! Ich habe Ihnen unten das Anfrageformular geöffnet – tragen Sie kurz Name und Kontakt ein und senden Sie es ab, dann meldet sich das Team mit dem nächsten freien Termin.",
 };
 export const texte: typeof standardTexte = Object.fromEntries(
   Object.entries(standardTexte).map(([k, v]) => [k, typeof config.texte?.[k] === "string" && config.texte[k] ? config.texte[k] : v])) as any;

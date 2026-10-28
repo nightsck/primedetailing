@@ -102,3 +102,26 @@ test("Mit Cloudflare-Zähler (Durable Object) zählt der gemeinsame Zähler", as
   assert.ok(objekte.has("global"), "Tagesbudget wird mitgezählt");
   assert.ok([...objekte.keys()].every((k) => !k.includes("10.6.0.1")), "IP nur als Hash");
 });
+
+test("KI kurz weg: ein automatischer zweiter Versuch, Kunde merkt nichts", async () => {
+  const { _setClient } = await import("../src/llm.ts");
+  let aufrufe = 0;
+  _setClient({ messages: { stream() {
+    aufrufe++;
+    if (aufrufe === 1) return { abort() {}, async *[Symbol.asyncIterator]() { throw Object.assign(new Error("Request not allowed"), { status: 403 }); }, async finalMessage() { return {}; } };
+    return { abort() {}, async *[Symbol.asyncIterator]() { yield { type: "content_block_delta", delta: { type: "text_delta", text: "Klar, gern. " } }; }, async finalMessage() { return { content: [{ type: "text", text: "Klar, gern. " }], stop_reason: "end_turn" }; } };
+  } } });
+  const r = await chat({ nachricht: "Hallo" }, "10.7.0.1");
+  assert.equal(aufrufe, 2);
+  assert.ok(r.text.includes("Klar, gern"));
+  _setClient(null);
+});
+
+test("KI dauerhaft weg + Terminwunsch: Formular statt Abbruch", async () => {
+  const { _setClient } = await import("../src/llm.ts");
+  _setClient({ messages: { stream() { return { abort() {}, async *[Symbol.asyncIterator]() { throw Object.assign(new Error("down"), { status: 500 }); }, async finalMessage() { return {}; } }; } } });
+  const r = await chat({ nachricht: "Gerne den nächstbesten Termin" }, "10.7.0.2");
+  assert.equal(r.text, texte.fehlerTermin);
+  assert.ok(r.ui.some((u) => u.typ === "anfrage_formular"));
+  _setClient(null);
+});

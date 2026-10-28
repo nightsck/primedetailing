@@ -29,5 +29,10 @@ class_name = "LimitZaehler"
 tag = "v1"
 new_sqlite_classes = ["LimitZaehler"]
 
+# Läuft nahe an der KI-Schnittstelle statt am zufälligen Cloudflare-Standort
+# des Besuchers – schneller und vermeidet vereinzelte Ablehnungen durch den Anbieter.
+[placement]
+mode = "smart"
+
 [observability]
 enabled = true
