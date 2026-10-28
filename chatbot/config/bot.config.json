@@ -74,8 +74,7 @@
     "modell": "claude-haiku-5-5",
     "bedrockModell": "",
     "bedrockRegion": "eu-central-1",
-    "maxTokens": 600,
-    "temperatur": 0.2
+    "maxTokens": 600
   },
   "limits": {
     "_hinweis": "Spam-Schutz. Ein normales Kundengespräch hat 5–15 Nachrichten. Harte Kostengrenze: Ausgabenlimit in der Anthropic Console.",

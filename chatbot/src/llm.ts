@@ -59,7 +59,7 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
     const stream = (await getClient()).messages.stream({
       model: modell(),
       max_tokens: config.llm.maxTokens,
-      temperature: config.llm.temperatur,
+      // kein temperature: von aktuellen Claude-Modellen nicht mehr unterstützt
       system: systemBlocks(),
       tools: toolDefinitions,
       messages,
