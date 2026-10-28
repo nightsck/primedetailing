@@ -332,18 +332,25 @@
         if (!data.name || !data.kontakt) { err.textContent = "Bitte Name und Telefon oder E-Mail angeben."; return; }
         if (!data.einwilligung) { err.textContent = "Bitte das Häkchen beim Einverständnis setzen."; return; }
         const btn = d.querySelector("button"); btn.disabled = true; btn.textContent = "Wird gesendet …"; err.textContent = "";
+        // Höchstens 15 Sekunden warten – danach Plan B statt endlosem „Wird gesendet …“
+        const mitZeit = (url, opts, ms) => { const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms); return fetch(url, { ...opts, signal: ctl.signal }).finally(() => clearTimeout(t)); };
+        const start = Date.now(), rest = () => Math.max(3000, 15000 - (Date.now() - start));
         try {
-          const r = await (await fetch(API + "/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, einwilligung: true, verlauf: this.verlauf }) })).json();
-          if (!r.ok) throw new Error(r.fehler);
+          const r = await (await mitZeit(API + "/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, einwilligung: true, verlauf: this.verlauf }) }, rest())).json();
+          if (!r.ok) throw new Error(r.fehler || "");
           if (r.formsubmit) {
-            const fs = await fetch(r.formsubmit.url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(r.formsubmit.daten) })
+            const fs = await mitZeit(r.formsubmit.url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(r.formsubmit.daten) }, rest())
               .then((x) => x.json()).catch(() => ({}));
-            if (!(fs.success === true || fs.success === "true")) throw new Error("Senden fehlgeschlagen. Bitte kurz per WhatsApp oder Telefon melden.");
+            if (!(fs.success === true || fs.success === "true")) throw new Error("");
           }
           d.innerHTML = `<h4>Danke, ${esc(data.name.split(" ")[0])}!</h4><div>Die Anfrage ist angekommen. Wir melden uns ${du ? "bei dir" : "bei Ihnen"} schnellstmöglich persönlich – der Termin ist erst fest, wenn wir ihn bestätigt haben.</div>`;
         } catch (x) {
-          btn.disabled = false; btn.textContent = "Anfrage senden";
-          err.textContent = (x && x.message) || "Senden fehlgeschlagen. Bitte per WhatsApp melden.";
+          btn.disabled = false; btn.textContent = "Erneut senden";
+          const text = [`Hallo ${b.name || ""}, ich möchte einen Termin anfragen.`, `Name: ${data.name}`, `Kontakt: ${data.kontakt}`,
+            data.fahrzeug && `${fo.objektLabel || "Fahrzeug"}: ${data.fahrzeug}`, data.paket && `Paket: ${data.paket}`,
+            data.wunschtermin && `Wunschtermin: ${data.wunschtermin}`, data.notiz && `Notiz: ${data.notiz}`].filter(Boolean).join("\n");
+          const meldung = (x && x.message) || (du ? "Das Senden klappt gerade nicht. Damit nichts verloren geht, schick uns die Anfrage einfach direkt – sie ist schon ausgefüllt:" : "Das Senden klappt gerade nicht. Damit nichts verloren geht, schicken Sie uns die Anfrage einfach direkt – sie ist schon ausgefüllt:");
+          err.innerHTML = `${esc(meldung)}<div class="row" style="margin-top:8px">${b.whatsapp ? `<a class="btn btn-p" target="_blank" rel="noopener" href="https://wa.me/${esc(b.whatsapp)}?text=${encodeURIComponent(text)}">Per WhatsApp senden</a>` : ""}${b.email ? `<a class="btn btn-g" href="mailto:${esc(b.email)}?subject=${encodeURIComponent("Terminanfrage")}&body=${encodeURIComponent(text)}">Per E-Mail</a>` : ""}${b.telefon ? `<a class="btn btn-g" href="tel:${esc(b.telefon.replace(/\s/g, ""))}">Anrufen</a>` : ""}</div>`;
         }
         this.scroll();
       });
