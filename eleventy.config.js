@@ -28,6 +28,11 @@ export default function (eleventyConfig) {
     return `${pre}${p.name} (${preis})`;
   });
 
+  // Empfohlenes Paket einer Kategorie (mit Preis) – für die Preisliste im Hero
+  eleventyConfig.addFilter("empfohlen", (pakete) =>
+    (pakete || []).find((p) => p.empfohlen && p.preis !== null && p.preis !== undefined && p.preis !== "") || null
+  );
+
   // Telefonnummer für tel:-Links (Leerzeichen raus)
   eleventyConfig.addFilter("tel", (s) => String(s).replace(/[^\d+]/g, ""));
 

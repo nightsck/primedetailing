@@ -20,9 +20,9 @@ layout: base.njk
 <!-- ============ HERO ============ -->
 <section class="hero" aria-labelledby="hero-title">
   <div class="wrap hero-grid">
-    <div>
-      <p class="eyebrow">{{ h.eyebrow }}</p>
-      <h1 id="hero-title">{{ h.titel }} <span class="line2">{{ h.titel_gold }}</span></h1>
+    <div class="hero-copy">
+      <p class="hero-place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ h.eyebrow }}</p>
+      <h1 id="hero-title">{{ h.titel }} {{ h.titel_gold }}</h1>
       <p class="lead">{{ h.text }}</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="{{ waLink }}" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-wa"/></svg> Termin per WhatsApp</a>
@@ -30,30 +30,29 @@ layout: base.njk
       </div>
       <ul class="hero-facts">
         {%- for f in h.fakten %}
-        <li><strong>{{ f.wert }}</strong><span>{{ f.text }}</span></li>
+        <li><strong>{{ f.wert }}</strong> <span>{{ f.text }}</span></li>
         {%- endfor %}
       </ul>
     </div>
 
-    <div class="lacquer" aria-hidden="true">
-      {%- if h.bild %}
-      <img class="photo" src="{{ h.bild }}" alt="" width="1200" height="1500" fetchpriority="high">
-      {%- else %}
-      <svg class="curves" viewBox="0 0 500 600" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <linearGradient id="gl1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9ab2f" stop-opacity="0"/><stop offset=".55" stop-color="#f0c652" stop-opacity=".55"/><stop offset="1" stop-color="#d9ab2f" stop-opacity="0"/></linearGradient>
-          <linearGradient id="gl2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-        </defs>
-        <path d="M-20 360 C 120 250, 300 230, 540 280" fill="none" stroke="url(#gl1)" stroke-width="2"/>
-        <path d="M-20 400 C 140 300, 320 285, 540 330" fill="none" stroke="url(#gl2)" stroke-width="1.2"/>
-        <path d="M-20 470 C 160 390, 330 380, 540 410" fill="none" stroke="url(#gl2)" stroke-width="1"/>
-        <path d="M-20 200 C 160 150, 300 160, 540 120" fill="none" stroke="url(#gl2)" stroke-width=".8"/>
-        <ellipse cx="380" cy="150" rx="150" ry="40" fill="url(#gl2)" opacity=".35" transform="rotate(-12 380 150)"/>
-      </svg>
-      {%- endif %}
-      <span class="gauge">Prime Detailing · St. Georgen</span>
+    <div class="showcase">
+      <div class="lacquer{% if h.bild %} has-photo{% endif %}" aria-hidden="true">
+        {%- if h.bild %}<img class="photo" src="{{ h.bild }}" alt="" width="1200" height="1500" fetchpriority="high">{% endif %}
+      </div>
+      <a class="pricetag" href="#preise" aria-label="Beliebte Pakete – alle Preise ansehen">
+        <span class="pricetag-title">Beliebte Pakete</span>
+        <ul>
+          {%- for k in preise.kategorien %}
+          {%- set top = k.pakete | empfohlen %}
+          {%- if top %}
+          <li><span>{{ (k.praefix + ' ' if k.praefix else '') + top.name }}</span><b>{{ top | preistext }}</b></li>
+          {%- endif %}
+          {%- endfor %}
+        </ul>
+        <span class="pricetag-foot">Feste Paketpreise, Anfahrt bis ca. 20 km inklusive</span>
+      </a>
       {%- if h.hinweis_titel %}
-      <div class="tag"><b>{{ h.hinweis_titel }}</b><small>{{ h.hinweis_text }}</small></div>
+      <p class="showcase-note"><b>{{ h.hinweis_titel }}</b> {{ h.hinweis_text }}</p>
       {%- endif %}
     </div>
   </div>
@@ -64,16 +63,13 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">01</span> Leistungen</p>
         <h2 id="leistungen-title">Was wir an Ihrem Fahrzeug machen</h2>
       </div>
       <p class="lead">{{ leistungen.intro }}</p>
     </div>
     <div class="services">
-      {%- set buchstaben = "ABCDEFGHIJ" %}
       {%- for l in leistungen.liste %}
       <article class="service reveal">
-        <span class="idx">{{ buchstaben[loop.index0] }}</span>
         <div>
           <h3>{{ l.titel }}</h3>
           <p class="desc">{{ l.text }}</p>
@@ -96,7 +92,6 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">02</span> Preise</p>
         <h2 id="preise-title">Feste Pakete, klare Preise</h2>
       </div>
       <p class="lead">{{ preise.intro }}</p>
@@ -162,7 +157,6 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">03</span> Preisrechner</p>
         <h2 id="rechner-title">{{ rechner.titel }}</h2>
       </div>
       <p class="lead">{{ rechner.text }}</p>
@@ -233,7 +227,6 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">—</span> Ergebnisse</p>
         <h2 id="ergebnisse-title">Vorher. Nachher.</h2>
       </div>
       <p class="lead">Ziehen Sie den Regler, um den Unterschied zu sehen.</p>
@@ -253,7 +246,6 @@ layout: base.njk
 <section id="ablauf" aria-labelledby="ablauf-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow"><span class="num">{{ "04" if rechner.aktiv else "03" }}</span> Ablauf</p>
       <h2 id="ablauf-title">So läuft ein Termin</h2>
     </div>
     <ol class="steps">
@@ -269,7 +261,6 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">{{ "05" if rechner.aktiv else "04" }}</span> Über uns</p>
         <h2 id="team-title">{{ startseite.ueber_uns.titel }}</h2>
       </div>
       <div class="about-text">
@@ -299,7 +290,6 @@ layout: base.njk
 <section id="faq" aria-labelledby="faq-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow"><span class="num">{{ "06" if rechner.aktiv else "05" }}</span> FAQ</p>
       <h2 id="faq-title">Häufige Fragen</h2>
     </div>
     <div class="faq">
@@ -315,7 +305,6 @@ layout: base.njk
   <div class="wrap">
     <div class="section-head split">
       <div>
-        <p class="eyebrow"><span class="num">{{ "07" if rechner.aktiv else "06" }}</span> Kontakt</p>
         <h2 id="kontakt-title">Termin anfragen</h2>
       </div>
       <p class="lead">Am schnellsten per WhatsApp. Lieber schriftlich? Dann nutzen Sie das Formular – wir melden uns zeitnah.</p>
