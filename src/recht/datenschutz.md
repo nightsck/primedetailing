@@ -6,7 +6,6 @@ lead: "Kurz gesagt: keine Cookies, kein Tracking, keine Werbung. Daten, die Sie 
 stand: "Oktober 2026"
 ---
 
-<p class="todo"><strong>Vor dem Livegang prüfen:</strong> Diese Erklärung ist auf den Aufbau der Seite zugeschnitten (GitHub Pages, FormSubmit, WhatsApp- und Instagram-Links), ersetzt aber keine Rechtsberatung. Am besten mit einem Generator (z. B. e-recht24 oder Dr. Schwenke) gegenprüfen. Diesen Kasten danach löschen.</p>
 
 ## 1. Verantwortliche
 

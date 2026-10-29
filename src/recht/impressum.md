@@ -4,7 +4,6 @@ beschreibung: "Impressum der Prime Detailing GbR."
 ueberschrift: "Impressum"
 ---
 
-<p class="todo"><strong>Vor dem Livegang prüfen:</strong> Genauen Namen der GbR (wie beim Gewerbeamt/Finanzamt angemeldet) und Anschrift kontrollieren. Diesen Kasten danach löschen.</p>
 
 ## Angaben gemäß § 5 DDG
 
