@@ -31,6 +31,24 @@ async function getClient() {
 }
 const modell = () => (env.provider === "bedrock" ? config.llm.bedrockModell : config.llm.modell);
 
+/** true, wenn keine echte KI angebunden ist (Demo-Modus oder kein API-Key). */
+export const ohneKi = () => !client && (env.provider === "demo" || (env.provider === "anthropic" && !env.anthropicKey));
+
+/**
+ * Einfache Anfrage ohne Werkzeuge und ohne Streaming (für die Demo-Seite /demo).
+ * Gibt null zurück, wenn keine KI angebunden ist.
+ */
+export async function kurzeAnfrage(opts: { system: string; messages: Msg[]; maxTokens?: number }): Promise<string | null> {
+  if (ohneKi()) return null;
+  const r = await (await getClient()).messages.create({
+    model: modell(),
+    max_tokens: opts.maxTokens ?? 400,
+    system: opts.system,
+    messages: opts.messages,
+  });
+  return (r.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("").trim();
+}
+
 export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild } = {}): Promise<string> {
   if (!client && (env.provider === "demo" || (env.provider === "anthropic" && !env.anthropicKey))) return demoAntwort(verlauf, emit, !!opts.bild);
 

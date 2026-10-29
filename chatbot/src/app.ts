@@ -15,6 +15,7 @@ import { istInjection, INJECTION_ANTWORT } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
 import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
+import { demoRouten } from "./demo.ts";
 import { pruefeBild, fotoAktiv, maxFotos, fotosImVerlauf, FOTO_MARKER, type Bild } from "./foto.ts";
 
 // --- Signiertes Verlaufs-Token ---------------------------------------------
@@ -52,6 +53,9 @@ app.use("/api/*", cors({
   origin: (o) => (env.allowedOrigins.length === 0 || env.allowedOrigins.includes(o) ? o : ""),
   allowMethods: ["POST", "GET"],
 }));
+
+// Vorführseite primedetailing.eu/demo (eigene, schlanke Schnittstellen)
+demoRouten(app);
 
 app.post("/api/chat", async (c) => {
   if (Number(c.req.header("content-length") || 0) > 2_200_000) return c.json({ ok: false }, 413);
