@@ -16,6 +16,22 @@ function afterHours(iso) { const d = new Date(iso); if (isNaN(d)) return false; 
 let toastT;
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 3800); }
 
+/* ---------- Zähler für die Auswertung ---------- */
+// Beispielmonat eines Betriebs plus die eigenen Klicks in dieser Demo (nur in diesem Browser).
+const ZKEY = 'af-demo-zaehler-v1';
+const ZBASIS = { chat_offen: 148, chat_start: 61, anfrage: 23, anruf_verpasst: 19, sms_offen: 11, sms_anfrage: 7, bew_offen: 42, bew_start: 15, bewerbung: 9, unterlagen: 4 };
+const ZEIT_BASIS = { morgens: 5, mittags: 8, abends: 12, nachts: 5 };
+let Z = { zahl: {}, zeit: {} };
+try { const raw = localStorage.getItem(ZKEY); if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') Z = { zahl: o.zahl || {}, zeit: o.zeit || {} }; } } catch (e) { /* ohne Speicher */ }
+function zSave() { try { localStorage.setItem(ZKEY, JSON.stringify(Z)); } catch (e) { /* ignorieren */ } }
+function zeitFenster(d = new Date()) { const h = d.getHours(); return h >= 6 && h < 12 ? 'morgens' : h >= 12 && h < 17 ? 'mittags' : h >= 17 && h < 22 ? 'abends' : 'nachts'; }
+function zaehle(k) {
+  Z.zahl[k] = (Z.zahl[k] || 0) + 1;
+  if (k === 'anfrage' || k === 'sms_anfrage') { const f = zeitFenster(); Z.zeit[f] = (Z.zeit[f] || 0) + 1; }
+  zSave();
+  if (typeof renderAuswertung === 'function' && !document.getElementById('v-auswertung').hidden) renderAuswertung();
+}
+
 /* ---------- Betrieb & Preise ---------- */
 const PROFIL = {
   name: 'Muster Fahrzeugpflege',
@@ -186,7 +202,7 @@ function user(text, o = {}) { const m = Object.assign({ from: 'user', text }, o)
 function useChips() { C.log.forEach(m => { if (m.chips) m.used = true; }); }
 
 function startChat(kanal = 'Website') {
-  C.log = []; C.turns = []; C.ctx = { kanal, fotos: [], voll: [] }; C.busy = false;
+  C.log = []; C.turns = []; C.ctx = { kanal, fotos: [], voll: [] }; C.busy = false; C.gezaehlt = false;
   const hi = kanal === 'Anruf-SMS'
     ? 'Sie hatten gerade angerufen, wir waren leider im Einsatz. Worum geht es? Dann melden wir uns mit Preis und Termin.'
     : 'Guten Tag. Worum geht es? Wählen Sie eine Leistung, dann rechne ich Ihnen den Preis aus.';
@@ -256,8 +272,10 @@ function reprompt() {
   }
 }
 
+function chatBegonnen() { if (!C.gezaehlt) { C.gezaehlt = true; if (C.ctx.kanal !== 'Anruf-SMS') zaehle('chat_start'); } }
 function act(a, v, idx) {
   const m = C.log[idx];
+  if (a !== 'neu' && a !== 'chef') chatBegonnen();
   if (a === 'fotos') { $('#photoInput').click(); return; }
   if (m) m.used = true;
   switch (a) {
@@ -384,7 +402,7 @@ async function answer(t) {
 async function onText(t) {
   t = t.trim(); if (!t || C.busy) return;
   C.busy = true;
-  user(t); C.turns.push({ role: 'user', content: t }); renderLog();
+  chatBegonnen(); user(t); C.turns.push({ role: 'user', content: t }); renderLog();
   try {
     if (C.step === 'fahrzeug') {
       const k = guessKlasse(t);
@@ -416,6 +434,7 @@ async function submitKontakt(idx) {
   if (JSON.stringify(r).length > 230000) r.fotos = r.fotos.slice(0, 1);
   bot(`Danke, ${name.split(' ')[0]}! Ihre Anfrage ist beim Team. Das Angebot kommt in der Regel bis zum nächsten Vormittag.`, { chips: [{ label: 'So sieht es der Betrieb', act: 'chef' }, { label: 'Neue Anfrage starten', act: 'neu' }] });
   C.step = 'fertig'; renderLog();
+  zaehle(r.kanal === 'Anruf-SMS' ? 'sms_anfrage' : 'anfrage');
   await saveRequest(r);
   toast('Angekommen. Tippen Sie auf „So sieht es der Betrieb“.');
 }
@@ -475,6 +494,7 @@ function renderServices() {
 /* ---------- Chatfenster auf der Beispiel-Website ---------- */
 let chatStarted = false;
 function openChat(kanal) {
+  if (!kanal) zaehle('chat_offen');
   if (kanal) { startChat(kanal); chatStarted = true; }
   else if (!chatStarted) { startChat('Website'); chatStarted = true; }
   $('#chatPanel').hidden = false;
@@ -513,12 +533,12 @@ function startCall() {
   callTimers.forEach(clearTimeout); callTimers = [];
   const d = new Date(); $('#phoneClock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   phone('ring');
-  callTimers.push(setTimeout(() => phone('missed'), 2600));
+  callTimers.push(setTimeout(() => { phone('missed'); zaehle('anruf_verpasst'); }, 2600));
   callTimers.push(setTimeout(() => phone('sms'), 4200));
 }
 $('#callStart').addEventListener('click', startCall);
 $('#callReset').addEventListener('click', () => { callTimers.forEach(clearTimeout); phone('idle'); });
-$('#phoneScreen').addEventListener('click', e => { if (e.target.closest('#smsOpen')) { go('kunde'); openChat('Anruf-SMS'); toast('Der Anrufer ist jetzt im Chat. Kanal: Anruf-SMS.'); } });
+$('#phoneScreen').addEventListener('click', e => { if (e.target.closest('#smsOpen')) { zaehle('sms_offen'); go('kunde'); openChat('Anruf-SMS'); toast('Der Anrufer ist jetzt im Chat. Kanal: Anruf-SMS.'); } });
 
 /* ---------- Chef: Übersicht (Angebote schreibt das Büro wie gewohnt) ---------- */
 const STATUS = { neu: 'Neu', bearbeitung: 'In Bearbeitung', angebot: 'Angebot geschrieben', gewonnen: 'Auftrag', verloren: 'Abgesagt' };
@@ -675,13 +695,14 @@ function bNormalize(d) {
   d = d || {}; const t = (v, n = 120) => String(v == null ? '' : v).slice(0, n);
   return { id: t(d.id || uid(), 40), createdAt: t(d.createdAt, 40), status: BSTATUS[d.status] ? d.status : 'neu', beispiel: !!d.beispiel,
     name: t(d.name, 80) || 'Unbekannt', kontakt: t(d.kontakt), erreichbar: t(d.erreichbar, 80), job: t(d.job, 20), erfahrung: t(d.erfahrung, 60),
-    fuehrerschein: t(d.fuehrerschein, 20), umfang: t(d.umfang, 40), start: t(d.start, 40), frage: t(d.frage, 300) };
+    fuehrerschein: t(d.fuehrerschein, 20), umfang: t(d.umfang, 40), start: t(d.start, 40), frage: t(d.frage, 300),
+    unterlagen: (Array.isArray(d.unterlagen) ? d.unterlagen : []).slice(0, 8).map(u => ({ name: t(u && u.name, 80), groesse: Math.max(0, Number(u && u.groesse) || 0) })) };
 }
 function bStore() { try { localStorage.setItem(BKEY, JSON.stringify(BW.list)); } catch (e) { /* nur bis zum Neuladen */ } }
 function bBeispiele() {
   const at = (tage, h, m) => { const d = new Date(); d.setDate(d.getDate() - tage); d.setHours(h, m, 0, 0); return d.toISOString(); };
   return [
-    { name: 'Dennis K. (Beispiel)', kontakt: '0160 0000003', erreichbar: 'ab 17 Uhr', job: 'aufbereiter', erfahrung: 'mehr als 2 Jahre', fuehrerschein: 'ja', umfang: 'Vollzeit', start: 'in einem Monat', createdAt: at(1, 22, 15), status: 'neu', beispiel: true },
+    { name: 'Dennis K. (Beispiel)', kontakt: '0160 0000003', erreichbar: 'ab 17 Uhr', job: 'aufbereiter', erfahrung: 'mehr als 2 Jahre', fuehrerschein: 'ja', umfang: 'Vollzeit', start: 'in einem Monat', createdAt: at(1, 22, 15), status: 'neu', beispiel: true, unterlagen: [{ name: 'Lebenslauf_Dennis.pdf', groesse: 188416 }, { name: 'Gesellenbrief.jpg', groesse: 961536 }] },
     { name: 'Sara B. (Beispiel)', kontakt: 'sara@example.org', erreichbar: 'vormittags', job: 'aushilfe', erfahrung: 'ein bisschen', fuehrerschein: 'ja', umfang: 'Minijob', start: 'sofort', createdAt: at(3, 20, 40), status: 'angerufen', beispiel: true },
     { name: 'Luca M. (Beispiel)', kontakt: '0152 0000004', erreichbar: 'nach der Schule', job: 'ausbildung', erfahrung: 'noch keine', fuehrerschein: 'nein', umfang: 'Vollzeit', start: 'ab September', createdAt: at(5, 16, 5), status: 'probe', beispiel: true }
   ].map(bNormalize);
@@ -699,7 +720,7 @@ const bBot = (text, o = {}) => { const m = Object.assign({ from: 'bot', text }, 
 const bUser = (text) => { const m = { from: 'user', text }; BC.log.push(m); return m; };
 const ch = (label, act, val) => ({ label, act, val: val || '' });
 function bStart() {
-  BC.log = []; BC.ctx = {}; BC.busy = false;
+  BC.log = []; BC.ctx = {}; BC.busy = false; BC.gezaehlt = false; BC.bewId = null;
   bBot('Hi! Schön, dass du dich für uns interessierst. Bewerben dauert hier eine Minute, ohne Anschreiben und ohne Lebenslauf. Für welche Stelle?',
     { chips: JOBS.map(j => ch(j.name, 'job', j.id)).concat([ch('Ich hab erst eine Frage', 'frage')]) });
   BC.step = 'job'; bRenderLog();
@@ -715,6 +736,9 @@ function bAsk(step) {
 function bAct(act, val, idx) {
   const m = BC.log[idx]; if (m) m.used = true;
   const label = m && m.chips ? (m.chips.find(c => c.act === act && c.val === val) || {}).label : '';
+  if (act !== 'neu' && act !== 'betrieb' && act !== 'frage' && act !== 'docs' && act !== 'nodocs' && !BC.gezaehlt) { BC.gezaehlt = true; zaehle('bew_start'); }
+  if (act === 'docs') { $('#bFiles').click(); return; }
+  if (act === 'nodocs') { bUser('Nein, passt so'); bBot('Alles klar. Wir melden uns bei dir!', { chips: [ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] }); bRenderLog(); return; }
   if (act === 'job') { BC.ctx.job = val; bUser(label); bAsk('erfahrung'); }
   else if (act === 'frage') { bUser('Ich hab erst eine Frage'); bBot('Klar, schreib sie einfach unten rein.', { chips: JOBS.map(j => ch(j.name, 'job', j.id)) }); }
   else if (act === 'erfahrung') { BC.ctx.erfahrung = val; bUser(label); bAsk('fuehrerschein'); }
@@ -753,8 +777,8 @@ function bSubmit(idx) {
   if (!ok) { err.textContent = 'Bitte kurz zustimmen, dass wir deine Angaben für die Bewerbung speichern dürfen.'; return; }
   const m = BC.log[idx]; if (m) { m.used = true; m.summary = `${name} · ${kontakt}`; }
   const b = bNormalize(Object.assign({}, BC.ctx, { id: uid(), createdAt: new Date().toISOString(), status: 'neu', name, kontakt, erreichbar, umfang: BC.ctx.umfang || '' }));
-  BW.list.unshift(b); BW.selected = b.id; bStore(); bRender(true);
-  bBot(`Danke, ${name.split(' ')[0]}! Deine Bewerbung ist angekommen. Wir melden uns in den nächsten zwei Werktagen bei dir.`, { chips: [ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] });
+  BW.list.unshift(b); BW.selected = b.id; BC.bewId = b.id; bStore(); bRender(true); zaehle('bewerbung');
+  bBot(`Danke, ${name.split(' ')[0]}! Deine Bewerbung ist angekommen. Willst du noch Anschreiben, Lebenslauf oder Zeugnisse anhängen? Geht auch als Handyfoto, ist aber freiwillig.`, { chips: [ch('Unterlagen anhängen', 'docs'), ch('Nein, passt so', 'nodocs')] });
   BC.step = 'fertig'; bRenderLog();
   toast('Bewerbung angekommen. Unten sehen Sie, wie es beim Betrieb aussieht.');
 }
@@ -783,7 +807,23 @@ $('#bLog').addEventListener('click', e => { const b = e.target.closest('button.c
 $('#bLog').addEventListener('submit', e => { const f = e.target.closest('form[data-bkontakt]'); if (!f) return; e.preventDefault(); bSubmit(Number(f.dataset.bkontakt)); });
 $('#bForm').addEventListener('submit', e => { e.preventDefault(); const i = $('#bText'); const t = i.value; i.value = ''; bOnText(t); });
 $('#bRestart').addEventListener('click', bStart);
+const kb = n => n >= 1048576 ? (n / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+$('#bFiles').addEventListener('change', e => {
+  const files = Array.from(e.target.files || []); e.target.value = '';
+  if (!files.length) return;
+  const ok = files.filter(f => /pdf$|^image\//.test(f.type) && f.size <= 10 * 1048576).slice(0, 5);
+  const b = BW.list.find(x => x.id === BC.bewId);
+  if (!ok.length || !b) { bBot('Das hat nicht geklappt. Bitte PDF oder Fotos bis 10 MB.', { chips: [ch('Nochmal versuchen', 'docs'), ch('Nein, passt so', 'nodocs')] }); bRenderLog(); return; }
+  const neu = ok.map(f => ({ name: f.name.slice(0, 80), groesse: f.size }));
+  if (!b.unterlagen.length) zaehle('unterlagen');
+  b.unterlagen = b.unterlagen.concat(neu).slice(0, 8); bStore(); bRender(true);
+  BC.log.forEach(m => { if (m.chips) m.used = true; });
+  bUser(neu.map(u => u.name).join(', '));
+  bBot(`Danke, ${neu.length === 1 ? 'ist' : 'sind'} angehängt. Wir melden uns bei dir!`, { chips: [ch('Noch etwas anhängen', 'docs'), ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] });
+  bRenderLog();
+});
 function openBChat() {
+  zaehle('bew_offen');
   if (!BC.started) { bStart(); BC.started = true; }
   $('#bChatPanel').hidden = false; $('#bLauncher').setAttribute('aria-expanded', 'true');
   if (window.matchMedia('(max-width: 640px)').matches) document.body.style.overflow = 'hidden';
@@ -811,12 +851,13 @@ function bRender(force) {
   $('#bList').innerHTML = all.length ? all.map(b => `<button type="button" class="req" data-bid="${esc(b.id)}" aria-current="${BW.selected === b.id}">
       <span class="req-name">${esc(b.name)}</span><span class="req-time">${esc(fmtTime(b.createdAt))}</span>
       <span class="req-meta">${esc(job(b.job).name)} · ${esc(b.umfang || '–')} · ab ${esc(b.start || '–')}${afterHours(b.createdAt) ? ' · nach Feierabend' : ''}</span>
-      <span class="req-bottom"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span><span class="req-price">${esc(b.erfahrung ? 'Erfahrung: ' + b.erfahrung : '')}</span></span>
+      <span class="req-bottom"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span><span class="req-price">${b.unterlagen.length ? esc(b.unterlagen.length + (b.unterlagen.length === 1 ? ' Datei' : ' Dateien')) : 'Kurzbewerbung'}</span></span>
     </button>`).join('') : '<div class="empty"><h3>Noch keine Bewerbungen</h3><p>Bewerben Sie sich oben einmal selbst.</p></div>';
   const b = all.find(x => x.id === BW.selected); const box = $('#bDetail');
   if (!b) { BW.detailKey = ''; box.innerHTML = all.length ? '<div class="empty"><h3>Bewerbung auswählen</h3><p>Links eine Bewerbung antippen.</p></div>' : ''; return; }
   const key = JSON.stringify(b); if (!force && key === BW.detailKey) return; BW.detailKey = key;
   const rows = [['Stelle', job(b.job).name], ['Erfahrung', b.erfahrung || '–'], ['Führerschein Klasse B', b.fuehrerschein || '–'], ['Umfang', b.umfang || '–'], ['Anfangen', b.start || '–'], ['Erreichbar', b.erreichbar || 'keine Angabe']];
+  rows.push(['Unterlagen', b.unterlagen.length ? b.unterlagen.map(u => `${u.name} (${kb(u.groesse)})`).join(', ') : 'keine, nur Kurzbewerbung']);
   if (b.frage) rows.push(['Hat gefragt', b.frage]);
   box.innerHTML = `<div class="detail">
     <div class="d-head"><div class="d-tags"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span>${afterHours(b.createdAt) ? '<span class="tagline">kam nach Feierabend</span>' : ''}${b.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
@@ -825,7 +866,7 @@ function bRender(force) {
     <div class="sec"><h4>Angaben</h4>${factsHtml(rows)}</div>
     <div class="sec"><h4>Wo steht die Bewerbung?</h4>
       <div class="status-row" role="group" aria-label="Status setzen">${BSTATUS_ORDER.map(st => `<button type="button" class="filter" data-bstatus="${st}" aria-pressed="${b.status === st}">${BSTATUS[st]}</button>`).join('')}</div>
-      <p class="note">Ein Anruf reicht meistens. Die Bewerbung wird nach 6 Monaten automatisch gelöscht.</p>
+      <p class="note">Ein Anruf reicht meistens. Bewerbung und Unterlagen werden nach 6 Monaten automatisch gelöscht. In der Demo wird nur der Dateiname gespeichert.</p>
     </div>
   </div>`;
 }
@@ -843,6 +884,41 @@ $('#bResetWrap').addEventListener('click', e => {
   if (e.target.closest('#bReset')) { $('#bResetWrap').innerHTML = '<span class="confirm">Eigene Bewerbungen löschen? <button class="btn danger" type="button" id="bResetYes">Ja, zurücksetzen</button><button class="btn quiet" type="button" id="bResetNo">Abbrechen</button></span>'; return; }
   if (e.target.closest('#bResetNo')) { $('#bResetWrap').innerHTML = knopf; return; }
   if (e.target.closest('#bResetYes')) { BW.list = bBeispiele(); BW.selected = null; bStore(); $('#bResetWrap').innerHTML = knopf; bRender(true); toast('Zurückgesetzt.'); }
+});
+
+/* ---------- Auswertung ---------- */
+const ZEIT_LABEL = { morgens: '6 bis 12 Uhr', mittags: '12 bis 17 Uhr', abends: '17 bis 22 Uhr', nachts: '22 bis 6 Uhr' };
+const zWert = k => (ZBASIS[k] || 0) + (Z.zahl[k] || 0);
+const prozent = (a, b) => b ? Math.round(a / b * 100) + ' %' : '';
+function balken(rows, opts = {}) {
+  const max = Math.max(1, ...rows.map(r => r.wert));
+  return `<div class="bars">${rows.map((r, i) => {
+    const eigen = r.eigen ? `<span class="eigen">+${r.eigen} von Ihnen</span>` : '';
+    const anteil = opts.quote && i > 0 ? `<span class="quote">${prozent(r.wert, rows[0].wert)}</span>` : '';
+    return `<div class="bar-row" title="${esc(r.label)}: ${r.wert}${opts.quote && i > 0 ? ' (' + prozent(r.wert, rows[0].wert) + ' von ' + esc(rows[0].label) + ')' : ''}">
+      <span class="bar-label">${esc(r.label)}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${Math.max(2, r.wert / max * 100).toFixed(1)}%"></span></span>
+      <span class="bar-val num">${r.wert}${anteil}${eigen}</span></div>`;
+  }).join('')}</div>`;
+}
+const zr = (label, k) => ({ label, wert: zWert(k), eigen: Z.zahl[k] || 0 });
+function renderAuswertung() {
+  const anfragen = zWert('anfrage') + zWert('sms_anfrage');
+  const zeit = Object.keys(ZEIT_LABEL).map(k => ({ label: ZEIT_LABEL[k], wert: (ZEIT_BASIS[k] || 0) + (Z.zeit[k] || 0), eigen: Z.zeit[k] || 0 }));
+  const feierabend = zeit[2].wert + zeit[3].wert;
+  $('#aSum').innerHTML = `Der Chat wurde <b>${zWert('chat_offen')}</b>-mal geöffnet. Insgesamt kamen <b>${anfragen}</b> Anfragen rein, <mark class="num">${feierabend} davon nach Feierabend</mark>. Über den Anruf-Retter kamen <b>${zWert('sms_anfrage')}</b> Anfragen, die sonst verloren gewesen wären. Dazu <b>${zWert('bewerbung')}</b> Bewerbungen.`;
+  $('#aFunnels').innerHTML = [
+    ['Website-Chat', balken([zr('Chat geöffnet', 'chat_offen'), zr('Gespräch begonnen', 'chat_start'), zr('Anfrage abgeschickt', 'anfrage')], { quote: true })],
+    ['Anruf-Retter', balken([zr('Anruf verpasst', 'anruf_verpasst'), zr('Link aus der SMS geöffnet', 'sms_offen'), zr('Anfrage abgeschickt', 'sms_anfrage')], { quote: true })],
+    ['Bewerber-Chat', balken([zr('Chat geöffnet', 'bew_offen'), zr('Bewerbung begonnen', 'bew_start'), zr('Bewerbung abgeschickt', 'bewerbung'), zr('mit Unterlagen', 'unterlagen')], { quote: true })],
+    ['Wann Anfragen reinkommen', balken(zeit)]
+  ].map(([t, html]) => `<div class="a-block"><h3>${esc(t)}</h3>${html}</div>`).join('');
+}
+$('#aResetWrap').addEventListener('click', e => {
+  const knopf = '<button class="btn quiet danger" type="button" id="aReset">Eigene Klicks zurücksetzen</button>';
+  if (e.target.closest('#aReset')) { $('#aResetWrap').innerHTML = '<span class="confirm">Eigene Klicks löschen? <button class="btn danger" type="button" id="aResetYes">Ja</button><button class="btn quiet" type="button" id="aResetNo">Abbrechen</button></span>'; return; }
+  if (e.target.closest('#aResetNo')) { $('#aResetWrap').innerHTML = knopf; return; }
+  if (e.target.closest('#aResetYes')) { Z = { zahl: {}, zeit: {} }; zSave(); $('#aResetWrap').innerHTML = knopf; renderAuswertung(); toast('Zurückgesetzt.'); }
 });
 
 /* ---------- Preisliste ---------- */
@@ -864,13 +940,14 @@ document.getElementById('v-preise').addEventListener('input', e => {
 $('#priceReset').addEventListener('click', () => { PRICES = clone(DEFAULT_PRICES); savePrices(); renderPrices(); renderServices(); toast('Beispielpreise wiederhergestellt.'); });
 
 /* ---------- routing ---------- */
-const VIEWS = ['kunde', 'anruf', 'chef', 'bewerber', 'preise'];
+const VIEWS = ['kunde', 'anruf', 'chef', 'bewerber', 'auswertung', 'preise'];
 function go(v, push = true) {
   if (!VIEWS.includes(v)) v = 'kunde';
   VIEWS.forEach(x => { document.getElementById('v-' + x).hidden = x !== v; document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === v)); });
   if (push && location.hash !== '#' + v) { try { history.replaceState(null, '', '#' + v); } catch (e) { location.hash = v; } }
   if (v === 'chef') renderChef(true);
   if (v === 'bewerber') bRender(true);
+  if (v === 'auswertung') renderAuswertung();
   window.scrollTo(0, 0);
 }
 document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) go(b.dataset.view); });

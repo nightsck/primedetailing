@@ -26,6 +26,7 @@ noindex: true
       <button class="tab" role="tab" id="tab-anruf" data-view="anruf" aria-selected="false"><span>2</span> Anruf verpasst</button>
       <button class="tab" role="tab" id="tab-chef" data-view="chef" aria-selected="false"><span>3</span> Chef</button>
       <button class="tab" role="tab" id="tab-bewerber" data-view="bewerber" aria-selected="false"><span>4</span> Bewerber</button>
+      <button class="tab" role="tab" id="tab-auswertung" data-view="auswertung" aria-selected="false"><span>5</span> Auswertung</button>
       <button class="tab" role="tab" id="tab-preise" data-view="preise" aria-selected="false">Preise</button>
     </nav>
   </div>
@@ -200,6 +201,7 @@ noindex: true
             <button class="chat-x" type="button" id="bClose" aria-label="Chat schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
           </div>
           <div class="log" id="bLog" aria-live="polite"></div>
+          <input type="file" id="bFiles" accept="application/pdf,image/*" multiple hidden>
           <form class="chat-input" id="bForm" autocomplete="off">
             <input type="text" id="bText" placeholder="Frage stellen" aria-label="Frage" maxlength="400">
             <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
@@ -222,6 +224,17 @@ noindex: true
       <div class="list" id="bList"></div>
       <div id="bDetail"></div>
     </div>
+  </section>
+
+  <!-- 5 AUSWERTUNG -->
+  <section class="view" id="v-auswertung" role="tabpanel" aria-labelledby="tab-auswertung" hidden>
+    <div class="chef-head">
+      <h2>Auswertung, letzte 30 Tage</h2>
+      <p class="sum" id="aSum"></p>
+    </div>
+    <div class="a-grid" id="aFunnels"></div>
+    <p class="aside">Beispielmonat eines Betriebs. Was Sie in dieser Demo selbst anklicken, zählt live mit („+1 von Ihnen“). Gezählt wird ohne Cookies und ohne persönliche Daten, nur wie oft etwas passiert ist.</p>
+    <div class="actions" style="margin-top:12px"><span id="aResetWrap"><button class="btn quiet danger" type="button" id="aReset">Eigene Klicks zurücksetzen</button></span></div>
   </section>
 
   <!-- PREISE -->
