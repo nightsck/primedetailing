@@ -145,8 +145,8 @@ async function initKi() {
   S.ready = true; renderStatus();
 }
 function renderStatus() {
-  $('#dotAi').classList.toggle('on', S.ai);
-  $('#stAi').textContent = !S.ready ? 'KI wird geladen …' : S.ai ? (S.canImages ? 'KI an, mit Fotoauswertung' : 'KI an') : 'KI aus: Demo-Antworten';
+  const el = $('#aiState'); if (!el) return;
+  el.textContent = S.ready && !S.ai ? 'Vorführmodus: feste Antworten' : '';
 }
 
 async function saveRequest(r) { S.mem.unshift(normalize(r.id, r)); store(); renderChef(); return true; }
@@ -188,8 +188,8 @@ function useChips() { C.log.forEach(m => { if (m.chips) m.used = true; }); }
 function startChat(kanal = 'Website') {
   C.log = []; C.turns = []; C.ctx = { kanal, fotos: [], voll: [] }; C.busy = false;
   const hi = kanal === 'Anruf-SMS'
-    ? 'Hallo! Sie hatten gerade bei uns angerufen, wir waren leider im Einsatz. Ich bin der digitale Assistent von Muster Fahrzeugpflege und nehme Ihr Anliegen gleich auf. Worum geht es?'
-    : 'Hallo! Ich bin der digitale Assistent von Muster Fahrzeugpflege. Ich bin eine KI, ein Mensch aus dem Team prüft jede Anfrage. Wobei kann ich helfen?';
+    ? 'Sie hatten gerade angerufen, wir waren leider im Einsatz. Worum geht es? Dann melden wir uns mit Preis und Termin.'
+    : 'Guten Tag. Worum geht es? Wählen Sie eine Leistung, dann rechne ich Ihnen den Preis aus.';
   bot(hi, { chips: SERVICES.map(s => ({ label: s.name, act: 'leistung', val: s.id })).concat([{ label: 'Ich habe eine Frage', act: 'frage' }]) });
   C.step = 'leistung'; renderLog();
 }
@@ -275,6 +275,7 @@ function act(a, v, idx) {
     case 'noch-frage': user('Ich habe noch eine Frage'); bot('Schreiben Sie sie gern unten ins Feld.', { chips: [{ label: 'Termin anfragen', act: 'termin-anfragen' }] }); break;
     case 'termin': C.ctx.termin = v === 'flexibel' ? 'flexibel' : v; user(v === 'flexibel' ? 'Bin flexibel' : v); askKontakt(); break;
     case 'neu': startChat(C.ctx.kanal || 'Website'); return;
+    case 'chef': closeChat(); go('chef'); return;
   }
   renderLog();
 }
@@ -413,10 +414,10 @@ async function submitKontakt(idx) {
   };
   if (JSON.stringify(r).length > 230000) r.fotos = await shrinkThumbs(r.fotos, 320, 0.6);
   if (JSON.stringify(r).length > 230000) r.fotos = r.fotos.slice(0, 1);
-  bot(`Danke, ${name.split(' ')[0]}! Ihre Anfrage ist beim Team. Das Angebot kommt in der Regel bis zum nächsten Vormittag.`, { chips: [{ label: 'Neue Anfrage starten', act: 'neu' }] });
+  bot(`Danke, ${name.split(' ')[0]}! Ihre Anfrage ist beim Team. Das Angebot kommt in der Regel bis zum nächsten Vormittag.`, { chips: [{ label: 'So sieht es der Betrieb', act: 'chef' }, { label: 'Neue Anfrage starten', act: 'neu' }] });
   C.step = 'fertig'; renderLog();
   await saveRequest(r);
-  toast('Neue Anfrage ist jetzt in der Chef-Ansicht (Tab 3).');
+  toast('Angekommen. Tippen Sie auf „So sieht es der Betrieb“.');
 }
 
 function renderLog(scroll = true) {
@@ -467,19 +468,46 @@ $('#chatRestart').addEventListener('click', () => { if (C.abort) try { C.abort.a
 function renderServices() {
   $('#services').innerHTML = SERVICES.map(s => {
     const from = s.id === 'smart' ? PRICES.smart.klein : Math.min(...Object.values(PRICES.klassen[s.id]));
-    return `<div class="svc"><b>${esc(s.name)}</b><span>${esc(s.kurz)}</span><span>ab <span class="from num">${euro(from)}</span></span></div>`;
+    return `<tr><td>${esc(s.name)}<small>${esc(s.kurz)}</small></td><td class="r">${euro(from)}</td></tr>`;
   }).join('');
 }
+
+/* ---------- Chatfenster auf der Beispiel-Website ---------- */
+let chatStarted = false;
+function openChat(kanal) {
+  if (kanal) { startChat(kanal); chatStarted = true; }
+  else if (!chatStarted) { startChat('Website'); chatStarted = true; }
+  $('#chatPanel').hidden = false;
+  if (window.matchMedia('(max-width: 640px)').matches) document.body.style.overflow = 'hidden';
+  $('#chatLauncher').setAttribute('aria-expanded', 'true');
+  renderLog();
+  $('#chatClose').focus({ preventScroll: true });
+}
+function closeChat() {
+  $('#chatPanel').hidden = true;
+  document.body.style.overflow = '';
+  const l = $('#chatLauncher'); l.setAttribute('aria-expanded', 'false'); l.focus({ preventScroll: true });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-open-chat]')) openChat(); });
+$('#chatClose').addEventListener('click', closeChat);
+$('#chatPanel').addEventListener('keydown', e => { if (e.key === 'Escape') closeChat(); });
+$('#mfCall').addEventListener('click', () => { go('anruf'); toast('Niemand geht ran? Tippen Sie auf „Anruf abspielen“.'); });
+$('#mfSite').addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#mf-"]'); if (!a) return;
+  e.preventDefault();
+  const t = document.getElementById(a.getAttribute('href').slice(1));
+  if (t) $('#mfSite').scrollTo({ top: t.offsetTop - 8, behavior: 'smooth' });
+});
 
 /* ---------- Anruf ---------- */
 let callTimers = [];
 function phone(state) {
   const scr = $('#phoneScreen');
   const ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>';
-  if (state === 'idle') scr.innerHTML = `<div class="call"><div class="sub">Kunde will anrufen bei</div><div class="who">Muster Fahrzeugpflege</div><div class="sub">07720 000000 (Beispiel)</div><div class="ring">${ICON}</div><div class="sub" style="margin-top:12px">Tippen Sie rechts auf „Anruf simulieren“.</div></div>`;
+  if (state === 'idle') scr.innerHTML = `<div class="call"><div class="sub">Kunde will anrufen bei</div><div class="who">Muster Fahrzeugpflege</div><div class="sub">07720 000000 (Beispiel)</div><div class="ring">${ICON}</div><div class="sub" style="margin-top:12px">Tippen Sie auf „Anruf abspielen“.</div></div>`;
   if (state === 'ring') scr.innerHTML = `<div class="call"><div class="sub">Anruf …</div><div class="who">Muster Fahrzeugpflege</div><div class="sub">Es klingelt, der Chef liegt unterm Auto</div><div class="ring pulse">${ICON}</div></div>`;
   if (state === 'missed') scr.innerHTML = `<div class="call"><div class="sub">Niemand nimmt ab</div><div class="who">Muster Fahrzeugpflege</div><div class="ring miss">${ICON}</div></div>`;
-  if (state === 'sms') scr.innerHTML = `<div class="sms-head">SMS · gerade eben</div><div class="sms"><b>Muster Fahrzeugpflege:</b> Hallo, wir sind gerade beim Kunden und konnten nicht rangehen. Beschreiben Sie Ihr Anliegen hier in einer Minute, gern mit Fotos: <span class="link">muster-fahrzeugpflege.de/anfrage</span></div><button class="btn primary" type="button" id="smsOpen" style="align-self:flex-start">Link öffnen</button><div class="sms-head">Die SMS ging 5 Sekunden nach dem verpassten Anruf raus.</div>`;
+  if (state === 'sms') scr.innerHTML = `<div class="sms-head">SMS · gerade eben</div><div class="sms"><b>Muster Fahrzeugpflege:</b> Wir sind gerade im Einsatz und konnten nicht rangehen. Beschreiben Sie Ihr Anliegen hier in einer Minute, gern mit Fotos: <span class="link">muster-fahrzeugpflege.de/anfrage</span></div><button class="btn primary" type="button" id="smsOpen" style="align-self:flex-start">Link öffnen</button><div class="sms-head">Die SMS ging 5 Sekunden nach dem verpassten Anruf raus.</div>`;
 }
 function startCall() {
   callTimers.forEach(clearTimeout); callTimers = [];
@@ -490,7 +518,7 @@ function startCall() {
 }
 $('#callStart').addEventListener('click', startCall);
 $('#callReset').addEventListener('click', () => { callTimers.forEach(clearTimeout); phone('idle'); });
-$('#phoneScreen').addEventListener('click', e => { if (e.target.closest('#smsOpen')) { startChat('Anruf-SMS'); go('kunde'); toast('Der Kunde ist jetzt im Assistenten, Kanal: Anruf-SMS.'); } });
+$('#phoneScreen').addEventListener('click', e => { if (e.target.closest('#smsOpen')) { go('kunde'); openChat('Anruf-SMS'); toast('Der Anrufer ist jetzt im Chat. Kanal: Anruf-SMS.'); } });
 
 /* ---------- Chef ---------- */
 const STATUS = { neu: 'Neu', angebot: 'Angebot raus', gewonnen: 'Bestätigt', verloren: 'Abgesagt' };
@@ -503,9 +531,9 @@ function renderKpis() {
   const raus = rs.filter(r => r.angebot && r.status !== 'neu');
   const wert = raus.reduce((s, r) => s + r.angebot.summe, 0);
   const best = raus.filter(r => r.status === 'gewonnen').reduce((s, r) => s + r.angebot.summe, 0);
-  const kpi = (v, l, cls = '', sub = '') => `<div class="kpi ${cls}"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
-  $('#kpis').innerHTML = kpi(rs.length, 'Anfragen') + kpi(ah, 'außerhalb der Öffnungszeiten') + kpi(sms, 'über den Anruf-Retter') + kpi(raus.length, 'Angebote raus')
-    + kpi(euro(wert), 'Wert verschickter Angebote', 'hl', `davon vom Kunden bestätigt: ${euro(best)}`);
+  const n = (x, eins, viele) => `<b>${x}</b> ${x === 1 ? eins : viele}`;
+  $('#kpis').innerHTML = `${n(rs.length, 'Anfrage', 'Anfragen')}, davon ${n(ah, 'nach Feierabend', 'nach Feierabend')} und ${n(sms, 'über den Anruf-Retter', 'über den Anruf-Retter')}. `
+    + `${n(raus.length, 'Angebot', 'Angebote')} verschickt über <mark class="num">${euro(wert)}</mark>, davon vom Kunden bestätigt: <b>${euro(best)}</b>.`;
 }
 function renderFilters() {
   const all = allRequests(); const n = s => s === 'alle' ? all.length : all.filter(r => r.status === s).length;
@@ -520,14 +548,13 @@ function priceText(r) {
 function renderList() {
   const rs = filtered();
   if (!rs.length) {
-    $('#reqList').innerHTML = `<div class="empty"><h3>${allRequests().length ? 'Keine Anfragen mit diesem Status' : 'Noch keine Anfragen'}</h3><p>Stellen Sie in der Kundensicht eine Anfrage, sie erscheint hier sofort. Oder legen Sie eine Beispiel-Anfrage an.</p></div>`;
+    $('#reqList').innerHTML = `<div class="empty"><h3>${allRequests().length ? 'Keine Anfragen mit diesem Status' : 'Noch keine Anfragen'}</h3><p>Stellen Sie unter „1 Kunde“ eine Anfrage, sie erscheint hier sofort.</p></div>`;
     return;
   }
   $('#reqList').innerHTML = rs.map(r => `<button type="button" class="req" data-id="${esc(r.id)}" aria-current="${S.selected === r.id}">
-      <div class="req-top"><span class="pill st-${r.status}">${STATUS[r.status]}</span>${r.beispiel ? '<span class="pill tag">Beispiel</span>' : ''}<span class="req-time">${esc(fmtTime(r.createdAt))}</span></div>
-      <div class="req-name">${esc(r.kunde.name)}</div>
-      <div class="req-meta">${esc(svc(r.leistung).name)}${r.fahrzeug ? ' · ' + esc(kl(r.fahrzeug).name) : ''} · ${esc(r.kanal)}${afterHours(r.createdAt) ? ' · nach Feierabend' : ''}</div>
-      <div class="req-bottom"><span class="req-price num">${esc(priceText(r))}</span><span class="req-thumbs">${r.fotos.slice(0, 3).map(u => `<img src="${esc(u)}" alt="">`).join('')}</span></div>
+      <span class="req-name">${esc(r.kunde.name)}</span><span class="req-time">${esc(fmtTime(r.createdAt))}</span>
+      <span class="req-meta">${esc(svc(r.leistung).name)}${r.fahrzeug ? ', ' + esc(kl(r.fahrzeug).name) : ''} · ${esc(r.kanal)}${afterHours(r.createdAt) ? ' · nach Feierabend' : ''}</span>
+      <span class="req-bottom"><span class="state st-${r.status}">${STATUS[r.status]}</span><span class="req-price num">${esc(priceText(r))}</span></span>
     </button>`).join('');
 }
 function draftFor(r) {
@@ -570,19 +597,19 @@ function renderDetail(force) {
   if (r.status === 'neu') {
     const d = draftFor(r);
     offer = `<div class="offer" id="offer">${d.map((p, i) => `<div class="offer-row"><input type="text" data-i="${i}" data-f="text" value="${esc(p.text)}" aria-label="Position ${i + 1}"><input type="number" class="amt" data-i="${i}" data-f="betrag" value="${esc(p.betrag)}" min="0" step="5" aria-label="Betrag Position ${i + 1} in Euro"><button type="button" class="x" data-del="${i}" aria-label="Position entfernen">×</button></div>`).join('')}
-      <div class="offer-foot"><button type="button" class="btn ghost" id="addPos">+ Position</button><span>Summe <span class="offer-sum" id="draftSum">${euro(d.reduce((s, p) => s + (Number(p.betrag) || 0), 0))}</span></span></div></div>
-      <div class="actions"><button type="button" class="btn primary" id="approve">Freigeben und senden</button><button type="button" class="btn ghost" id="lose">Absage</button></div>`;
+      <div class="offer-foot"><button type="button" class="btn quiet" id="addPos">+ Position</button><span>Summe <span class="offer-sum" id="draftSum">${euro(d.reduce((s, p) => s + (Number(p.betrag) || 0), 0))}</span></span></div></div>
+      <div class="actions"><button type="button" class="btn primary" id="approve">Freigeben und senden</button><button type="button" class="btn quiet" id="lose">Absage</button></div>`;
   } else if (r.angebot) {
-    offer = docHtml(r) + `<div class="actions" style="margin-top:10px">${r.status === 'angebot' ? '<button type="button" class="btn primary" id="kundenlink">Als Kunde ansehen</button>' : ''}<button type="button" class="btn" id="pdf">Drucken / PDF</button>${r.status === 'angebot' ? '<button type="button" class="btn ghost" id="win">Kunde hat zugesagt</button><button type="button" class="btn ghost" id="lose">Absage</button>' : ''}${r.status === 'verloren' ? '<button type="button" class="btn ghost" id="reopen">Wieder öffnen</button>' : ''}</div>${r.status === 'gewonnen' ? `<p class="note" style="margin-top:8px">${r.bestaetigtVon === 'kunde' ? 'Der Kunde hat das Angebot selbst per Klick angenommen.' : 'Vom Chef als zugesagt markiert.'}</p>` : ''}`;
+    offer = docHtml(r) + `<div class="actions" style="margin-top:10px">${r.status === 'angebot' ? '<button type="button" class="btn primary" id="kundenlink">Als Kunde ansehen</button>' : ''}<button type="button" class="btn" id="pdf">Drucken / PDF</button>${r.status === 'angebot' ? '<button type="button" class="btn quiet" id="win">Kunde hat zugesagt</button><button type="button" class="btn quiet" id="lose">Absage</button>' : ''}${r.status === 'verloren' ? '<button type="button" class="btn quiet" id="reopen">Wieder öffnen</button>' : ''}</div>${r.status === 'gewonnen' ? `<p class="note" style="margin-top:8px">${r.bestaetigtVon === 'kunde' ? 'Der Kunde hat das Angebot selbst per Klick angenommen.' : 'Vom Chef als zugesagt markiert.'}</p>` : ''}`;
   } else {
-    offer = `<p class="note">Kein Angebot gesendet.</p><div class="actions"><button type="button" class="btn ghost" id="reopen">Wieder öffnen</button></div>`;
+    offer = `<p class="note">Kein Angebot gesendet.</p><div class="actions"><button type="button" class="btn quiet" id="reopen">Wieder öffnen</button></div>`;
   }
   box.innerHTML = `<div class="detail">
-    <div class="d-head"><div class="req-top"><span class="pill st-${r.status}">${STATUS[r.status]}</span>${r.beispiel ? '<span class="pill tag">Beispiel</span>' : ''}${afterHours(r.createdAt) ? '<span class="pill tag">außerhalb der Öffnungszeiten</span>' : ''}</div>
+    <div class="d-head"><div class="d-tags"><span class="state st-${r.status}">${STATUS[r.status]}</span>${afterHours(r.createdAt) ? '<span class="tagline">kam außerhalb der Öffnungszeiten</span>' : ''}${r.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
       <h3>${esc(r.kunde.name)}</h3>
       <div class="d-sub"><span>${esc(r.kunde.kontakt)}</span><span>·</span><span>${esc(r.kanal)}</span><span>·</span><span>${esc(fmtTime(r.createdAt))}</span></div></div>
     ${r.fotos.length ? `<div class="sec"><h4>Fotos</h4><div class="d-photos">${r.fotos.map(u => `<img src="${esc(u)}" alt="Foto vom Kunden">`).join('')}</div></div>` : ''}
-    ${ki ? `<div class="sec"><h4>KI-Einschätzung</h4><div class="ki"><div>${esc(ki.kurz || 'Keine Beschreibung.')}</div><div class="hint">Nur ein Hinweis. Der Preis kommt aus der Preisliste, entscheiden tut der Chef.</div></div></div>` : ''}
+    ${ki ? `<div class="sec"><h4>Einschätzung aus den Fotos</h4><div class="ki"><div>${esc(ki.kurz || 'Keine Beschreibung.')}</div><div class="hint">Nur ein Hinweis. Der Preis kommt aus Ihrer Preisliste, entscheiden tun Sie.</div></div></div>` : ''}
     <div class="sec"><h4>Angaben</h4>${factsHtml(r)}</div>
     ${r.verlauf.length ? `<details class="verlauf"><summary>Chatverlauf (${r.verlauf.length} Nachrichten)</summary><div class="verlauf-list">${r.verlauf.map(v => `<div><b>${esc(v.von)}:</b> ${esc(v.text)}</div>`).join('')}</div></details>` : ''}
     <div class="sec"><h4>${r.status === 'neu' ? 'Angebotsentwurf' : 'Angebot'}</h4>${offer}</div>
@@ -616,7 +643,7 @@ $('#reqDetail').addEventListener('click', async e => {
     const angebot = { positionen: pos, summe: pos.reduce((s, p) => s + p.betrag, 0), nr: `AN-${new Date().getFullYear()}-${r.id.slice(-4).toUpperCase()}`, datum: now };
     delete S.drafts[r.id];
     await patchRequest(r.id, { status: 'angebot', angebot, sentAt: now });
-    toast('Angebot freigegeben. Im echten Betrieb geht es jetzt per E-Mail an den Kunden. Tippen Sie auf „Als Kunde ansehen“.');
+    toast('Freigegeben. Im Betrieb geht das Angebot jetzt per E-Mail raus.');
     return;
   }
   if (e.target.closest('#win')) { await patchRequest(r.id, { status: 'gewonnen', wonAt: new Date().toISOString(), bestaetigtVon: 'chef' }); toast('Als bestätigt markiert.'); return; }
@@ -637,7 +664,7 @@ function renderOfferModal() {
   const done = r.status === 'gewonnen';
   $('#offerModalBody').innerHTML = `<p>Hallo ${esc(r.kunde.name.split(' ')[0])}, vielen Dank für Ihre Anfrage. Hier ist Ihr Angebot:</p>${docHtml(r)}
     ${done ? '<div class="accepted" role="status">Angebot angenommen. Das Team meldet sich wegen des Termins.</div>'
-      : '<div class="actions"><button type="button" class="btn primary" id="acceptOffer">Angebot annehmen</button><button type="button" class="btn ghost" id="offerLater">Später entscheiden</button></div><p class="note" style="font-size:12.5px;color:var(--muted)">Klickt der Kunde auf „Angebot annehmen“, zählt der Auftrag automatisch als bestätigt. Der Chef muss nichts nachtragen.</p>'}`;
+      : '<div class="actions"><button type="button" class="btn primary" id="acceptOffer">Angebot annehmen</button><button type="button" class="btn quiet" id="offerLater">Später entscheiden</button></div><p class="note" style="font-size:12.5px;color:var(--muted)">Klickt der Kunde auf „Angebot annehmen“, zählt der Auftrag automatisch als bestätigt. Der Chef muss nichts nachtragen.</p>'}`;
 }
 function openOffer(r) {
   offerId = r.id; renderOfferModal();
@@ -689,14 +716,14 @@ async function addExample() {
 }
 $('#addExample').addEventListener('click', addExample);
 $('#clearWrap').addEventListener('click', async e => {
-  const knopf = '<button class="btn ghost danger" type="button" id="clearAll">Demo zurücksetzen</button>';
-  if (e.target.closest('#clearAll')) { $('#clearWrap').innerHTML = '<span class="confirm">Eigene Anfragen löschen und Beispiele wiederherstellen? <button class="btn danger" type="button" id="clearYes">Ja, zurücksetzen</button><button class="btn ghost" type="button" id="clearNo">Abbrechen</button></span>'; return; }
+  const knopf = '<button class="btn quiet danger" type="button" id="clearAll">Zurücksetzen</button>';
+  if (e.target.closest('#clearAll')) { $('#clearWrap').innerHTML = '<span class="confirm">Eigene Anfragen löschen? <button class="btn danger" type="button" id="clearYes">Ja, zurücksetzen</button><button class="btn quiet" type="button" id="clearNo">Abbrechen</button></span>'; return; }
   if (e.target.closest('#clearNo')) { $('#clearWrap').innerHTML = knopf; return; }
   if (e.target.closest('#clearYes')) {
     S.mem = beispielSatz(); store();
     S.selected = null; S.drafts = {};
     $('#clearWrap').innerHTML = knopf;
-    renderChef(true); toast('Demo zurückgesetzt.');
+    renderChef(true); toast('Zurückgesetzt.');
   }
 });
 
