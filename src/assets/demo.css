@@ -302,3 +302,13 @@ table.prices input, .price-box input { width: 88px; border: 1px solid var(--line
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 #reqDetail { scroll-margin-top: 110px; }
+
+/* Status setzen (Chef und Bewerber) */
+.status-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.status-row .filter { border: 1px solid var(--line); }
+.st-bearbeitung { color: var(--wait); }
+.bst-neu { color: var(--ink); } .bst-neu::before { background: var(--signal); box-shadow: 0 0 0 1px var(--ink); }
+.bst-angerufen, .bst-probe { color: var(--wait); }
+.bst-eingestellt { color: var(--ok); }
+.bst-absage { color: var(--muted); }
+#bBetrieb, #bDetail { scroll-margin-top: 110px; }

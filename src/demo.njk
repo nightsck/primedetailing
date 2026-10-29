@@ -25,6 +25,7 @@ noindex: true
       <button class="tab" role="tab" id="tab-kunde" data-view="kunde" aria-selected="true"><span>1</span> Kunde</button>
       <button class="tab" role="tab" id="tab-anruf" data-view="anruf" aria-selected="false"><span>2</span> Anruf verpasst</button>
       <button class="tab" role="tab" id="tab-chef" data-view="chef" aria-selected="false"><span>3</span> Chef</button>
+      <button class="tab" role="tab" id="tab-bewerber" data-view="bewerber" aria-selected="false"><span>4</span> Bewerber</button>
       <button class="tab" role="tab" id="tab-preise" data-view="preise" aria-selected="false">Preise</button>
     </nav>
   </div>
@@ -102,7 +103,7 @@ noindex: true
         </div>
       </div>
     </div>
-    <p class="aside">Echt in dieser Vorführung: KI-Antworten, Fotoauswertung, Preisrechnung, Anfrage und Angebot. Nur gespielt: SMS, E-Mail-Versand und Kalender.</p>
+    <p class="aside">Echt in dieser Vorführung: KI-Antworten, Fotoauswertung, Preisrechnung und die Übersicht für den Betrieb. Nur gespielt: SMS, E-Mail-Versand und Kalender.</p>
   </section>
 
   <!-- 2 ANRUF -->
@@ -147,6 +148,82 @@ noindex: true
     </div>
   </section>
 
+  <!-- 4 BEWERBER -->
+  <section class="view" id="v-bewerber" role="tabpanel" aria-labelledby="tab-bewerber" hidden>
+    <p class="lead">Leute finden ist schwer. Hier bewirbt man sich in einer Minute per Chat, ohne Anschreiben und Lebenslauf. Tippen Sie unten rechts auf <b>Jetzt bewerben</b>. Darunter sehen Sie, was beim Betrieb ankommt.</p>
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="url"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10.5" width="12" height="9" rx="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>muster-fahrzeugpflege.de/jobs</span>
+      </div>
+      <div class="browser-view">
+        <div class="mf" id="jobSite">
+          <div class="mf-top">
+            <span class="mf-logo">Muster<br>Fahrzeugpflege</span>
+            <nav class="mf-nav" aria-label="Beispiel-Navigation"><a href="#job-stellen">Stellen</a><a href="#job-bieten">Was wir bieten</a></nav>
+          </div>
+          <div class="mf-hero">
+            <h1>Komm in unser Team</h1>
+            <p>Du arbeitest gern mit den Händen und magst Autos? Dann bewirb dich in einer Minute, ganz ohne Anschreiben.</p>
+            <div class="mf-actions"><button class="mf-btn" type="button" data-open-bchat>Jetzt in 1 Minute bewerben</button></div>
+          </div>
+          <div class="mf-sec" id="job-stellen">
+            <h2>Offene Stellen</h2>
+            <table class="mf-table">
+              <thead><tr><th scope="col">Stelle</th><th scope="col" class="r">Umfang</th></tr></thead>
+              <tbody>
+                <tr><td>Fahrzeugaufbereiter (m/w/d)<small>Innenreinigung, Politur, Versiegelung</small></td><td class="r">Vollzeit oder Teilzeit</td></tr>
+                <tr><td>Aushilfe samstags (m/w/d)<small>Waschen, Saugen, Übergabe an Kunden</small></td><td class="r">Minijob</td></tr>
+                <tr><td>Ausbildung Fahrzeuglackierer (m/w/d)<small>3 Jahre, Berufsschule in der Nähe</small></td><td class="r">ab September</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mf-sec" id="job-bieten">
+            <h2>Was wir bieten</h2>
+            <ol class="mf-steps">
+              <li>Feste Arbeitszeiten Mo–Fr, samstags nur nach Absprache.</li>
+              <li>Einarbeitung durch erfahrene Kollegen.</li>
+              <li>Arbeitskleidung und Werkzeug stellen wir.</li>
+            </ol>
+          </div>
+          <p class="mf-foot">Beispielbetrieb für die Vorführung. Stellen und Angaben sind erfunden.</p>
+        </div>
+
+        <button class="launcher" type="button" id="bLauncher" data-open-bchat aria-controls="bChatPanel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+          <span>Jetzt bewerben</span>
+        </button>
+
+        <div class="chat" id="bChatPanel" role="dialog" aria-label="Bewerbung bei Muster Fahrzeugpflege" hidden>
+          <div class="chat-head">
+            <div class="chat-title"><b>Bewerbung bei Muster Fahrzeugpflege</b><span>Automatischer Assistent. Jede Bewerbung liest ein Mensch.</span></div>
+            <button class="chat-x" type="button" id="bRestart" title="Neu starten" aria-label="Bewerbung neu starten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+            <button class="chat-x" type="button" id="bClose" aria-label="Chat schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="log" id="bLog" aria-live="polite"></div>
+          <form class="chat-input" id="bForm" autocomplete="off">
+            <input type="text" id="bText" placeholder="Frage stellen" aria-label="Frage" maxlength="400">
+            <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+          </form>
+          <p class="chat-foot"><span></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="chef-head" id="bBetrieb" style="margin-top:40px">
+      <h2>So kommt es beim Betrieb an</h2>
+      <p class="sum" id="bSum"></p>
+    </div>
+    <div class="toolbar">
+      <p class="note">Alle Bewerbungen in der Reihenfolge, in der sie reinkamen. Die KI bewertet niemanden und sortiert niemanden aus.</p>
+      <span class="spacer"></span>
+      <span id="bResetWrap"><button class="btn quiet danger" type="button" id="bReset">Zurücksetzen</button></span>
+    </div>
+    <div class="chef-grid">
+      <div class="list" id="bList"></div>
+      <div id="bDetail"></div>
+    </div>
+  </section>
+
   <!-- PREISE -->
   <section class="view" id="v-preise" role="tabpanel" aria-labelledby="tab-preise" hidden>
     <div class="chef-head">
@@ -164,18 +241,6 @@ noindex: true
   <p><a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></p>
 </footer>
 
-<dialog class="modal" id="offerModal" aria-labelledby="offerModalTitle">
-  <div class="modal-in">
-    <div class="modal-head">
-      <div>
-        <p class="modal-kicker">So kommt es beim Kunden an (E-Mail, gespielt)</p>
-        <h3 id="offerModalTitle">Ihr Angebot von Muster Fahrzeugpflege</h3>
-      </div>
-      <button class="chat-x dark" type="button" id="offerClose" aria-label="Schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    </div>
-    <div id="offerModalBody"></div>
-  </div>
-</dialog>
 
 <div class="print-area" id="printArea" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
