@@ -102,7 +102,7 @@ function normalize(id, d) {
   const pos = arr(d?.preis?.positionen).map(p => ({ text: String(p?.text || ''), betrag: Number(p?.betrag) || 0 }));
   const apos = arr(d?.angebot?.positionen).map(p => ({ text: String(p?.text || ''), betrag: Number(p?.betrag) || 0 }));
   return {
-    id: String(id), createdAt: String(d.createdAt || ''), kanal: String(d.kanal || 'Website'), status: ['neu', 'angebot', 'gewonnen', 'verloren'].includes(d.status) ? d.status : 'neu',
+    id: String(id), createdAt: String(d.createdAt || ''), kanal: String(d.kanal || 'Website'), status: ['neu', 'bearbeitung', 'angebot', 'gewonnen', 'verloren'].includes(d.status) ? d.status : 'neu',
     beispiel: !!d.beispiel, kunde: { name: String(d?.kunde?.name || 'Unbekannt'), kontakt: String(d?.kunde?.kontakt || '') },
     leistung: String(d.leistung || ''), fahrzeug: d.fahrzeug ? String(d.fahrzeug) : '', modell: String(d.modell || ''),
     angaben: d.angaben && typeof d.angaben === 'object' ? d.angaben : {}, ki: d.ki && typeof d.ki === 'object' ? d.ki : null,
@@ -116,7 +116,7 @@ function normalize(id, d) {
 }
 
 // Anfragen bleiben nur in diesem Browser (localStorage). Ohne Speicher: nur im Arbeitsspeicher.
-const AKEY = 'af-demo-anfragen-v1';
+const AKEY = 'af-demo-anfragen-v2';
 function store() { try { localStorage.setItem(AKEY, JSON.stringify(S.mem)); } catch (e) { /* voll oder gesperrt: dann nur bis zum Neuladen */ } }
 function loadStore() {
   let raw = null;
@@ -520,30 +520,29 @@ $('#callStart').addEventListener('click', startCall);
 $('#callReset').addEventListener('click', () => { callTimers.forEach(clearTimeout); phone('idle'); });
 $('#phoneScreen').addEventListener('click', e => { if (e.target.closest('#smsOpen')) { go('kunde'); openChat('Anruf-SMS'); toast('Der Anrufer ist jetzt im Chat. Kanal: Anruf-SMS.'); } });
 
-/* ---------- Chef ---------- */
-const STATUS = { neu: 'Neu', angebot: 'Angebot raus', gewonnen: 'Bestätigt', verloren: 'Abgesagt' };
+/* ---------- Chef: Übersicht (Angebote schreibt das Büro wie gewohnt) ---------- */
+const STATUS = { neu: 'Neu', bearbeitung: 'In Bearbeitung', angebot: 'Angebot geschrieben', gewonnen: 'Auftrag', verloren: 'Abgesagt' };
+const STATUS_ORDER = ['neu', 'bearbeitung', 'angebot', 'gewonnen', 'verloren'];
 function filtered() { const all = allRequests(); return S.filter === 'alle' ? all : all.filter(r => r.status === S.filter); }
 function within30(r) { const t = Date.parse(r.createdAt); return !isNaN(t) && Date.now() - t < 30 * 864e5; }
+const zahl = (x, eins, viele) => `<b>${x}</b> ${x === 1 ? eins : viele}`;
 function renderKpis() {
   const rs = allRequests().filter(within30);
   const ah = rs.filter(r => afterHours(r.createdAt)).length;
   const sms = rs.filter(r => r.kanal === 'Anruf-SMS').length;
-  const raus = rs.filter(r => r.angebot && r.status !== 'neu');
-  const wert = raus.reduce((s, r) => s + r.angebot.summe, 0);
-  const best = raus.filter(r => r.status === 'gewonnen').reduce((s, r) => s + r.angebot.summe, 0);
-  const n = (x, eins, viele) => `<b>${x}</b> ${x === 1 ? eins : viele}`;
-  $('#kpis').innerHTML = `${n(rs.length, 'Anfrage', 'Anfragen')}, davon ${n(ah, 'nach Feierabend', 'nach Feierabend')} und ${n(sms, 'über den Anruf-Retter', 'über den Anruf-Retter')}. `
-    + `${n(raus.length, 'Angebot', 'Angebote')} verschickt über <mark class="num">${euro(wert)}</mark>, davon vom Kunden bestätigt: <b>${euro(best)}</b>.`;
+  const wert = rs.reduce((s, r) => s + (r.preis && !r.preis.besichtigung ? (r.preis.summe || 0) : 0), 0);
+  const auftraege = rs.filter(r => r.status === 'gewonnen').length;
+  $('#kpis').innerHTML = `${zahl(rs.length, 'Anfrage', 'Anfragen')}, davon ${zahl(ah, 'nach Feierabend', 'nach Feierabend')} und ${zahl(sms, 'über den Anruf-Retter', 'über den Anruf-Retter')}. `
+    + `Richtwerte zusammen rund <mark class="num">${euro(wert)}</mark>, daraus ${auftraege === 1 ? 'wurde' : 'wurden'} bisher ${zahl(auftraege, 'Auftrag', 'Aufträge')}.`;
 }
 function renderFilters() {
   const all = allRequests(); const n = s => s === 'alle' ? all.length : all.filter(r => r.status === s).length;
-  $('#filters').innerHTML = ['alle', 'neu', 'angebot', 'gewonnen', 'verloren'].map(s => `<button type="button" class="filter" data-filter="${s}" aria-pressed="${S.filter === s}">${s === 'alle' ? 'Alle' : STATUS[s]} · ${n(s)}</button>`).join('');
+  $('#filters').innerHTML = ['alle', ...STATUS_ORDER].map(s => `<button type="button" class="filter" data-filter="${s}" aria-pressed="${S.filter === s}">${s === 'alle' ? 'Alle' : STATUS[s]} · ${n(s)}</button>`).join('');
 }
 function priceText(r) {
-  if (r.angebot) return euro(r.angebot.summe);
   if (!r.preis) return '';
   if (r.preis.besichtigung) return 'Besichtigung';
-  return `ca. ${euro(r.preis.min).replace('\u00a0€', '')} bis ${euro(r.preis.max)}`;
+  return `ca. ${euro(r.preis.min).replace(' €', '')} bis ${euro(r.preis.max)}`;
 }
 function renderList() {
   const rs = filtered();
@@ -557,14 +556,7 @@ function renderList() {
       <span class="req-bottom"><span class="state st-${r.status}">${STATUS[r.status]}</span><span class="req-price num">${esc(priceText(r))}</span></span>
     </button>`).join('');
 }
-function draftFor(r) {
-  if (!S.drafts[r.id]) {
-    const base = r.angebot ? r.angebot.positionen : (r.preis && r.preis.positionen.length ? r.preis.positionen : [{ text: 'Besichtigung und Kostenvoranschlag vor Ort', betrag: 0 }]);
-    S.drafts[r.id] = base.map(p => ({ text: p.text, betrag: p.betrag }));
-  }
-  return S.drafts[r.id];
-}
-function factsHtml(r) {
+function factRows(r) {
   const a = r.angaben || {}; const rows = [];
   rows.push(['Leistung', svc(r.leistung).name]);
   if (r.fahrzeug) rows.push(['Fahrzeug', kl(r.fahrzeug).name + (r.modell ? ` (${r.modell})` : '')]);
@@ -572,47 +564,40 @@ function factsHtml(r) {
   if (r.leistung === 'innen') rows.push(['Tierhaare / Flecken', `${a.tierhaare ? 'ja' : 'nein'} / ${a.flecken ? 'ja' : 'nein'}`]);
   if (r.leistung === 'smart' && a.kratzerGroesse) rows.push(['Schaden', `${a.kratzerAnzahl || 1} × ${GLABEL[a.kratzerGroesse] || a.kratzerGroesse}`]);
   rows.push(['Terminwunsch', r.termin || 'keiner']);
-  rows.push(['Bewertung erlaubt', r.bewertungOk ? 'ja' : 'nein']);
   if (r.preis && !r.preis.besichtigung) rows.push(['Richtwert im Chat', `ca. ${r.preis.min} bis ${r.preis.max} €`]);
-  return `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+  if (r.preis && r.preis.besichtigung) rows.push(['Richtwert im Chat', 'nur nach Besichtigung']);
+  rows.push(['Bewertung erlaubt', r.bewertungOk ? 'ja' : 'nein']);
+  return rows;
 }
-function docHtml(r) {
-  const a = r.angebot;
-  return `<div class="doc" aria-label="Angebot">
-    <div class="doc-head"><div><div class="doc-firm">Muster Fahrzeugpflege</div><div class="doc-small">${esc(PROFIL.adresse)}</div></div><div class="doc-small" style="text-align:right">Angebot ${esc(a.nr)}<br>${esc(fmtDate(a.datum))}</div></div>
-    <div><b>An:</b> ${esc(r.kunde.name)} · ${esc(r.kunde.kontakt)}</div>
-    <table>${a.positionen.map(p => `<tr><td>${esc(p.text)}</td><td>${euro(p.betrag)}</td></tr>`).join('')}<tr class="total"><td>Gesamt</td><td>${euro(a.summe)}</td></tr></table>
-    <div class="doc-small">Endpreise. Gültig 14 Tage. Der Preis kann sich nach Sichtung des Fahrzeugs ändern, das besprechen wir vorher mit Ihnen.${r.termin && r.termin !== 'flexibel' ? ' Terminwunsch: ' + esc(r.termin) + '.' : ''}</div>
+const factsHtml = rows => `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+function akteHtml(r) {
+  return `<div class="doc" aria-label="Anfrage">
+    <div class="doc-head"><div><div class="doc-firm">Anfrage von ${esc(r.kunde.name)}</div><div class="doc-small">${esc(r.kunde.kontakt)} · ${esc(r.kanal)} · ${esc(fmtTime(r.createdAt))}</div></div><div class="doc-small" style="text-align:right">Muster Fahrzeugpflege</div></div>
+    <table>${factRows(r).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
+    ${r.ki && r.ki.kurz ? `<div class="doc-small">Einschätzung aus den Fotos: ${esc(r.ki.kurz)}</div>` : ''}
   </div>`;
 }
 function renderDetail(force) {
   const r = allRequests().find(x => x.id === S.selected);
   const box = $('#reqDetail');
-  if (!r) { S.detailKey = ''; box.innerHTML = allRequests().length ? '<div class="empty"><h3>Anfrage auswählen</h3><p>Links eine Anfrage antippen, um Fotos, Angaben und den Angebotsentwurf zu sehen.</p></div>' : ''; return; }
+  if (!r) { S.detailKey = ''; box.innerHTML = allRequests().length ? '<div class="empty"><h3>Anfrage auswählen</h3><p>Links eine Anfrage antippen, um Fotos, Angaben und Preisrahmen zu sehen.</p></div>' : ''; return; }
   const key = JSON.stringify(r);
   if (!force && key === S.detailKey) return;
   S.detailKey = key;
   const ki = r.ki;
-  let offer = '';
-  if (r.status === 'neu') {
-    const d = draftFor(r);
-    offer = `<div class="offer" id="offer">${d.map((p, i) => `<div class="offer-row"><input type="text" data-i="${i}" data-f="text" value="${esc(p.text)}" aria-label="Position ${i + 1}"><input type="number" class="amt" data-i="${i}" data-f="betrag" value="${esc(p.betrag)}" min="0" step="5" aria-label="Betrag Position ${i + 1} in Euro"><button type="button" class="x" data-del="${i}" aria-label="Position entfernen">×</button></div>`).join('')}
-      <div class="offer-foot"><button type="button" class="btn quiet" id="addPos">+ Position</button><span>Summe <span class="offer-sum" id="draftSum">${euro(d.reduce((s, p) => s + (Number(p.betrag) || 0), 0))}</span></span></div></div>
-      <div class="actions"><button type="button" class="btn primary" id="approve">Freigeben und senden</button><button type="button" class="btn quiet" id="lose">Absage</button></div>`;
-  } else if (r.angebot) {
-    offer = docHtml(r) + `<div class="actions" style="margin-top:10px">${r.status === 'angebot' ? '<button type="button" class="btn primary" id="kundenlink">Als Kunde ansehen</button>' : ''}<button type="button" class="btn" id="pdf">Drucken / PDF</button>${r.status === 'angebot' ? '<button type="button" class="btn quiet" id="win">Kunde hat zugesagt</button><button type="button" class="btn quiet" id="lose">Absage</button>' : ''}${r.status === 'verloren' ? '<button type="button" class="btn quiet" id="reopen">Wieder öffnen</button>' : ''}</div>${r.status === 'gewonnen' ? `<p class="note" style="margin-top:8px">${r.bestaetigtVon === 'kunde' ? 'Der Kunde hat das Angebot selbst per Klick angenommen.' : 'Vom Chef als zugesagt markiert.'}</p>` : ''}`;
-  } else {
-    offer = `<p class="note">Kein Angebot gesendet.</p><div class="actions"><button type="button" class="btn quiet" id="reopen">Wieder öffnen</button></div>`;
-  }
   box.innerHTML = `<div class="detail">
     <div class="d-head"><div class="d-tags"><span class="state st-${r.status}">${STATUS[r.status]}</span>${afterHours(r.createdAt) ? '<span class="tagline">kam außerhalb der Öffnungszeiten</span>' : ''}${r.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
       <h3>${esc(r.kunde.name)}</h3>
       <div class="d-sub"><span>${esc(r.kunde.kontakt)}</span><span>·</span><span>${esc(r.kanal)}</span><span>·</span><span>${esc(fmtTime(r.createdAt))}</span></div></div>
     ${r.fotos.length ? `<div class="sec"><h4>Fotos</h4><div class="d-photos">${r.fotos.map(u => `<img src="${esc(u)}" alt="Foto vom Kunden">`).join('')}</div></div>` : ''}
-    ${ki ? `<div class="sec"><h4>Einschätzung aus den Fotos</h4><div class="ki"><div>${esc(ki.kurz || 'Keine Beschreibung.')}</div><div class="hint">Nur ein Hinweis. Der Preis kommt aus Ihrer Preisliste, entscheiden tun Sie.</div></div></div>` : ''}
-    <div class="sec"><h4>Angaben</h4>${factsHtml(r)}</div>
+    ${ki ? `<div class="sec"><h4>Einschätzung aus den Fotos</h4><div class="ki"><div>${esc(ki.kurz || 'Keine Beschreibung.')}</div><div class="hint">Nur ein Hinweis. Der Preisrahmen kommt aus Ihrer Preisliste.</div></div></div>` : ''}
+    <div class="sec"><h4>Angaben</h4>${factsHtml(factRows(r))}</div>
     ${r.verlauf.length ? `<details class="verlauf"><summary>Chatverlauf (${r.verlauf.length} Nachrichten)</summary><div class="verlauf-list">${r.verlauf.map(v => `<div><b>${esc(v.von)}:</b> ${esc(v.text)}</div>`).join('')}</div></details>` : ''}
-    <div class="sec"><h4>${r.status === 'neu' ? 'Angebotsentwurf' : 'Angebot'}</h4>${offer}</div>
+    <div class="sec"><h4>Wo steht die Anfrage?</h4>
+      <div class="status-row" role="group" aria-label="Status setzen">${STATUS_ORDER.map(st => `<button type="button" class="filter" data-status="${st}" aria-pressed="${r.status === st}">${STATUS[st]}</button>`).join('')}</div>
+      <p class="note">Das Angebot schreibt Ihr Büro wie gewohnt. Hier sieht jeder, wo die Anfrage gerade steht.</p>
+      <div class="actions"><button type="button" class="btn" id="printAkte">Anfrage drucken</button></div>
+    </div>
   </div>`;
 }
 function renderChef(forceDetail) {
@@ -624,63 +609,16 @@ $('#reqList').addEventListener('click', e => {
   S.selected = b.dataset.id; renderList(); renderDetail(true);
   if (window.matchMedia('(max-width: 960px)').matches) $('#reqDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
-$('#reqDetail').addEventListener('input', e => {
-  const t = e.target; if (!t.dataset || t.dataset.i == null) return;
-  const d = S.drafts[S.selected]; if (!d) return;
-  const p = d[Number(t.dataset.i)]; if (!p) return;
-  if (t.dataset.f === 'text') p.text = t.value; else p.betrag = Math.max(0, Number(t.value) || 0);
-  const sum = d.reduce((s, q) => s + (Number(q.betrag) || 0), 0); const el = $('#draftSum'); if (el) el.textContent = euro(sum);
-});
 $('#reqDetail').addEventListener('click', async e => {
   const r = allRequests().find(x => x.id === S.selected); if (!r) return;
-  const del = e.target.closest('[data-del]');
-  if (del) { const d = S.drafts[r.id]; d.splice(Number(del.dataset.del), 1); renderDetail(true); return; }
-  if (e.target.closest('#addPos')) { draftFor(r).push({ text: 'Weitere Leistung', betrag: 0 }); renderDetail(true); const ins = $('#offer').querySelectorAll('input[data-f="text"]'); const last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); } return; }
-  if (e.target.closest('#approve')) {
-    const pos = draftFor(r).filter(p => p.text.trim()).map(p => ({ text: p.text.trim().slice(0, 160), betrag: Math.round(Number(p.betrag) || 0) }));
-    if (!pos.length) { toast('Das Angebot braucht mindestens eine Position.'); return; }
-    const now = new Date().toISOString();
-    const angebot = { positionen: pos, summe: pos.reduce((s, p) => s + p.betrag, 0), nr: `AN-${new Date().getFullYear()}-${r.id.slice(-4).toUpperCase()}`, datum: now };
-    delete S.drafts[r.id];
-    await patchRequest(r.id, { status: 'angebot', angebot, sentAt: now });
-    toast('Freigegeben. Im Betrieb geht das Angebot jetzt per E-Mail raus.');
-    return;
-  }
-  if (e.target.closest('#win')) { await patchRequest(r.id, { status: 'gewonnen', wonAt: new Date().toISOString(), bestaetigtVon: 'chef' }); toast('Als bestätigt markiert.'); return; }
-  if (e.target.closest('#kundenlink')) { openOffer(r); return; }
-  if (e.target.closest('#lose')) { await patchRequest(r.id, { status: 'verloren' }); return; }
-  if (e.target.closest('#reopen')) { await patchRequest(r.id, { status: r.angebot ? 'angebot' : 'neu' }); return; }
-  if (e.target.closest('#pdf')) { printOffer(r); return; }
+  const st = e.target.closest('[data-status]');
+  if (st) { await patchRequest(r.id, { status: st.dataset.status }); if (st.dataset.status === 'gewonnen') toast('Als Auftrag gezählt. Siehe die Zahlen oben.'); return; }
+  if (e.target.closest('#printAkte')) { printDoc(akteHtml(r)); return; }
 });
-
-function printOffer(r) {
-  if (!r.angebot) return;
-  $('#printArea').innerHTML = docHtml(r);
+function printDoc(html) {
+  $('#printArea').innerHTML = html;
   try { window.print(); } catch (e) { toast('Drucken ist hier nicht möglich.'); }
 }
-let offerId = null;
-function renderOfferModal() {
-  const r = allRequests().find(x => x.id === offerId); if (!r || !r.angebot) return;
-  const done = r.status === 'gewonnen';
-  $('#offerModalBody').innerHTML = `<p>Hallo ${esc(r.kunde.name.split(' ')[0])}, vielen Dank für Ihre Anfrage. Hier ist Ihr Angebot:</p>${docHtml(r)}
-    ${done ? '<div class="accepted" role="status">Angebot angenommen. Das Team meldet sich wegen des Termins.</div>'
-      : '<div class="actions"><button type="button" class="btn primary" id="acceptOffer">Angebot annehmen</button><button type="button" class="btn quiet" id="offerLater">Später entscheiden</button></div><p class="note" style="font-size:12.5px;color:var(--muted)">Klickt der Kunde auf „Angebot annehmen“, zählt der Auftrag automatisch als bestätigt. Der Chef muss nichts nachtragen.</p>'}`;
-}
-function openOffer(r) {
-  offerId = r.id; renderOfferModal();
-  const d = $('#offerModal');
-  if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
-}
-function closeOffer() { const d = $('#offerModal'); if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); }
-$('#offerClose').addEventListener('click', closeOffer);
-$('#offerModal').addEventListener('click', async e => {
-  if (e.target === $('#offerModal')) { closeOffer(); return; }
-  if (e.target.closest('#offerLater')) { closeOffer(); return; }
-  if (e.target.closest('#acceptOffer') && offerId) {
-    await patchRequest(offerId, { status: 'gewonnen', wonAt: new Date().toISOString(), bestaetigtVon: 'kunde' });
-    renderOfferModal(); toast('Angenommen. Die Kennzahlen oben sind schon aktualisiert.');
-  }
-});
 
 const BEISPIELE = [
   { name: 'Laura M. (Beispiel)', kontakt: '0170 0000001', leistung: 'innen', fahrzeug: 'kompakt', modell: 'VW Golf', angaben: { verschmutzung: 'stark', tierhaare: true, flecken: false }, kanal: 'Website', stunde: 21, minute: 40, tagZurueck: 1, kurz: 'Innenraum eines Kompaktwagens mit vielen Hundehaaren auf der Rückbank und Krümeln im Fußraum.', status: 'neu' },
@@ -690,21 +628,13 @@ const BEISPIELE = [
 function beispielAnfrage(b, status) {
   const d = new Date(); d.setDate(d.getDate() - b.tagZurueck); d.setHours(b.stunde, b.minute, 0, 0);
   const ctx = Object.assign({ leistung: b.leistung, fahrzeug: b.fahrzeug }, b.angaben);
-  const preis = berechne(ctx);
-  const r = {
-    id: uid(), createdAt: d.toISOString(), kanal: b.kanal, status: 'neu', beispiel: true,
+  return normalize(uid(), {
+    createdAt: d.toISOString(), kanal: b.kanal, status, beispiel: true,
     kunde: { name: b.name, kontakt: b.kontakt }, leistung: b.leistung, fahrzeug: b.fahrzeug || null, modell: b.modell,
     angaben: Object.assign({ verschmutzung: null, tierhaare: false, flecken: false, kratzerGroesse: null, kratzerAnzahl: null }, b.angaben),
-    ki: { kurz: b.kurz }, fotos: [], preis, termin: nextSlots()[1] || '', bewertungOk: true,
+    ki: { kurz: b.kurz }, fotos: [], preis: berechne(ctx), termin: nextSlots()[1] || '', bewertungOk: true,
     verlauf: [{ von: 'Kunde', text: `Anfrage für ${svc(b.leistung).name}` }, { von: 'Assistent', text: 'Richtwert genannt, Termin angefragt.' }]
-  };
-  if (status !== 'neu') {
-    const am = new Date(d.getTime() + 15 * 3600e3).toISOString();
-    r.angebot = { positionen: preis.positionen.map(p => ({ text: p.text, betrag: p.betrag })), summe: preis.summe || 0, nr: `AN-${d.getFullYear()}-${r.id.slice(-4).toUpperCase()}`, datum: am };
-    r.sentAt = am; r.status = status;
-    if (status === 'gewonnen') { r.wonAt = am; r.bestaetigtVon = 'kunde'; }
-  }
-  return normalize(r.id, r);
+  });
 }
 function beispielSatz() { return BEISPIELE.map(b => beispielAnfrage(b, b.status)); }
 let beispielIdx = 0;
@@ -721,10 +651,198 @@ $('#clearWrap').addEventListener('click', async e => {
   if (e.target.closest('#clearNo')) { $('#clearWrap').innerHTML = knopf; return; }
   if (e.target.closest('#clearYes')) {
     S.mem = beispielSatz(); store();
-    S.selected = null; S.drafts = {};
+    S.selected = null;
     $('#clearWrap').innerHTML = knopf;
     renderChef(true); toast('Zurückgesetzt.');
   }
+});
+
+/* ---------- Bewerber-Chat ---------- */
+// Bewerbung in einer Minute per Chat, ohne Anschreiben. Die KI bewertet oder sortiert niemanden aus:
+// das wäre nach der KI-Verordnung ein Hochrisiko-System. Alles bleibt in diesem Browser.
+const JOBS = [
+  { id: 'aufbereiter', name: 'Fahrzeugaufbereiter (m/w/d)', umfang: 'Vollzeit oder Teilzeit' },
+  { id: 'aushilfe', name: 'Aushilfe samstags (m/w/d)', umfang: 'Minijob' },
+  { id: 'ausbildung', name: 'Ausbildung Fahrzeuglackierer (m/w/d)', umfang: 'ab September' },
+  { id: 'initiativ', name: 'Initiativ', umfang: 'egal' }
+];
+const job = id => JOBS.find(j => j.id === id) || { id, name: id || '–' };
+const BSTATUS = { neu: 'Neu', angerufen: 'Angerufen', probe: 'Probearbeiten', eingestellt: 'Eingestellt', absage: 'Absage' };
+const BSTATUS_ORDER = ['neu', 'angerufen', 'probe', 'eingestellt', 'absage'];
+const BKEY = 'af-demo-bewerbungen-v1';
+const BW = { list: [], selected: null, detailKey: '' };
+function bNormalize(d) {
+  d = d || {}; const t = (v, n = 120) => String(v == null ? '' : v).slice(0, n);
+  return { id: t(d.id || uid(), 40), createdAt: t(d.createdAt, 40), status: BSTATUS[d.status] ? d.status : 'neu', beispiel: !!d.beispiel,
+    name: t(d.name, 80) || 'Unbekannt', kontakt: t(d.kontakt), erreichbar: t(d.erreichbar, 80), job: t(d.job, 20), erfahrung: t(d.erfahrung, 60),
+    fuehrerschein: t(d.fuehrerschein, 20), umfang: t(d.umfang, 40), start: t(d.start, 40), frage: t(d.frage, 300) };
+}
+function bStore() { try { localStorage.setItem(BKEY, JSON.stringify(BW.list)); } catch (e) { /* nur bis zum Neuladen */ } }
+function bBeispiele() {
+  const at = (tage, h, m) => { const d = new Date(); d.setDate(d.getDate() - tage); d.setHours(h, m, 0, 0); return d.toISOString(); };
+  return [
+    { name: 'Dennis K. (Beispiel)', kontakt: '0160 0000003', erreichbar: 'ab 17 Uhr', job: 'aufbereiter', erfahrung: 'mehr als 2 Jahre', fuehrerschein: 'ja', umfang: 'Vollzeit', start: 'in einem Monat', createdAt: at(1, 22, 15), status: 'neu', beispiel: true },
+    { name: 'Sara B. (Beispiel)', kontakt: 'sara@example.org', erreichbar: 'vormittags', job: 'aushilfe', erfahrung: 'ein bisschen', fuehrerschein: 'ja', umfang: 'Minijob', start: 'sofort', createdAt: at(3, 20, 40), status: 'angerufen', beispiel: true },
+    { name: 'Luca M. (Beispiel)', kontakt: '0152 0000004', erreichbar: 'nach der Schule', job: 'ausbildung', erfahrung: 'noch keine', fuehrerschein: 'nein', umfang: 'Vollzeit', start: 'ab September', createdAt: at(5, 16, 5), status: 'probe', beispiel: true }
+  ].map(bNormalize);
+}
+function bLoad() {
+  let raw = null; try { raw = localStorage.getItem(BKEY); } catch (e) { raw = null; }
+  if (raw) { try { const a = JSON.parse(raw); if (Array.isArray(a)) { BW.list = a.map(bNormalize); return; } } catch (e) { /* neu anlegen */ } }
+  BW.list = bBeispiele(); bStore();
+}
+const bAll = () => [...BW.list].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
+// Chat-Ablauf
+const BC = { log: [], ctx: {}, step: '', busy: false, started: false };
+const bBot = (text, o = {}) => { const m = Object.assign({ from: 'bot', text }, o); BC.log.push(m); return m; };
+const bUser = (text) => { const m = { from: 'user', text }; BC.log.push(m); return m; };
+const ch = (label, act, val) => ({ label, act, val: val || '' });
+function bStart() {
+  BC.log = []; BC.ctx = {}; BC.busy = false;
+  bBot('Hi! Schön, dass du dich für uns interessierst. Bewerben dauert hier eine Minute, ohne Anschreiben und ohne Lebenslauf. Für welche Stelle?',
+    { chips: JOBS.map(j => ch(j.name, 'job', j.id)).concat([ch('Ich hab erst eine Frage', 'frage')]) });
+  BC.step = 'job'; bRenderLog();
+}
+function bAsk(step) {
+  BC.step = step;
+  if (step === 'erfahrung') bBot('Hast du schon Erfahrung in dem Bereich?', { chips: [ch('Ja, mehr als 2 Jahre', 'erfahrung', 'mehr als 2 Jahre'), ch('Ein bisschen', 'erfahrung', 'ein bisschen'), ch('Noch keine, aber ich lerne schnell', 'erfahrung', 'noch keine')] });
+  if (step === 'fuehrerschein') bBot('Hast du einen Führerschein Klasse B?', { chips: [ch('Ja', 'fuehrerschein', 'ja'), ch('Nein', 'fuehrerschein', 'nein'), ch('Bin gerade dabei', 'fuehrerschein', 'in Arbeit')] });
+  if (step === 'umfang') bBot('Wie viel möchtest du arbeiten?', { chips: [ch('Vollzeit', 'umfang', 'Vollzeit'), ch('Teilzeit', 'umfang', 'Teilzeit'), ch('Minijob', 'umfang', 'Minijob')] });
+  if (step === 'start') bBot('Ab wann könntest du anfangen?', { chips: [ch('Sofort', 'start', 'sofort'), ch('In einem Monat', 'start', 'in einem Monat'), ch('Später', 'start', 'später')] });
+  if (step === 'kontakt') bBot('Super, fast fertig. Wie erreichen wir dich?', { card: 'kontakt' });
+}
+function bAct(act, val, idx) {
+  const m = BC.log[idx]; if (m) m.used = true;
+  const label = m && m.chips ? (m.chips.find(c => c.act === act && c.val === val) || {}).label : '';
+  if (act === 'job') { BC.ctx.job = val; bUser(label); bAsk('erfahrung'); }
+  else if (act === 'frage') { bUser('Ich hab erst eine Frage'); bBot('Klar, schreib sie einfach unten rein.', { chips: JOBS.map(j => ch(j.name, 'job', j.id)) }); }
+  else if (act === 'erfahrung') { BC.ctx.erfahrung = val; bUser(label); bAsk('fuehrerschein'); }
+  else if (act === 'fuehrerschein') { BC.ctx.fuehrerschein = val; bUser(label); bAsk(BC.ctx.job === 'aushilfe' ? 'start' : 'umfang'); if (BC.ctx.job === 'aushilfe') BC.ctx.umfang = 'Minijob'; }
+  else if (act === 'umfang') { BC.ctx.umfang = val; bUser(label); bAsk('start'); }
+  else if (act === 'start') { BC.ctx.start = val; bUser(label); bAsk('kontakt'); }
+  else if (act === 'betrieb') { closeBChat(); $('#bBetrieb').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  else if (act === 'neu') { bStart(); return; }
+  bRenderLog();
+}
+function bFaq(t) {
+  const s = t.toLowerCase();
+  if (/gehalt|lohn|verdien|geld|bezahl/.test(s)) return 'Das Gehalt hängt von Stelle und Erfahrung ab. Das besprechen wir offen im ersten Gespräch.';
+  if (/arbeitszeit|uhr|wann arbeit|samstag|wochenende/.test(s)) return 'Gearbeitet wird Mo–Fr 8–17 Uhr, samstags nur nach Absprache.';
+  if (/lebenslauf|zeugnis|anschreiben|unterlagen/.test(s)) return 'Brauchst du hier nicht. Wenn du magst, bring deinen Lebenslauf einfach zum Gespräch mit.';
+  if (/wo |adresse|anfahrt|standort/.test(s)) return `Du findest uns hier: ${PROFIL.adresse}.`;
+  if (/ki|bot|mensch/.test(s)) return 'Ich bin ein automatischer Assistent. Jede Bewerbung liest ein Mensch aus dem Team, ich sortiere niemanden aus.';
+  return 'Gute Frage, das klären wir am besten im Gespräch. Das Team meldet sich bei dir.';
+}
+function bOnText(t) {
+  t = t.trim(); if (!t || BC.busy) return;
+  bUser(t);
+  if (BC.step === 'kontakt') bBot('Trag deine Kontaktdaten bitte oben ins Formular ein.');
+  else {
+    BC.ctx.frage = (BC.ctx.frage ? BC.ctx.frage + ' | ' : '') + t.slice(0, 200);
+    bBot(bFaq(t));
+    const offen = [...BC.log].reverse().find(m => m.chips && !m.used);
+    if (offen && BC.log[BC.log.length - 2] !== offen) { offen.used = true; bBot('Weiter geht’s:', { chips: offen.chips.map(c => Object.assign({}, c)) }); }
+  }
+  bRenderLog();
+}
+function bSubmit(idx) {
+  const name = $('#b-name').value.trim(), kontakt = $('#b-kontakt').value.trim(), erreichbar = $('#b-zeit').value.trim(), ok = $('#b-ok').checked, err = $('#b-err');
+  if (!name || !kontakt) { err.textContent = 'Bitte Name und Telefon oder E-Mail eintragen.'; return; }
+  if (!/@/.test(kontakt) && kontakt.replace(/\D/g, '').length < 6) { err.textContent = 'Bitte eine gültige Telefonnummer oder E-Mail eintragen.'; return; }
+  if (!ok) { err.textContent = 'Bitte kurz zustimmen, dass wir deine Angaben für die Bewerbung speichern dürfen.'; return; }
+  const m = BC.log[idx]; if (m) { m.used = true; m.summary = `${name} · ${kontakt}`; }
+  const b = bNormalize(Object.assign({}, BC.ctx, { id: uid(), createdAt: new Date().toISOString(), status: 'neu', name, kontakt, erreichbar, umfang: BC.ctx.umfang || '' }));
+  BW.list.unshift(b); BW.selected = b.id; bStore(); bRender(true);
+  bBot(`Danke, ${name.split(' ')[0]}! Deine Bewerbung ist angekommen. Wir melden uns in den nächsten zwei Werktagen bei dir.`, { chips: [ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] });
+  BC.step = 'fertig'; bRenderLog();
+  toast('Bewerbung angekommen. Unten sehen Sie, wie es beim Betrieb aussieht.');
+}
+function bRenderLog() {
+  const log = $('#bLog');
+  log.innerHTML = BC.log.map((m, i) => {
+    let inner = m.text ? `<div class="bubble">${esc(m.text)}</div>` : '';
+    if (m.card === 'kontakt') {
+      inner += m.used ? `<div class="card"><div class="note">Gesendet</div><div>${esc(m.summary || '')}</div></div>`
+        : `<form class="card" data-bkontakt="${i}" novalidate>
+          <label for="b-name">Dein Name<input type="text" id="b-name" autocomplete="name" placeholder="Vor- und Nachname"></label>
+          <label for="b-kontakt">Telefon oder E-Mail<input type="text" id="b-kontakt" autocomplete="tel" placeholder="z. B. 0170 1234567"></label>
+          <label for="b-zeit">Wann erreichen wir dich am besten? (freiwillig)<input type="text" id="b-zeit" placeholder="z. B. ab 17 Uhr"></label>
+          <label class="check" for="b-ok"><input type="checkbox" id="b-ok"> <span>Muster Fahrzeugpflege darf meine Angaben für diese Bewerbung speichern. Sie werden nach 6 Monaten gelöscht.</span></label>
+          <div class="err" id="b-err" role="alert"></div>
+          <button class="btn primary" type="submit">Bewerbung abschicken</button>
+          <div class="note">Demo: Deine Angaben bleiben nur in diesem Browser. Bitte keine echten Daten eingeben.</div>
+        </form>`;
+    }
+    if (m.chips && m.chips.length) inner += `<div class="chips">${m.chips.map(c => `<button type="button" class="chip" data-bact="${esc(c.act)}" data-val="${esc(c.val)}" data-idx="${i}" ${m.used ? 'disabled' : ''}>${esc(c.label)}</button>`).join('')}</div>`;
+    return `<div class="msg ${m.from}">${inner}</div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+$('#bLog').addEventListener('click', e => { const b = e.target.closest('button.chip[data-bact]'); if (!b || b.disabled) return; bAct(b.dataset.bact, b.dataset.val, Number(b.dataset.idx)); });
+$('#bLog').addEventListener('submit', e => { const f = e.target.closest('form[data-bkontakt]'); if (!f) return; e.preventDefault(); bSubmit(Number(f.dataset.bkontakt)); });
+$('#bForm').addEventListener('submit', e => { e.preventDefault(); const i = $('#bText'); const t = i.value; i.value = ''; bOnText(t); });
+$('#bRestart').addEventListener('click', bStart);
+function openBChat() {
+  if (!BC.started) { bStart(); BC.started = true; }
+  $('#bChatPanel').hidden = false; $('#bLauncher').setAttribute('aria-expanded', 'true');
+  if (window.matchMedia('(max-width: 640px)').matches) document.body.style.overflow = 'hidden';
+  bRenderLog(); $('#bClose').focus({ preventScroll: true });
+}
+function closeBChat() {
+  $('#bChatPanel').hidden = true; document.body.style.overflow = '';
+  const l = $('#bLauncher'); l.setAttribute('aria-expanded', 'false'); l.focus({ preventScroll: true });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-open-bchat]')) openBChat(); });
+$('#bClose').addEventListener('click', closeBChat);
+$('#bChatPanel').addEventListener('keydown', e => { if (e.key === 'Escape') closeBChat(); });
+$('#jobSite').addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#job-"]'); if (!a) return;
+  e.preventDefault(); const t = document.getElementById(a.getAttribute('href').slice(1));
+  if (t) $('#jobSite').scrollTo({ top: t.offsetTop - 8, behavior: 'smooth' });
+});
+
+// Übersicht im Betrieb
+function bRender(force) {
+  const all = bAll(); const rs = all.filter(within30);
+  const ah = rs.filter(b => afterHours(b.createdAt)).length;
+  const probe = rs.filter(b => b.status === 'probe' || b.status === 'eingestellt').length;
+  $('#bSum').innerHTML = `${zahl(rs.length, 'Bewerbung', 'Bewerbungen')} in den letzten 30 Tagen, davon ${zahl(ah, 'nach Feierabend', 'nach Feierabend')}. ${zahl(probe, 'Person', 'Leute')} zum Probearbeiten eingeladen.`;
+  $('#bList').innerHTML = all.length ? all.map(b => `<button type="button" class="req" data-bid="${esc(b.id)}" aria-current="${BW.selected === b.id}">
+      <span class="req-name">${esc(b.name)}</span><span class="req-time">${esc(fmtTime(b.createdAt))}</span>
+      <span class="req-meta">${esc(job(b.job).name)} · ${esc(b.umfang || '–')} · ab ${esc(b.start || '–')}${afterHours(b.createdAt) ? ' · nach Feierabend' : ''}</span>
+      <span class="req-bottom"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span><span class="req-price">${esc(b.erfahrung ? 'Erfahrung: ' + b.erfahrung : '')}</span></span>
+    </button>`).join('') : '<div class="empty"><h3>Noch keine Bewerbungen</h3><p>Bewerben Sie sich oben einmal selbst.</p></div>';
+  const b = all.find(x => x.id === BW.selected); const box = $('#bDetail');
+  if (!b) { BW.detailKey = ''; box.innerHTML = all.length ? '<div class="empty"><h3>Bewerbung auswählen</h3><p>Links eine Bewerbung antippen.</p></div>' : ''; return; }
+  const key = JSON.stringify(b); if (!force && key === BW.detailKey) return; BW.detailKey = key;
+  const rows = [['Stelle', job(b.job).name], ['Erfahrung', b.erfahrung || '–'], ['Führerschein Klasse B', b.fuehrerschein || '–'], ['Umfang', b.umfang || '–'], ['Anfangen', b.start || '–'], ['Erreichbar', b.erreichbar || 'keine Angabe']];
+  if (b.frage) rows.push(['Hat gefragt', b.frage]);
+  box.innerHTML = `<div class="detail">
+    <div class="d-head"><div class="d-tags"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span>${afterHours(b.createdAt) ? '<span class="tagline">kam nach Feierabend</span>' : ''}${b.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
+      <h3>${esc(b.name)}</h3>
+      <div class="d-sub"><span>${esc(b.kontakt)}</span><span>·</span><span>${esc(fmtTime(b.createdAt))}</span></div></div>
+    <div class="sec"><h4>Angaben</h4>${factsHtml(rows)}</div>
+    <div class="sec"><h4>Wo steht die Bewerbung?</h4>
+      <div class="status-row" role="group" aria-label="Status setzen">${BSTATUS_ORDER.map(st => `<button type="button" class="filter" data-bstatus="${st}" aria-pressed="${b.status === st}">${BSTATUS[st]}</button>`).join('')}</div>
+      <p class="note">Ein Anruf reicht meistens. Die Bewerbung wird nach 6 Monaten automatisch gelöscht.</p>
+    </div>
+  </div>`;
+}
+$('#bList').addEventListener('click', e => {
+  const r = e.target.closest('.req[data-bid]'); if (!r) return; BW.selected = r.dataset.bid; bRender(true);
+  if (window.matchMedia('(max-width: 960px)').matches) $('#bDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#bDetail').addEventListener('click', e => {
+  const st = e.target.closest('[data-bstatus]'); if (!st) return;
+  const b = BW.list.find(x => x.id === BW.selected); if (!b) return;
+  b.status = st.dataset.bstatus; bStore(); bRender(true);
+});
+$('#bResetWrap').addEventListener('click', e => {
+  const knopf = '<button class="btn quiet danger" type="button" id="bReset">Zurücksetzen</button>';
+  if (e.target.closest('#bReset')) { $('#bResetWrap').innerHTML = '<span class="confirm">Eigene Bewerbungen löschen? <button class="btn danger" type="button" id="bResetYes">Ja, zurücksetzen</button><button class="btn quiet" type="button" id="bResetNo">Abbrechen</button></span>'; return; }
+  if (e.target.closest('#bResetNo')) { $('#bResetWrap').innerHTML = knopf; return; }
+  if (e.target.closest('#bResetYes')) { BW.list = bBeispiele(); BW.selected = null; bStore(); $('#bResetWrap').innerHTML = knopf; bRender(true); toast('Zurückgesetzt.'); }
 });
 
 /* ---------- Preisliste ---------- */
@@ -746,19 +864,20 @@ document.getElementById('v-preise').addEventListener('input', e => {
 $('#priceReset').addEventListener('click', () => { PRICES = clone(DEFAULT_PRICES); savePrices(); renderPrices(); renderServices(); toast('Beispielpreise wiederhergestellt.'); });
 
 /* ---------- routing ---------- */
-const VIEWS = ['kunde', 'anruf', 'chef', 'preise'];
+const VIEWS = ['kunde', 'anruf', 'chef', 'bewerber', 'preise'];
 function go(v, push = true) {
   if (!VIEWS.includes(v)) v = 'kunde';
   VIEWS.forEach(x => { document.getElementById('v-' + x).hidden = x !== v; document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === v)); });
   if (push && location.hash !== '#' + v) { try { history.replaceState(null, '', '#' + v); } catch (e) { location.hash = v; } }
   if (v === 'chef') renderChef(true);
+  if (v === 'bewerber') bRender(true);
   window.scrollTo(0, 0);
 }
 document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) go(b.dataset.view); });
 window.addEventListener('hashchange', () => go(location.hash.slice(1), false));
 
 /* ---------- boot ---------- */
-loadStore(); renderServices(); renderPrices(); phone('idle'); startChat('Website'); renderStatus(); renderChef();
+loadStore(); bLoad(); renderServices(); renderPrices(); phone('idle'); startChat('Website'); renderStatus(); renderChef();
 go(location.hash.slice(1) || 'kunde', false);
 initKi();
 })();
