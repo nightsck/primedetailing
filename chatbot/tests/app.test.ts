@@ -135,6 +135,19 @@ test("Modell liefert leere Antwort auf Terminwunsch: trotzdem Formular + Text", 
   _setClient(null);
 });
 
+test("Anfrage: Web3Forms-Daten gehen an den Browser zurück, wenn WEB3FORMS_KEY gesetzt ist", async () => {
+  process.env.WEB3FORMS_KEY = "test-key";
+  process.env.FORMSUBMIT_ZIEL = "info@example.com";
+  const res = await app.request("/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": "10.8.0.2" }, body: JSON.stringify({ name: "Erika Test", kontakt: "erika@example.com", paket: "Kombi Comfort", einwilligung: true }) });
+  const j: any = await res.json();
+  delete process.env.WEB3FORMS_KEY; delete process.env.FORMSUBMIT_ZIEL;
+  assert.equal(j.ok, true);
+  assert.equal(j.formsubmit.url, "https://api.web3forms.com/submit");
+  assert.equal(j.formsubmit.daten.access_key, "test-key");
+  assert.equal(j.formsubmit.daten.Name, "Erika Test");
+  assert.equal(j.formsubmit.daten.replyto, "erika@example.com");
+});
+
 test("Anfrage: FormSubmit-Daten gehen an den Browser zurück (Server sendet nicht selbst)", async () => {
   process.env.FORMSUBMIT_ZIEL = "info@example.com";
   const res = await app.request("/api/anfrage", { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": "10.8.0.1" }, body: JSON.stringify({ name: "Max Test", kontakt: "max@example.com", paket: "Innen Comfort", einwilligung: true }) });

@@ -312,12 +312,12 @@ layout: base.njk
 
     <div class="contact-grid">
       <div class="card">
-        <form id="contact-form" action="https://formsubmit.co/{{ site.email }}" method="POST" novalidate>
-          <input type="hidden" name="_subject" value="Neue Terminanfrage über primedetailing.eu">
-          <input type="hidden" name="_template" value="table">
-          <input type="hidden" name="_captcha" value="false">
-          <input type="hidden" name="_next" value="https://primedetailing.eu/danke/">
-          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <form id="contact-form" action="https://api.web3forms.com/submit" method="POST" data-whatsapp="{{ site.whatsapp }}" novalidate>
+          <input type="hidden" name="access_key" value="{{ site.web3forms_key }}">
+          <input type="hidden" name="subject" value="Neue Terminanfrage über primedetailing.eu">
+          <input type="hidden" name="from_name" value="Website Prime Detailing">
+          <input type="hidden" name="redirect" value="https://primedetailing.eu/danke/">
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
           <div class="form-grid">
             <div class="field">
               <label for="f-name">Name</label>

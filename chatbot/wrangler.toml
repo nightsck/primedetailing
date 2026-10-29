@@ -11,7 +11,8 @@ keep_vars = true
 [vars]
 LLM_PROVIDER = "anthropic"
 ALLOWED_ORIGINS = "https://primedetailing.eu,https://www.primedetailing.eu"
-FORMSUBMIT_ZIEL = "support@primedetailing.eu"
+# Anfragen aus dem Chat: Web3Forms (Empfänger support@ im Web3Forms-Dashboard). Der Key ist öffentlich.
+WEB3FORMS_KEY = "c7958793-0cd7-4107-9c71-becdc1ee3948"
 # Notbremse: KILL_SWITCH = "1" pausiert den Chat sofort. Am einfachsten im
 # Cloudflare-Dashboard setzen (Worker → Einstellungen → Variablen), siehe CLOUDFLARE.md.
 

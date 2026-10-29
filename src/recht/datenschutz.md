@@ -28,7 +28,7 @@ Wir setzen keine Cookies und keine Analyse- oder Werbedienste ein. Schriftarten 
 
 Wenn Sie uns über ein Formular schreiben, verarbeiten wir die von Ihnen eingegebenen Daten (z. B. Name, Telefonnummer, E-Mail, Fahrzeug, Nachricht, Bewertung), um Ihre Anfrage zu beantworten bzw. Ihr Feedback auszuwerten.
 
-Für den Versand nutzen wir den Dienst FormSubmit (formsubmit.co). Ihre Eingaben werden beim Absenden an FormSubmit übertragen und von dort per E-Mail an uns weitergeleitet. Dabei kann eine Verarbeitung außerhalb der EU stattfinden. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) sowie bei Terminanfragen die Durchführung vorvertraglicher Maßnahmen (Art. 6 Abs. 1 lit. b DSGVO). Ihre Einwilligung können Sie jederzeit per E-Mail widerrufen.
+Für den Versand nutzen wir den Dienst Web3Forms (web3forms.com). Ihre Eingaben werden beim Absenden an Web3Forms übertragen und von dort per E-Mail an uns weitergeleitet. Dabei kann eine Verarbeitung außerhalb der EU stattfinden. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) sowie bei Terminanfragen die Durchführung vorvertraglicher Maßnahmen (Art. 6 Abs. 1 lit. b DSGVO). Ihre Einwilligung können Sie jederzeit per E-Mail widerrufen.
 
 Wir löschen Anfragen, sobald sie erledigt sind und keine gesetzlichen Aufbewahrungspflichten (z. B. für Rechnungen) bestehen.
 

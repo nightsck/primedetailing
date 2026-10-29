@@ -1,7 +1,8 @@
 // Leitet bestätigte Anfragen an den Betrieb weiter. Kanäle, je nachdem was
 // eingerichtet ist (mehrere gleichzeitig möglich):
-//   1. FormSubmit (Standard auf Workers): FORMSUBMIT_ZIEL=support@... – derselbe
-//      Dienst wie das Kontaktformular der Website, keine eigene Einrichtung nötig.
+//   1. Web3Forms (Standard auf Workers): WEB3FORMS_KEY=<Access Key> – derselbe
+//      Dienst wie das Kontaktformular der Website. Empfänger wird im
+//      Web3Forms-Dashboard eingestellt. Fallback: FORMSUBMIT_ZIEL=support@...
 //   2. Resend (E-Mail-API): RESEND_API_KEY + RESEND_FROM
 //   3. SMTP (nur unter Node): SMTP_HOST, SMTP_USER, SMTP_PASS …
 //   4. WhatsApp Cloud API an den Inhaber (Stufe 2): WHATSAPP_TOKEN …
@@ -24,19 +25,29 @@ function alsText(a: Anfrage) {
   ].join("\n");
 }
 
-/** Was der Browser an FormSubmit schickt (Adresse + Felder). */
+/** Was der Browser an den Formulardienst schickt (Adresse + Felder).
+ *  Web3Forms, wenn WEB3FORMS_KEY gesetzt ist, sonst FormSubmit (FORMSUBMIT_ZIEL). */
 export function formsubmitDaten(a: Anfrage): { url: string; daten: Record<string, string> } | null {
-  if (!E("FORMSUBMIT_ZIEL")) return null;
   const betreff = `Chat-Anfrage: ${a.paket || "Allgemein"} – ${a.name}`;
+  const felder: Record<string, string> = {
+    Name: a.name, Kontakt: a.kontakt, [config.formular?.objektLabel || "Fahrzeug"]: a.fahrzeug || "-",
+    Paket: a.paket || "-", Wunschtermin: a.wunschtermin || "-", Notiz: a.notiz || "-",
+    Gesprächsverlauf: a.verlauf || "(nicht übermittelt)",
+  };
+  const email = a.kontakt.includes("@") ? a.kontakt : "";
+  if (E("WEB3FORMS_KEY")) {
+    return {
+      url: "https://api.web3forms.com/submit",
+      daten: {
+        access_key: E("WEB3FORMS_KEY"), subject: betreff, from_name: `Website-Chat ${config.betrieb.name}`,
+        ...felder, ...(email ? { replyto: email } : {}),
+      },
+    };
+  }
+  if (!E("FORMSUBMIT_ZIEL")) return null;
   return {
     url: `https://formsubmit.co/ajax/${encodeURIComponent(E("FORMSUBMIT_ZIEL"))}`,
-    daten: {
-      _subject: betreff, _template: "box", _captcha: "false",
-      Name: a.name, Kontakt: a.kontakt, [config.formular?.objektLabel || "Fahrzeug"]: a.fahrzeug || "-",
-      Paket: a.paket || "-", Wunschtermin: a.wunschtermin || "-", Notiz: a.notiz || "-",
-      Gesprächsverlauf: a.verlauf || "(nicht übermittelt)",
-      ...(a.kontakt.includes("@") ? { _replyto: a.kontakt } : {}),
-    },
+    daten: { _subject: betreff, _template: "box", _captcha: "false", ...felder, ...(email ? { _replyto: email } : {}) },
   };
 }
 
@@ -47,10 +58,11 @@ export async function sendeAnfrage(a: Anfrage): Promise<{ ok: boolean; kanal: st
 
   if (E("WHATSAPP_TOKEN")) await whatsapp(a).then(() => kanaele.push("whatsapp")).catch((e) => console.error("[whatsapp]", e.message));
 
-  // FormSubmit läuft im Browser des Kunden (siehe formsubmitDaten): Von
-  // Cloudflare-Servern aus blockt FormSubmit Anfragen (429), vom Browser auf der
-  // eigenen Website aus funktioniert es wie das normale Kontaktformular.
-  if (E("FORMSUBMIT_ZIEL")) kanaele.push("formsubmit-browser");
+  // Der Formulardienst läuft im Browser des Kunden (siehe formsubmitDaten): Von
+  // Cloudflare-Servern aus blocken FormSubmit (429) und Web3Forms-Free
+  // Anfragen, vom Browser auf der eigenen Website aus funktioniert es.
+  if (E("WEB3FORMS_KEY")) kanaele.push("web3forms-browser");
+  else if (E("FORMSUBMIT_ZIEL")) kanaele.push("formsubmit-browser");
 
   if (E("RESEND_API_KEY")) {
     const r = await fetch("https://api.resend.com/emails", {

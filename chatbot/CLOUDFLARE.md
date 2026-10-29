@@ -26,7 +26,7 @@ npm start                     # http://localhost:8787
 ```
 **Foto-Check ausprobieren:** Im Chat auf „📷 Foto-Check“ tippen und 3–4 echte Fotos schicken (verschmutzter Innenraum, Tierhaare, Lack mit Swirls, ein sauberes Auto, ein Foto ohne Auto). Passt die Einschätzung? Sonst `foto.worauf` in `config/bot.config.json` anpassen.
 
-**Anfragen:** gehen per FormSubmit an support@primedetailing.eu. Beim allerersten Mal kommt eine Bestätigungsmail – Link einmal klicken.
+**Anfragen:** gehen per Web3Forms an support@primedetailing.eu (Empfänger im Web3Forms-Dashboard, Konto tom.schindler999@gmail.com).
 
 ## 3. Vor dem Livegang
 - [ ] Datenschutzerklärung um den KI-Chat ergänzen: Anbieter Anthropic und Cloudflare, Zweck, Speicherdauer (Gespräche und Fotos werden nicht auf dem Server gespeichert; Fotos gehen nur zur Auswertung an die KI, Standortdaten werden vorher im Browser entfernt; für den Spam-Schutz wird die IP-Adresse verschlüsselt (Hash) höchstens 24 Stunden gezählt; Anfragen kommen per E-Mail)

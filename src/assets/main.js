@@ -87,7 +87,50 @@
         return;
       }
       var btn = $('button[type="submit"]', form);
+      var btnText = btn ? btn.firstChild.textContent : "";
       if (btn) { btn.disabled = true; btn.firstChild.textContent = "Wird gesendet … "; }
+
+      // Versand im Hintergrund (Web3Forms). Klappt das nicht innerhalb von
+      // 15 Sekunden, bekommt der Kunde den WhatsApp-Weg mit fertigem Text –
+      // statt einer Fehlerseite. Ohne JavaScript greift der normale POST.
+      if (!window.fetch || !window.FormData || !form.action) return;
+      e.preventDefault();
+      var fd = new FormData(form);
+      var data = {};
+      fd.forEach(function (v, k) { data[k] = v; });
+      var weiter = (form.querySelector('input[name="redirect"]') || {}).value || "/danke/";
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+      fetch(form.action, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(data),
+        signal: ctl ? ctl.signal : undefined
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        clearTimeout(timer);
+        if (!(j && (j.success === true || j.success === "true"))) throw new Error("fehlgeschlagen");
+        location.href = weiter;
+      }).catch(function () {
+        clearTimeout(timer);
+        if (btn) { btn.disabled = false; btn.firstChild.textContent = btnText; }
+        var skip = { access_key: 1, subject: 1, from_name: 1, redirect: 1, botcheck: 1, Datenschutz: 1 };
+        var zeilen = ["Hallo Prime Detailing, über die Website hat das Senden nicht geklappt, deshalb hier per WhatsApp:"];
+        Object.keys(data).forEach(function (k) { if (!skip[k] && String(data[k]).trim()) zeilen.push(k + ": " + data[k]); });
+        var wa = form.getAttribute("data-whatsapp");
+        if (status) {
+          status.className = "form-status err";
+          status.innerHTML = "";
+          status.appendChild(document.createTextNode("Das Senden klappt gerade nicht. Damit nichts verloren geht, schicken Sie uns Ihre Nachricht einfach direkt – sie ist schon ausgefüllt: "));
+          if (wa) {
+            var a = document.createElement("a");
+            a.className = "textlink";
+            a.target = "_blank"; a.rel = "noopener";
+            a.href = "https://wa.me/" + wa + "?text=" + encodeURIComponent(zeilen.join("\n"));
+            a.textContent = "Per WhatsApp senden";
+            status.appendChild(a);
+          }
+        }
+      });
     });
   });
 

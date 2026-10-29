@@ -145,7 +145,7 @@ app.post("/api/anfrage", async (c) => {
   try {
     const anfrage = { name, kontakt, fahrzeug: f("fahrzeug"), paket: f("paket"), wunschtermin: f("wunschtermin"), notiz: f("notiz", 1000), verlauf };
     const r = await sendeAnfrage(anfrage);
-    // FormSubmit schickt der Browser selbst ab (von Servern aus blockiert FormSubmit)
+    // Den Formulardienst (Web3Forms/FormSubmit) ruft der Browser selbst auf (von Servern aus blockiert)
     return c.json({ ok: r.ok, formsubmit: formsubmitDaten(anfrage) });
   } catch (e: any) {
     console.error("[anfrage]", e.message);

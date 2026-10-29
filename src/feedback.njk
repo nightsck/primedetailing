@@ -13,12 +13,12 @@ noindex: false
 </div></div>
 <section style="padding-top:clamp(40px,6vw,72px)"><div class="wrap" style="max-width:860px">
   <div class="card">
-    <form action="https://formsubmit.co/{{ site.email }}" method="POST" novalidate>
-      <input type="hidden" name="_subject" value="Neues Kundenfeedback über primedetailing.eu">
-      <input type="hidden" name="_template" value="table">
-      <input type="hidden" name="_captcha" value="false">
-      <input type="hidden" name="_next" value="https://primedetailing.eu/danke/?feedback">
-      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <form action="https://api.web3forms.com/submit" method="POST" data-whatsapp="{{ site.whatsapp }}" novalidate>
+          <input type="hidden" name="access_key" value="{{ site.web3forms_key }}">
+          <input type="hidden" name="subject" value="Neues Kundenfeedback über primedetailing.eu">
+          <input type="hidden" name="from_name" value="Website Prime Detailing">
+          <input type="hidden" name="redirect" value="https://primedetailing.eu/danke/?feedback">
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div class="form-grid">
         <div class="field">
           <label for="fb-name">Ihr Name</label>

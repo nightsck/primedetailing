@@ -16,3 +16,5 @@ seo_beschreibung: "Mobile Fahrzeugaufbereitung in St. Georgen und Umgebung: Hand
 
 # KI-Chat (Ordner chatbot/). Leer = kein Chat auf der Website.
 chatbot_url: "https://primedetailing-chat.tom-schindler999.workers.dev"
+# Web3Forms (Kontakt-/Feedbackformular). Empfänger im Web3Forms-Dashboard. Der Key ist öffentlich.
+web3forms_key: "c7958793-0cd7-4107-9c71-becdc1ee3948"
