@@ -8,138 +8,138 @@ noindex: true
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Auftragsfänger · Demo</title>
-<meta name="description" content="Vorführung: Website-Assistent mit Foto-Preisrahmen, Anruf-Retter und Angebot per Klick für Handwerk und Fahrzeugpflege.">
+<title>Auftragsfänger · Vorführung</title>
+<meta name="description" content="Vorführung: Chat mit Foto-Preisrahmen, Anruf-Retter und Angebot per Klick für Fahrzeugpflege und Handwerk.">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#15202B">
+<meta name="theme-color" content="#1B1D1F">
 <link rel="icon" href="data:,">
 <link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-tight.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/demo.css?v={{ build.version }}">
 </head>
 <body data-api="{{ site.chatbot_url }}">
-<header class="bar">
-  <div class="bar-in">
-    <div class="bar-top">
-      <span class="brand">Auftragsfänger</span>
-      <span class="demo-pill">Demo</span>
-      <div class="status" aria-live="polite">
-        <span class="st"><span class="dot" id="dotAi"></span><span id="stAi">KI wird geladen …</span></span>
-        <span class="st"><span class="dot on"></span><span>Daten bleiben in Ihrem Browser</span></span>
-      </div>
-    </div>
+<header class="top">
+  <div class="top-in">
+    <p class="mark">Auftragsfänger <span>Vorführung</span></p>
     <nav class="tabs" role="tablist" aria-label="Ansichten">
-      <button class="tab" role="tab" id="tab-kunde" data-view="kunde" aria-selected="true">1 · Kundensicht</button>
-      <button class="tab" role="tab" id="tab-anruf" data-view="anruf" aria-selected="false">2 · Anruf verpasst</button>
-      <button class="tab" role="tab" id="tab-chef" data-view="chef" aria-selected="false">3 · Chef-Ansicht</button>
-      <button class="tab" role="tab" id="tab-preise" data-view="preise" aria-selected="false">Preisliste</button>
+      <button class="tab" role="tab" id="tab-kunde" data-view="kunde" aria-selected="true"><span>1</span> Kunde</button>
+      <button class="tab" role="tab" id="tab-anruf" data-view="anruf" aria-selected="false"><span>2</span> Anruf verpasst</button>
+      <button class="tab" role="tab" id="tab-chef" data-view="chef" aria-selected="false"><span>3</span> Chef</button>
+      <button class="tab" role="tab" id="tab-preise" data-view="preise" aria-selected="false">Preise</button>
     </nav>
   </div>
 </header>
 
 <main>
-  <!-- KUNDENSICHT -->
+  <!-- 1 KUNDE -->
   <section class="view" id="v-kunde" role="tabpanel" aria-labelledby="tab-kunde">
-    <div class="kunde-grid">
-      <div>
-        <div class="site" aria-label="Beispiel-Website eines Betriebs">
-          <div class="site-bar">
-            <span class="site-logo">Muster Fahrzeugpflege</span>
-            <span class="pill tag">Beispielbetrieb</span>
-            <span class="site-nav"><span>Leistungen</span><span>Galerie</span><span>Kontakt</span></span>
-          </div>
-          <div class="site-hero">
-            <span class="eyebrow">Fahrzeugaufbereitung im Schwarzwald</span>
-            <h1>Innen sauber, außen glänzend. Preis und Termin direkt im Chat.</h1>
-            <p>Innenreinigung, Politur, Keramikversiegelung und Smart Repair. Schicken Sie uns ein paar Fotos und Sie bekommen sofort einen Richtwert.</p>
-          </div>
-          <div class="services" id="services"></div>
-          <div class="site-foot">Mo–Fr 8–17 Uhr · Sa 9–13 Uhr · Musterstraße 1, Musterstadt (Beispieladresse)</div>
-        </div>
-        <div class="echt">
-          <div>
-            <h3>Was in dieser Demo echt ist</h3>
-            <ul>
-              <li>KI liest Fotos und beantwortet Fragen</li>
-              <li>Preis wird aus der Preisliste gerechnet</li>
-              <li>Anfrage landet als Akte beim Chef</li>
-              <li>Angebot zum Drucken oder als PDF</li>
-            </ul>
-          </div>
-          <div>
-            <h3>Was hier nur simuliert ist</h3>
-            <ul>
-              <li>SMS und Telefon</li>
-              <li>E-Mail-Versand des Angebots</li>
-              <li>Kalender des Betriebs</li>
-              <li>Betrieb, Adresse und Preise</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+    <p class="lead">So sieht es auf Ihrer Website aus. Tippen Sie unten rechts auf <b>Preis &amp; Termin</b> und fragen Sie als Kunde an. Danach sehen Sie unter <b>3 Chef</b>, was bei Ihnen ankommt.</p>
 
-      <div class="chat" aria-label="Chat-Assistent">
-        <div class="chat-head">
-          <div class="avatar" aria-hidden="true">MF</div>
-          <div class="chat-title"><b>Muster Fahrzeugpflege</b><span>KI-Assistent · antwortet sofort</span></div>
-          <button class="btn" id="chatRestart" type="button">Neu starten</button>
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="url"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10.5" width="12" height="9" rx="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>muster-fahrzeugpflege.de</span>
+      </div>
+      <div class="browser-view">
+        <div class="mf" id="mfSite">
+          <div class="mf-top">
+            <span class="mf-logo">Muster<br>Fahrzeugpflege</span>
+            <nav class="mf-nav" aria-label="Beispiel-Navigation"><a href="#mf-preise">Preise</a><a href="#mf-ablauf">Ablauf</a><a href="#mf-kontakt">Kontakt</a></nav>
+          </div>
+          <div class="mf-hero">
+            <h1>Fahrzeug&shy;aufbereitung in Musterstadt</h1>
+            <p>Innenreinigung, Politur, Keramik und Smart Repair. Schicken Sie uns ein Foto, dann kennen Sie den Preis, bevor Sie vorbeikommen.</p>
+            <div class="mf-actions">
+              <button class="mf-btn" type="button" data-open-chat>Preis berechnen</button>
+              <button class="mf-btn mf-btn-2" type="button" id="mfCall">07720 000000</button>
+            </div>
+          </div>
+          <div class="mf-sec" id="mf-preise">
+            <h2>Leistungen und Preise</h2>
+            <table class="mf-table">
+              <thead><tr><th scope="col">Leistung</th><th scope="col" class="r">ab</th></tr></thead>
+              <tbody id="services"></tbody>
+            </table>
+            <p class="mf-small">Der Preis hängt von Fahrzeuggröße und Zustand ab. Den genauen Richtwert rechnet Ihnen der Chat aus.</p>
+          </div>
+          <div class="mf-sec" id="mf-ablauf">
+            <h2>So läuft es ab</h2>
+            <ol class="mf-steps">
+              <li>Fotos im Chat schicken, Preis sofort sehen.</li>
+              <li>Wunschtermin wählen. Wir melden uns am selben Tag.</li>
+              <li>Auto bringen oder abholen lassen (bis 15 km).</li>
+            </ol>
+          </div>
+          <div class="mf-sec mf-contact" id="mf-kontakt">
+            <div><h2>Öffnungszeiten</h2><p>Mo–Fr 8–17 Uhr<br>Sa 9–13 Uhr</p></div>
+            <div><h2>Adresse</h2><p>Musterstraße 1<br>78000 Musterstadt</p></div>
+          </div>
+          <p class="mf-foot">Beispielbetrieb für die Vorführung. Name, Adresse und Preise sind erfunden.</p>
         </div>
-        <div class="ai-note">Sie schreiben mit einem KI-Assistenten. Ein Mensch aus dem Team prüft jede Anfrage, bevor ein Angebot rausgeht. <a href="/datenschutz/">Datenschutz</a></div>
-        <div class="log" id="log" aria-live="polite"></div>
-        <form class="chat-input" id="chatForm" autocomplete="off">
-          <label class="icon-btn" for="photoInput" title="Fotos anhängen" aria-label="Fotos anhängen">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          </label>
-          <input type="file" id="photoInput" accept="image/*" multiple hidden>
-          <input type="text" id="chatText" placeholder="Nachricht schreiben …" aria-label="Nachricht" maxlength="800">
-          <button class="icon-btn send" type="submit" aria-label="Senden">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-          </button>
-        </form>
+
+        <button class="launcher" type="button" id="chatLauncher" data-open-chat aria-controls="chatPanel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+          <span>Preis &amp; Termin</span>
+        </button>
+
+        <div class="chat" id="chatPanel" role="dialog" aria-label="Chat von Muster Fahrzeugpflege" hidden>
+          <div class="chat-head">
+            <div class="chat-title"><b>Muster Fahrzeugpflege</b><span>Automatischer Assistent (KI). Jede Anfrage prüft ein Mensch.</span></div>
+            <button class="chat-x" type="button" id="chatRestart" title="Neu starten" aria-label="Chat neu starten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+            <button class="chat-x" type="button" id="chatClose" aria-label="Chat schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="log" id="log" aria-live="polite"></div>
+          <form class="chat-input" id="chatForm" autocomplete="off">
+            <label class="icon-btn" for="photoInput" title="Fotos anhängen" aria-label="Fotos anhängen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            </label>
+            <input type="file" id="photoInput" accept="image/*" multiple hidden>
+            <input type="text" id="chatText" placeholder="Nachricht schreiben" aria-label="Nachricht" maxlength="800">
+            <button class="icon-btn send" type="submit" aria-label="Senden">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </button>
+          </form>
+          <p class="chat-foot"><span id="aiState"></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
+        </div>
       </div>
     </div>
+    <p class="aside">Echt in dieser Vorführung: KI-Antworten, Fotoauswertung, Preisrechnung, Anfrage und Angebot. Nur gespielt: SMS, E-Mail-Versand und Kalender.</p>
   </section>
 
-  <!-- ANRUF -->
+  <!-- 2 ANRUF -->
   <section class="view" id="v-anruf" role="tabpanel" aria-labelledby="tab-anruf" hidden>
     <div class="anruf-grid">
-      <div class="phone" aria-label="Handy des Kunden (Simulation)">
+      <div class="phone" aria-label="Handy des Anrufers (gespielt)">
         <div class="phone-top"><span id="phoneClock">21:40</span><span>LTE</span></div>
         <div class="phone-screen" id="phoneScreen"></div>
       </div>
       <div class="anruf-text">
-        <div class="view-head">
-          <span class="eyebrow">Baustein 2 · Anruf-Retter</span>
-          <h2>Keiner geht ran? Der Anrufer bekommt nach Sekunden eine SMS.</h2>
-          <p>So geht kein Anrufer mehr zur Konkurrenz, nur weil der Chef gerade unter einem Auto liegt.</p>
-        </div>
-        <ol>
-          <li><b>Rufumleitung bei Nichtmelden.</b> Der Betrieb leitet Anrufe, die nach etwa 20 Sekunden niemand annimmt, auf unsere Nummer um.</li>
-          <li><b>Kurze Ansage und SMS.</b> Unsere Nummer sagt freundlich Bescheid und schickt dem Anrufer eine SMS mit Link zum Assistenten.</li>
-          <li><b>Anfrage als Akte.</b> Der Kunde beschreibt sein Anliegen mit Fotos, und der Chef bekommt alles fertig sortiert.</li>
+        <h2>Keiner geht ran? Der Anrufer bekommt nach Sekunden eine SMS.</h2>
+        <p>Damit niemand zur Konkurrenz weiterwählt, nur weil Sie gerade unter einem Auto liegen.</p>
+        <ol class="steps">
+          <li><b>Rufumleitung bei Nichtmelden.</b> Was nach etwa 20 Sekunden niemand annimmt, geht an unsere Nummer.</li>
+          <li><b>Kurze Ansage und SMS.</b> Der Anrufer hört, dass Sie im Einsatz sind, und bekommt einen Link zum Chat.</li>
+          <li><b>Anfrage landet bei Ihnen.</b> Mit Fotos und Preisrahmen, fertig zum Beantworten.</li>
         </ol>
         <div class="actions">
-          <button class="btn primary" type="button" id="callStart">Anruf simulieren</button>
+          <button class="btn primary" type="button" id="callStart">Anruf abspielen</button>
           <button class="btn" type="button" id="callReset">Zurücksetzen</button>
         </div>
-        <div class="callout">In der Demo simuliert. Im echten Betrieb läuft das über einen deutschen Telefonanbieter mit Schnittstelle, zum Beispiel sipgate. Die SMS ist eine reine Antwort auf den Anruf, keine Werbung.</div>
+        <p class="aside">Hier nur gespielt. Im Betrieb läuft das über einen deutschen Telefonanbieter, zum Beispiel sipgate. Die SMS antwortet nur auf den Anruf und ist keine Werbung.</p>
       </div>
     </div>
   </section>
 
-  <!-- CHEF -->
+  <!-- 3 CHEF -->
   <section class="view" id="v-chef" role="tabpanel" aria-labelledby="tab-chef" hidden>
-    <div class="view-head">
-      <span class="eyebrow">Baustein 3 · Angebot per Klick und Monatsbericht</span>
-      <h2>Anfragen der letzten 30 Tage</h2>
-      <p>Jede Anfrage kommt fertig sortiert an: Fotos, Angaben, Preisrahmen, Angebotsentwurf. Der Chef prüft und gibt frei.</p>
+    <div class="chef-head">
+      <h2>Anfragen, letzte 30 Tage</h2>
+      <p class="sum" id="kpis"></p>
     </div>
-    <div class="kpis" id="kpis"></div>
     <div class="toolbar">
-      <div class="actions" id="filters"></div>
+      <div class="filters" id="filters"></div>
       <span class="spacer"></span>
-      <button class="btn" type="button" id="addExample">Beispiel-Anfrage anlegen</button>
-      <span id="clearWrap"><button class="btn ghost danger" type="button" id="clearAll">Demo zurücksetzen</button></span>
+      <button class="btn quiet" type="button" id="addExample">Beispiel anlegen</button>
+      <span id="clearWrap"><button class="btn quiet danger" type="button" id="clearAll">Zurücksetzen</button></span>
     </div>
     <div class="chef-grid">
       <div class="list" id="reqList"></div>
@@ -149,19 +149,18 @@ noindex: true
 
   <!-- PREISE -->
   <section class="view" id="v-preise" role="tabpanel" aria-labelledby="tab-preise" hidden>
-    <div class="view-head">
-      <span class="eyebrow">Einstellungen des Betriebs</span>
-      <h2>Preisliste</h2>
-      <p>Aus dieser Liste rechnet der Assistent den Richtwert. Die KI erkennt nur Merkmale wie Fahrzeugklasse oder Verschmutzung, den Preis rechnet der Code. Änderungen gelten sofort im Chat (gespeichert nur in diesem Browser).</p>
+    <div class="chef-head">
+      <h2>Preisliste des Betriebs</h2>
+      <p>Daraus rechnet der Chat den Richtwert. Die KI erkennt nur Fahrzeugklasse und Zustand, den Preis rechnet das Programm. Änderungen gelten sofort, gespeichert nur in diesem Browser.</p>
     </div>
     <div class="table-wrap"><table class="prices" id="priceTable"></table></div>
     <div class="price-grid" id="priceExtras"></div>
-    <div class="actions" style="margin-top:16px"><button class="btn" type="button" id="priceReset">Beispielpreise wiederherstellen</button></div>
+    <div class="actions" style="margin-top:24px"><button class="btn" type="button" id="priceReset">Beispielpreise wiederherstellen</button></div>
   </section>
 </main>
 
 <footer class="foot">
-  <p>Vorführseite. „Muster Fahrzeugpflege“ ist ein erfundener Beispielbetrieb. Was Sie hier eingeben, bleibt in Ihrem Browser; Chatnachrichten und Fotos gehen nur zur Auswertung an die KI und werden nicht gespeichert.</p>
+  <p>Vorführseite. Was Sie hier eingeben, bleibt in Ihrem Browser. Chatnachrichten und Fotos gehen nur zur Auswertung an die KI und werden nicht gespeichert.</p>
   <p><a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></p>
 </footer>
 
@@ -169,10 +168,10 @@ noindex: true
   <div class="modal-in">
     <div class="modal-head">
       <div>
-        <span class="eyebrow">So sieht es der Kunde (E-Mail, simuliert)</span>
+        <p class="modal-kicker">So kommt es beim Kunden an (E-Mail, gespielt)</p>
         <h3 id="offerModalTitle">Ihr Angebot von Muster Fahrzeugpflege</h3>
       </div>
-      <button class="icon-btn" type="button" id="offerClose" aria-label="Schließen">×</button>
+      <button class="chat-x dark" type="button" id="offerClose" aria-label="Schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div id="offerModalBody"></div>
   </div>
