@@ -332,3 +332,14 @@ table.prices input, .price-box input { width: 88px; border: 1px solid var(--line
   .bar-row { grid-template-columns: minmax(0, 1fr) auto; }
   .bar-track { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Bewerber: Einstieg zur eigenen Bewerbungsseite und Notiz */
+.b-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; margin-bottom: 20px; }
+.b-intro .lead { margin-bottom: 0; }
+.b-cta { text-decoration: none; padding: 12px 18px; font-size: 16px; }
+.b-cta svg { width: 18px; height: 18px; }
+a.mf-btn, a.launcher { text-decoration: none; display: inline-flex; align-items: center; }
+.d-head .actions { margin-top: 6px; }
+.d-head .actions .btn { text-decoration: none; }
+.b-notiz { width: 100%; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--sheet); color: var(--ink); font-size: 15px; resize: vertical; }
+.sec h4 label { cursor: text; }

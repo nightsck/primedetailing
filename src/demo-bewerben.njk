@@ -1,0 +1,72 @@
+---
+permalink: /demo/bewerben/index.html
+eleventyExcludeFromCollections: true
+noindex: true
+---
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Bewerben mit KI · Vorführung</title>
+<meta name="description" content="Vorführung: Bewerbung in wenigen Minuten per Chat, mit KI-Assistent für Fragen. Die KI bewertet niemanden.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1B1D1F">
+<link rel="icon" href="data:,">
+<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-tight.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/demo.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/bewerben.css?v={{ build.version }}">
+</head>
+<body class="bw-page" data-api="{{ site.chatbot_url }}">
+<header class="top bw-top">
+  <div class="top-in bw-top-in">
+    <p class="mark">Auftragsfänger <span>Vorführung · Bewerber-Chat</span></p>
+    <div class="bw-switch" role="group" aria-label="Beispielbetrieb wählen">
+      <span class="bw-switch-label">Beispielbetrieb</span>
+      <button type="button" class="bw-b" data-betrieb="fahrzeug" aria-pressed="true">Fahrzeugpflege</button>
+      <button type="button" class="bw-b" data-betrieb="maler" aria-pressed="false">Maler</button>
+      <button type="button" class="bw-b" data-betrieb="elektro" aria-pressed="false">Elektro</button>
+    </div>
+    <a class="bw-back" href="/demo/#bewerber">So sieht es der Betrieb</a>
+  </div>
+</header>
+
+<main class="bw-main">
+  <section class="bw-app" id="bwApp" aria-label="Bewerbung">
+    <div class="bw-head">
+      <div class="bw-logo" id="bwLogo" aria-hidden="true">M</div>
+      <div class="bw-title"><b id="bwName">Muster Fahrzeugpflege</b><span>Bewerbung · Assistent mit KI. Jede Bewerbung liest ein Mensch.</span></div>
+      <button class="chat-x" type="button" id="bwRestart" title="Von vorn anfangen" aria-label="Bewerbung von vorn anfangen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+    </div>
+    <div class="bw-progress" aria-live="polite">
+      <div class="bw-bar"><span id="bwBar"></span></div>
+      <p id="bwStep">Schritt 1 von 5 · Stelle</p>
+    </div>
+    <div class="log bw-log" id="bwLog" aria-live="polite"></div>
+    <input type="file" id="bwFiles" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic" multiple hidden>
+    <form class="chat-input" id="bwForm" autocomplete="off">
+      <input type="text" id="bwText" placeholder="Frag einfach, z. B. nach Arbeitszeiten" aria-label="Nachricht" maxlength="400" enterkeyhint="send">
+      <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="chat-foot"><span id="bwState"></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
+  </section>
+
+  <aside class="bw-side">
+    <h1>Bewerben in drei Minuten, ohne Anschreiben</h1>
+    <p>So sieht der Bewerber-Chat auf der Website eines Betriebs aus. Probieren Sie es als Bewerber aus und schauen Sie danach unter <a href="/demo/#bewerber">So sieht es der Betrieb</a>, was ankommt.</p>
+    <ol class="steps">
+      <li><b>Stelle wählen</b>, ein paar Fragen per Knopfdruck beantworten.</li>
+      <li><b>Fragen stellen</b>, jederzeit: Die KI kennt Stellen, Arbeitszeiten und Ablauf.</li>
+      <li><b>Unterlagen freiwillig</b> anhängen, als PDF oder Handyfoto.</li>
+      <li><b>Prüfen und abschicken.</b> Alles lässt sich vorher noch ändern.</li>
+    </ol>
+    <p class="aside">Die KI bewertet niemanden, sortiert niemanden aus und liest keine Unterlagen. Sie beantwortet nur Fragen. Entscheiden tut immer ein Mensch.</p>
+    <p class="aside">Vorführung: Ihre Eingaben bleiben in diesem Browser, von Dateien wird nur der Name gespeichert. Bitte keine echten Daten eingeben.</p>
+  </aside>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/assets/bewerben.js?v={{ build.version }}" defer></script>
+</body>
+</html>

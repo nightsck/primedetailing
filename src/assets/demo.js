@@ -687,6 +687,7 @@ const JOBS = [
   { id: 'initiativ', name: 'Initiativ', umfang: 'egal' }
 ];
 const job = id => JOBS.find(j => j.id === id) || { id, name: id || '–' };
+const stelleVon = b => b.stelleName || job(b.job).name;
 const BSTATUS = { neu: 'Neu', angerufen: 'Angerufen', probe: 'Probearbeiten', eingestellt: 'Eingestellt', absage: 'Absage' };
 const BSTATUS_ORDER = ['neu', 'angerufen', 'probe', 'eingestellt', 'absage'];
 const BKEY = 'af-demo-bewerbungen-v1';
@@ -696,6 +697,8 @@ function bNormalize(d) {
   return { id: t(d.id || uid(), 40), createdAt: t(d.createdAt, 40), status: BSTATUS[d.status] ? d.status : 'neu', beispiel: !!d.beispiel,
     name: t(d.name, 80) || 'Unbekannt', kontakt: t(d.kontakt), erreichbar: t(d.erreichbar, 80), job: t(d.job, 20), erfahrung: t(d.erfahrung, 60),
     fuehrerschein: t(d.fuehrerschein, 20), umfang: t(d.umfang, 40), start: t(d.start, 40), frage: t(d.frage, 300),
+    stelleName: t(d.stelleName, 90), betrieb: t(d.betrieb, 20), betriebName: t(d.betriebName, 60), telefon: t(d.telefon, 40), email: t(d.email, 80),
+    abschluss: t(d.abschluss, 40), praktikum: t(d.praktikum, 40), ueber: t(d.ueber, 500), notiz: t(d.notiz, 1000),
     unterlagen: (Array.isArray(d.unterlagen) ? d.unterlagen : []).slice(0, 8).map(u => ({ name: t(u && u.name, 80), groesse: Math.max(0, Number(u && u.groesse) || 0) })) };
 }
 function bStore() { try { localStorage.setItem(BKEY, JSON.stringify(BW.list)); } catch (e) { /* nur bis zum Neuladen */ } }
@@ -714,135 +717,19 @@ function bLoad() {
 }
 const bAll = () => [...BW.list].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
-// Chat-Ablauf
-const BC = { log: [], ctx: {}, step: '', busy: false, started: false };
-const bBot = (text, o = {}) => { const m = Object.assign({ from: 'bot', text }, o); BC.log.push(m); return m; };
-const bUser = (text) => { const m = { from: 'user', text }; BC.log.push(m); return m; };
-const ch = (label, act, val) => ({ label, act, val: val || '' });
-function bStart() {
-  BC.log = []; BC.ctx = {}; BC.busy = false; BC.gezaehlt = false; BC.bewId = null;
-  bBot('Hi! Schön, dass du dich für uns interessierst. Bewerben dauert hier eine Minute, ohne Anschreiben und ohne Lebenslauf. Für welche Stelle?',
-    { chips: JOBS.map(j => ch(j.name, 'job', j.id)).concat([ch('Ich hab erst eine Frage', 'frage')]) });
-  BC.step = 'job'; bRenderLog();
-}
-function bAsk(step) {
-  BC.step = step;
-  if (step === 'erfahrung') bBot('Hast du schon Erfahrung in dem Bereich?', { chips: [ch('Ja, mehr als 2 Jahre', 'erfahrung', 'mehr als 2 Jahre'), ch('Ein bisschen', 'erfahrung', 'ein bisschen'), ch('Noch keine, aber ich lerne schnell', 'erfahrung', 'noch keine')] });
-  if (step === 'fuehrerschein') bBot('Hast du einen Führerschein Klasse B?', { chips: [ch('Ja', 'fuehrerschein', 'ja'), ch('Nein', 'fuehrerschein', 'nein'), ch('Bin gerade dabei', 'fuehrerschein', 'in Arbeit')] });
-  if (step === 'umfang') bBot('Wie viel möchtest du arbeiten?', { chips: [ch('Vollzeit', 'umfang', 'Vollzeit'), ch('Teilzeit', 'umfang', 'Teilzeit'), ch('Minijob', 'umfang', 'Minijob')] });
-  if (step === 'start') bBot('Ab wann könntest du anfangen?', { chips: [ch('Sofort', 'start', 'sofort'), ch('In einem Monat', 'start', 'in einem Monat'), ch('Später', 'start', 'später')] });
-  if (step === 'kontakt') bBot('Super, fast fertig. Wie erreichen wir dich?', { card: 'kontakt' });
-}
-function bAct(act, val, idx) {
-  const m = BC.log[idx]; if (m) m.used = true;
-  const label = m && m.chips ? (m.chips.find(c => c.act === act && c.val === val) || {}).label : '';
-  if (act !== 'neu' && act !== 'betrieb' && act !== 'frage' && act !== 'docs' && act !== 'nodocs' && !BC.gezaehlt) { BC.gezaehlt = true; zaehle('bew_start'); }
-  if (act === 'docs') { $('#bFiles').click(); return; }
-  if (act === 'nodocs') { bUser('Nein, passt so'); bBot('Alles klar. Wir melden uns bei dir!', { chips: [ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] }); bRenderLog(); return; }
-  if (act === 'job') { BC.ctx.job = val; bUser(label); bAsk('erfahrung'); }
-  else if (act === 'frage') { bUser('Ich hab erst eine Frage'); bBot('Klar, schreib sie einfach unten rein.', { chips: JOBS.map(j => ch(j.name, 'job', j.id)) }); }
-  else if (act === 'erfahrung') { BC.ctx.erfahrung = val; bUser(label); bAsk('fuehrerschein'); }
-  else if (act === 'fuehrerschein') { BC.ctx.fuehrerschein = val; bUser(label); bAsk(BC.ctx.job === 'aushilfe' ? 'start' : 'umfang'); if (BC.ctx.job === 'aushilfe') BC.ctx.umfang = 'Minijob'; }
-  else if (act === 'umfang') { BC.ctx.umfang = val; bUser(label); bAsk('start'); }
-  else if (act === 'start') { BC.ctx.start = val; bUser(label); bAsk('kontakt'); }
-  else if (act === 'betrieb') { closeBChat(); $('#bBetrieb').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-  else if (act === 'neu') { bStart(); return; }
-  bRenderLog();
-}
-function bFaq(t) {
-  const s = t.toLowerCase();
-  if (/gehalt|lohn|verdien|geld|bezahl/.test(s)) return 'Das Gehalt hängt von Stelle und Erfahrung ab. Das besprechen wir offen im ersten Gespräch.';
-  if (/arbeitszeit|uhr|wann arbeit|samstag|wochenende/.test(s)) return 'Gearbeitet wird Mo–Fr 8–17 Uhr, samstags nur nach Absprache.';
-  if (/lebenslauf|zeugnis|anschreiben|unterlagen/.test(s)) return 'Brauchst du hier nicht. Wenn du magst, bring deinen Lebenslauf einfach zum Gespräch mit.';
-  if (/wo |adresse|anfahrt|standort/.test(s)) return `Du findest uns hier: ${PROFIL.adresse}.`;
-  if (/ki|bot|mensch/.test(s)) return 'Ich bin ein automatischer Assistent. Jede Bewerbung liest ein Mensch aus dem Team, ich sortiere niemanden aus.';
-  return 'Gute Frage, das klären wir am besten im Gespräch. Das Team meldet sich bei dir.';
-}
-function bOnText(t) {
-  t = t.trim(); if (!t || BC.busy) return;
-  bUser(t);
-  if (BC.step === 'kontakt') bBot('Trag deine Kontaktdaten bitte oben ins Formular ein.');
-  else {
-    BC.ctx.frage = (BC.ctx.frage ? BC.ctx.frage + ' | ' : '') + t.slice(0, 200);
-    bBot(bFaq(t));
-    const offen = [...BC.log].reverse().find(m => m.chips && !m.used);
-    if (offen && BC.log[BC.log.length - 2] !== offen) { offen.used = true; bBot('Weiter geht’s:', { chips: offen.chips.map(c => Object.assign({}, c)) }); }
-  }
-  bRenderLog();
-}
-function bSubmit(idx) {
-  const name = $('#b-name').value.trim(), kontakt = $('#b-kontakt').value.trim(), erreichbar = $('#b-zeit').value.trim(), ok = $('#b-ok').checked, err = $('#b-err');
-  if (!name || !kontakt) { err.textContent = 'Bitte Name und Telefon oder E-Mail eintragen.'; return; }
-  if (!/@/.test(kontakt) && kontakt.replace(/\D/g, '').length < 6) { err.textContent = 'Bitte eine gültige Telefonnummer oder E-Mail eintragen.'; return; }
-  if (!ok) { err.textContent = 'Bitte kurz zustimmen, dass wir deine Angaben für die Bewerbung speichern dürfen.'; return; }
-  const m = BC.log[idx]; if (m) { m.used = true; m.summary = `${name} · ${kontakt}`; }
-  const b = bNormalize(Object.assign({}, BC.ctx, { id: uid(), createdAt: new Date().toISOString(), status: 'neu', name, kontakt, erreichbar, umfang: BC.ctx.umfang || '' }));
-  BW.list.unshift(b); BW.selected = b.id; BC.bewId = b.id; bStore(); bRender(true); zaehle('bewerbung');
-  bBot(`Danke, ${name.split(' ')[0]}! Deine Bewerbung ist angekommen. Willst du noch Anschreiben, Lebenslauf oder Zeugnisse anhängen? Geht auch als Handyfoto, ist aber freiwillig.`, { chips: [ch('Unterlagen anhängen', 'docs'), ch('Nein, passt so', 'nodocs')] });
-  BC.step = 'fertig'; bRenderLog();
-  toast('Bewerbung angekommen. Unten sehen Sie, wie es beim Betrieb aussieht.');
-}
-function bRenderLog() {
-  const log = $('#bLog');
-  log.innerHTML = BC.log.map((m, i) => {
-    let inner = m.text ? `<div class="bubble">${esc(m.text)}</div>` : '';
-    if (m.card === 'kontakt') {
-      inner += m.used ? `<div class="card"><div class="note">Gesendet</div><div>${esc(m.summary || '')}</div></div>`
-        : `<form class="card" data-bkontakt="${i}" novalidate>
-          <label for="b-name">Dein Name<input type="text" id="b-name" autocomplete="name" placeholder="Vor- und Nachname"></label>
-          <label for="b-kontakt">Telefon oder E-Mail<input type="text" id="b-kontakt" autocomplete="tel" placeholder="z. B. 0170 1234567"></label>
-          <label for="b-zeit">Wann erreichen wir dich am besten? (freiwillig)<input type="text" id="b-zeit" placeholder="z. B. ab 17 Uhr"></label>
-          <label class="check" for="b-ok"><input type="checkbox" id="b-ok"> <span>Muster Fahrzeugpflege darf meine Angaben für diese Bewerbung speichern. Sie werden nach 6 Monaten gelöscht.</span></label>
-          <div class="err" id="b-err" role="alert"></div>
-          <button class="btn primary" type="submit">Bewerbung abschicken</button>
-          <div class="note">Demo: Deine Angaben bleiben nur in diesem Browser. Bitte keine echten Daten eingeben.</div>
-        </form>`;
-    }
-    if (m.chips && m.chips.length) inner += `<div class="chips">${m.chips.map(c => `<button type="button" class="chip" data-bact="${esc(c.act)}" data-val="${esc(c.val)}" data-idx="${i}" ${m.used ? 'disabled' : ''}>${esc(c.label)}</button>`).join('')}</div>`;
-    return `<div class="msg ${m.from}">${inner}</div>`;
-  }).join('');
-  log.scrollTop = log.scrollHeight;
-}
-$('#bLog').addEventListener('click', e => { const b = e.target.closest('button.chip[data-bact]'); if (!b || b.disabled) return; bAct(b.dataset.bact, b.dataset.val, Number(b.dataset.idx)); });
-$('#bLog').addEventListener('submit', e => { const f = e.target.closest('form[data-bkontakt]'); if (!f) return; e.preventDefault(); bSubmit(Number(f.dataset.bkontakt)); });
-$('#bForm').addEventListener('submit', e => { e.preventDefault(); const i = $('#bText'); const t = i.value; i.value = ''; bOnText(t); });
-$('#bRestart').addEventListener('click', bStart);
+// Der Bewerber-Chat selbst läuft als eigene Seite: /demo/bewerben/ (assets/bewerben.js).
+// Er speichert in dieselbe Liste (BKEY), hier sieht man, was beim Betrieb ankommt.
 const kb = n => n >= 1048576 ? (n / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
-$('#bFiles').addEventListener('change', e => {
-  const files = Array.from(e.target.files || []); e.target.value = '';
-  if (!files.length) return;
-  const ok = files.filter(f => /pdf$|^image\//.test(f.type) && f.size <= 10 * 1048576).slice(0, 5);
-  const b = BW.list.find(x => x.id === BC.bewId);
-  if (!ok.length || !b) { bBot('Das hat nicht geklappt. Bitte PDF oder Fotos bis 10 MB.', { chips: [ch('Nochmal versuchen', 'docs'), ch('Nein, passt so', 'nodocs')] }); bRenderLog(); return; }
-  const neu = ok.map(f => ({ name: f.name.slice(0, 80), groesse: f.size }));
-  if (!b.unterlagen.length) zaehle('unterlagen');
-  b.unterlagen = b.unterlagen.concat(neu).slice(0, 8); bStore(); bRender(true);
-  BC.log.forEach(m => { if (m.chips) m.used = true; });
-  bUser(neu.map(u => u.name).join(', '));
-  bBot(`Danke, ${neu.length === 1 ? 'ist' : 'sind'} angehängt. Wir melden uns bei dir!`, { chips: [ch('Noch etwas anhängen', 'docs'), ch('So sieht es der Betrieb', 'betrieb'), ch('Neue Bewerbung', 'neu')] });
-  bRenderLog();
-});
-function openBChat() {
-  zaehle('bew_offen');
-  if (!BC.started) { bStart(); BC.started = true; }
-  $('#bChatPanel').hidden = false; $('#bLauncher').setAttribute('aria-expanded', 'true');
-  if (window.matchMedia('(max-width: 640px)').matches) document.body.style.overflow = 'hidden';
-  bRenderLog(); $('#bClose').focus({ preventScroll: true });
-}
-function closeBChat() {
-  $('#bChatPanel').hidden = true; document.body.style.overflow = '';
-  const l = $('#bLauncher'); l.setAttribute('aria-expanded', 'false'); l.focus({ preventScroll: true });
-}
-document.addEventListener('click', e => { if (e.target.closest('[data-open-bchat]')) openBChat(); });
-$('#bClose').addEventListener('click', closeBChat);
-$('#bChatPanel').addEventListener('keydown', e => { if (e.key === 'Escape') closeBChat(); });
 $('#jobSite').addEventListener('click', e => {
   const a = e.target.closest('a[href^="#job-"]'); if (!a) return;
   e.preventDefault(); const t = document.getElementById(a.getAttribute('href').slice(1));
   if (t) $('#jobSite').scrollTo({ top: t.offsetTop - 8, behavior: 'smooth' });
 });
 
+
 // Übersicht im Betrieb
+const telVon = b => b.telefon || (!/@/.test(b.kontakt) ? b.kontakt : '');
+const mailVon = b => b.email || (/@/.test(b.kontakt) ? b.kontakt : '');
 function bRender(force) {
   const all = bAll(); const rs = all.filter(within30);
   const ah = rs.filter(b => afterHours(b.createdAt)).length;
@@ -850,23 +737,35 @@ function bRender(force) {
   $('#bSum').innerHTML = `${zahl(rs.length, 'Bewerbung', 'Bewerbungen')} in den letzten 30 Tagen, davon ${zahl(ah, 'nach Feierabend', 'nach Feierabend')}. ${zahl(probe, 'Person', 'Leute')} zum Probearbeiten eingeladen.`;
   $('#bList').innerHTML = all.length ? all.map(b => `<button type="button" class="req" data-bid="${esc(b.id)}" aria-current="${BW.selected === b.id}">
       <span class="req-name">${esc(b.name)}</span><span class="req-time">${esc(fmtTime(b.createdAt))}</span>
-      <span class="req-meta">${esc(job(b.job).name)} · ${esc(b.umfang || '–')} · ab ${esc(b.start || '–')}${afterHours(b.createdAt) ? ' · nach Feierabend' : ''}</span>
+      <span class="req-meta">${esc(stelleVon(b))}${b.betriebName && b.betrieb !== 'fahrzeug' ? ' · ' + esc(b.betriebName) : ''} · ${esc(b.umfang || '–')} · ab ${esc(b.start || '–')}${afterHours(b.createdAt) ? ' · nach Feierabend' : ''}</span>
       <span class="req-bottom"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span><span class="req-price">${b.unterlagen.length ? esc(b.unterlagen.length + (b.unterlagen.length === 1 ? ' Datei' : ' Dateien')) : 'Kurzbewerbung'}</span></span>
     </button>`).join('') : '<div class="empty"><h3>Noch keine Bewerbungen</h3><p>Bewerben Sie sich oben einmal selbst.</p></div>';
   const b = all.find(x => x.id === BW.selected); const box = $('#bDetail');
   if (!b) { BW.detailKey = ''; box.innerHTML = all.length ? '<div class="empty"><h3>Bewerbung auswählen</h3><p>Links eine Bewerbung antippen.</p></div>' : ''; return; }
   const key = JSON.stringify(b); if (!force && key === BW.detailKey) return; BW.detailKey = key;
-  const rows = [['Stelle', job(b.job).name], ['Erfahrung', b.erfahrung || '–'], ['Führerschein Klasse B', b.fuehrerschein || '–'], ['Umfang', b.umfang || '–'], ['Anfangen', b.start || '–'], ['Erreichbar', b.erreichbar || 'keine Angabe']];
+  const rows = [['Stelle', stelleVon(b)]];
+  if (b.betriebName && b.betrieb !== 'fahrzeug') rows.push(['Betrieb', b.betriebName]);
+  if (b.abschluss) rows.push(['Schulabschluss', b.abschluss]);
+  if (b.praktikum) rows.push(['Praktikum', b.praktikum]);
+  if (b.erfahrung) rows.push(['Erfahrung', b.erfahrung]);
+  if (b.fuehrerschein) rows.push(['Führerschein Klasse B', b.fuehrerschein]);
+  rows.push(['Umfang', b.umfang || '–'], ['Anfangen', b.start || '–'], ['Erreichbar', b.erreichbar || 'keine Angabe']);
+  if (b.ueber) rows.push(['Über sich', b.ueber]);
   rows.push(['Unterlagen', b.unterlagen.length ? b.unterlagen.map(u => `${u.name} (${kb(u.groesse)})`).join(', ') : 'keine, nur Kurzbewerbung']);
   if (b.frage) rows.push(['Hat gefragt', b.frage]);
   box.innerHTML = `<div class="detail">
     <div class="d-head"><div class="d-tags"><span class="state bst-${b.status}">${BSTATUS[b.status]}</span>${afterHours(b.createdAt) ? '<span class="tagline">kam nach Feierabend</span>' : ''}${b.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
       <h3>${esc(b.name)}</h3>
-      <div class="d-sub"><span>${esc(b.kontakt)}</span><span>·</span><span>${esc(fmtTime(b.createdAt))}</span></div></div>
+      <div class="d-sub"><span>${esc(fmtTime(b.createdAt))}</span></div>
+      <div class="actions">${telVon(b) ? `<a class="btn primary" href="tel:${esc(telVon(b).replace(/[^\d+]/g, ''))}">Anrufen ${esc(telVon(b))}</a>` : ''}${mailVon(b) ? `<a class="btn" href="mailto:${esc(mailVon(b))}">E-Mail an ${esc(mailVon(b))}</a>` : ''}</div></div>
     <div class="sec"><h4>Angaben</h4>${factsHtml(rows)}</div>
     <div class="sec"><h4>Wo steht die Bewerbung?</h4>
       <div class="status-row" role="group" aria-label="Status setzen">${BSTATUS_ORDER.map(st => `<button type="button" class="filter" data-bstatus="${st}" aria-pressed="${b.status === st}">${BSTATUS[st]}</button>`).join('')}</div>
       <p class="note">Ein Anruf reicht meistens. Bewerbung und Unterlagen werden nach 6 Monaten automatisch gelöscht. In der Demo wird nur der Dateiname gespeichert.</p>
+    </div>
+    <div class="sec"><h4><label for="bNotiz">Notiz fürs Team</label></h4>
+      <textarea id="bNotiz" class="b-notiz" rows="3" maxlength="1000" placeholder="z. B. Montag 10 Uhr zum Kennenlernen eingeladen">${esc(b.notiz)}</textarea>
+      <p class="note">Sehen nur Sie und Ihr Team, nicht der Bewerber.</p>
     </div>
   </div>`;
 }
@@ -879,6 +778,13 @@ $('#bDetail').addEventListener('click', e => {
   const b = BW.list.find(x => x.id === BW.selected); if (!b) return;
   b.status = st.dataset.bstatus; bStore(); bRender(true);
 });
+$('#bDetail').addEventListener('input', e => {
+  if (e.target.id !== 'bNotiz') return;
+  const b = BW.list.find(x => x.id === BW.selected); if (!b) return;
+  b.notiz = e.target.value.slice(0, 1000); BW.detailKey = JSON.stringify(b); bStore();
+});
+// Neue Bewerbung in einem anderen Tab (/demo/bewerben/) gleich anzeigen
+window.addEventListener('storage', e => { if (e.key === BKEY) { bLoad(); bRender(true); } });
 $('#bResetWrap').addEventListener('click', e => {
   const knopf = '<button class="btn quiet danger" type="button" id="bReset">Zurücksetzen</button>';
   if (e.target.closest('#bReset')) { $('#bResetWrap').innerHTML = '<span class="confirm">Eigene Bewerbungen löschen? <button class="btn danger" type="button" id="bResetYes">Ja, zurücksetzen</button><button class="btn quiet" type="button" id="bResetNo">Abbrechen</button></span>'; return; }
