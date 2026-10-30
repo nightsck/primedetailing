@@ -151,7 +151,10 @@ noindex: true
 
   <!-- 4 BEWERBER -->
   <section class="view" id="v-bewerber" role="tabpanel" aria-labelledby="tab-bewerber" hidden>
-    <p class="lead">Leute finden ist schwer. Hier bewirbt man sich in einer Minute per Chat, ohne Anschreiben und Lebenslauf. Tippen Sie unten rechts auf <b>Jetzt bewerben</b>. Darunter sehen Sie, was beim Betrieb ankommt.</p>
+    <div class="b-intro">
+      <p class="lead">Leute finden ist schwer. Bewerber tippen auf der Website auf <b>Jetzt schnell mit KI bewerben</b> und sind in drei Minuten fertig, ohne Anschreiben. Fragen beantwortet die KI, Lebenslauf und Zeugnisse sind freiwillig. Darunter sehen Sie, was beim Betrieb ankommt.</p>
+      <a class="btn primary b-cta" href="/demo/bewerben/">Jetzt schnell mit KI bewerben<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a>
+    </div>
     <div class="browser">
       <div class="browser-bar">
         <span class="url"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10.5" width="12" height="9" rx="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>muster-fahrzeugpflege.de/jobs</span>
@@ -164,8 +167,8 @@ noindex: true
           </div>
           <div class="mf-hero">
             <h1>Komm in unser Team</h1>
-            <p>Du arbeitest gern mit den Händen und magst Autos? Dann bewirb dich in einer Minute, ganz ohne Anschreiben.</p>
-            <div class="mf-actions"><button class="mf-btn" type="button" data-open-bchat>Jetzt in 1 Minute bewerben</button></div>
+            <p>Du arbeitest gern mit den Händen und magst Autos? Dann bewirb dich in drei Minuten per Chat, ganz ohne Anschreiben.</p>
+            <div class="mf-actions"><a class="mf-btn" href="/demo/bewerben/?betrieb=fahrzeug">Jetzt schnell mit KI bewerben</a></div>
           </div>
           <div class="mf-sec" id="job-stellen">
             <h2>Offene Stellen</h2>
@@ -189,25 +192,10 @@ noindex: true
           <p class="mf-foot">Beispielbetrieb für die Vorführung. Stellen und Angaben sind erfunden.</p>
         </div>
 
-        <button class="launcher" type="button" id="bLauncher" data-open-bchat aria-controls="bChatPanel" aria-expanded="false">
+        <a class="launcher" href="/demo/bewerben/?betrieb=fahrzeug" id="bLauncher">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
           <span>Jetzt bewerben</span>
-        </button>
-
-        <div class="chat" id="bChatPanel" role="dialog" aria-label="Bewerbung bei Muster Fahrzeugpflege" hidden>
-          <div class="chat-head">
-            <div class="chat-title"><b>Bewerbung bei Muster Fahrzeugpflege</b><span>Automatischer Assistent. Jede Bewerbung liest ein Mensch.</span></div>
-            <button class="chat-x" type="button" id="bRestart" title="Neu starten" aria-label="Bewerbung neu starten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
-            <button class="chat-x" type="button" id="bClose" aria-label="Chat schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-          </div>
-          <div class="log" id="bLog" aria-live="polite"></div>
-          <input type="file" id="bFiles" accept="application/pdf,image/*" multiple hidden>
-          <form class="chat-input" id="bForm" autocomplete="off">
-            <input type="text" id="bText" placeholder="Frage stellen" aria-label="Frage" maxlength="400">
-            <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
-          </form>
-          <p class="chat-foot"><span></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
-        </div>
+        </a>
       </div>
     </div>
 
@@ -216,7 +204,7 @@ noindex: true
       <p class="sum" id="bSum"></p>
     </div>
     <div class="toolbar">
-      <p class="note">Alle Bewerbungen in der Reihenfolge, in der sie reinkamen. Die KI bewertet niemanden und sortiert niemanden aus.</p>
+      <p class="note">Alle Bewerbungen in der Reihenfolge, in der sie reinkamen, auch die aus <a href="/demo/bewerben/">Jetzt schnell mit KI bewerben</a>. Die KI bewertet niemanden und sortiert niemanden aus.</p>
       <span class="spacer"></span>
       <span id="bResetWrap"><button class="btn quiet danger" type="button" id="bReset">Zurücksetzen</button></span>
     </div>
