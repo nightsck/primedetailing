@@ -1,0 +1,29 @@
+# Jobs-Seite primedetailing.eu/jobs/ und Bewerber-Chat.
+# Die KI im Chat beantwortet Fragen nur mit diesen Angaben. Im CMS unter „Jobs“ änderbar.
+aktiv: true
+titel: "Jobs bei Prime Detailing"
+text: "Wir sind ein kleines Team und bereiten Autos direkt beim Kunden auf, in St. Georgen und Umgebung. Wenn du Lust auf Autos und saubere Arbeit hast: Bewirb dich in drei Minuten per Chat, ohne Anschreiben."
+zeiten: "Nach Absprache, vor allem an Wochenenden. Wir planen die Einsätze gemeinsam, damit sie zu Schule, Studium oder Hauptjob passen."
+bietet: "Wir lernen dich selbst an. Material und Ausrüstung stellen wir. Du arbeitest in einem kleinen Team mit kurzen Wegen."
+ablauf: "Wir melden uns innerhalb von ein paar Tagen, meistens per Telefon oder WhatsApp. Danach lernen wir uns kurz kennen. Wenn es passt, fährst du bei einem Einsatz mit."
+stellen:
+  - id: minijob
+    name: "Fahrzeugaufbereiter auf Minijob-Basis (m/w/d)"
+    umfang: "Minijob, vor allem am Wochenende"
+    text: "Innenreinigung, Handwäsche und Politur direkt beim Kunden. Erfahrung ist schön, aber kein Muss."
+    fragen: [erfahrung, fuehrerschein, wochenende, start]
+  - id: aushilfe
+    name: "Aushilfe oder Werkstudent (m/w/d)"
+    umfang: "Flexible Stunden"
+    text: "Du hilfst bei Einsätzen mit, wenn es zu deinem Stundenplan passt."
+    fragen: [erfahrung, fuehrerschein, stunden, start]
+  - id: praktikum
+    name: "Praktikum (m/w/d)"
+    umfang: "Ein paar Tage bis einige Wochen"
+    text: "Zum Reinschnuppern in die Fahrzeugaufbereitung, zum Beispiel als Schulpraktikum."
+    fragen: [praktikum_art, zeitraum]
+  - id: initiativ
+    name: "Initiativbewerbung"
+    umfang: "Nach Absprache"
+    text: "Du siehst nichts Passendes? Bewirb dich trotzdem."
+    fragen: [erfahrung, fuehrerschein, start]
