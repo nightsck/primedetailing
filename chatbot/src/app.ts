@@ -17,6 +17,7 @@ import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
 import { demoRouten } from "./demo.ts";
 import { bewerberRouten } from "./bewerber.ts";
+import { jobsRouten } from "./jobs.ts";
 import { pruefeBild, fotoAktiv, maxFotos, fotosImVerlauf, FOTO_MARKER, type Bild } from "./foto.ts";
 
 // --- Signiertes Verlaufs-Token ---------------------------------------------
@@ -58,6 +59,8 @@ app.use("/api/*", cors({
 // Vorführseite primedetailing.eu/demo (eigene, schlanke Schnittstellen)
 demoRouten(app);
 bewerberRouten(app);
+// Echter Bewerber-Chat primedetailing.eu/jobs/
+jobsRouten(app);
 
 app.post("/api/chat", async (c) => {
   if (Number(c.req.header("content-length") || 0) > 2_200_000) return c.json({ ok: false }, 413);

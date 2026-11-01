@@ -46,6 +46,23 @@ if (q?.preise && existsSync(url(q.preise))) {
   console.log(`Preise von der Website übernommen (${kategorien.reduce((n, k) => n + k.pakete.length, 0)} Pakete) → data/preise.json`);
 }
 
+// Stellen für den Bewerber-Chat auf primedetailing.eu/jobs/ (aus dem Website-CMS)
+let jobs = null;
+const jobsQuelle = url("../src/_data/jobs.yml"), siteQuelle = url("../src/_data/site.yml");
+if (existsSync(jobsQuelle)) {
+  const yaml = (await import("js-yaml")).default;
+  const j = yaml.load(readFileSync(jobsQuelle, "utf8")) || {};
+  const site = existsSync(siteQuelle) ? yaml.load(readFileSync(siteQuelle, "utf8")) || {} : {};
+  jobs = {
+    aktiv: j.aktiv !== false, name: site.name || config.betrieb.name, gebiet: site.einsatzgebiet || "",
+    zeiten: String(j.zeiten || ""), bietet: String(j.bietet || ""), ablauf: String(j.ablauf || ""),
+    stellen: (j.stellen || []).filter((s) => s && s.id && s.name).map((s) => ({
+      id: String(s.id), name: String(s.name), umfang: String(s.umfang || ""), text: String(s.text || ""),
+    })),
+  };
+  console.log(`Stellen von der Website übernommen (${jobs.stellen.length}) → JOBS`);
+}
+
 // Farben und Maskottchen direkt ins Widget, damit der Button vor dem Klick stimmt
 const m = config.maskottchen;
 const maskottchen = m?.datei && existsSync(url(m.datei))
@@ -59,6 +76,7 @@ export const PREISE = ${JSON.stringify(preise, null, 2)};
 export const WISSEN = ${JSON.stringify(r("data/wissen.md"))};
 export const WIDGET_JS = ${JSON.stringify(widget)};
 export const DEMO_HTML = ${JSON.stringify(r("public/demo.html"))};
+export const JOBS = ${JSON.stringify(jobs, null, 2)};
 `;
 writeFileSync(url("src/daten.generated.ts"), out);
 console.log("Daten gebaut → src/daten.generated.ts");
