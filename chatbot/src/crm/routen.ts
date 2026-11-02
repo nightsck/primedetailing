@@ -116,9 +116,10 @@ function impulseMail(url: string, i: { neu: any[]; faellig: any[] }) {
 export async function bewerteFirma(c: any, firma: any, f: typeof fetch = fetch) {
   const schluessel = wert(c, "ANTHROPIC_API_KEY"), modell = wert(c, "CRM_MODELL") || "claude-haiku-5-5";
   const w = await websiteLesen(f, firma.website);
-  let b = null;
-  if (schluessel) { try { b = await kiBewertung(f, schluessel, modell, firma, w); } catch (err: any) { console.error("[crm-ki]", err?.message || err); } }
-  if (!b) b = regelBewertung(firma, w);
+  let b = null, grund = "";
+  if (!schluessel) grund = "kein KI-Schlüssel (ANTHROPIC_API_KEY) gefunden";
+  else { try { b = await kiBewertung(f, schluessel, modell, firma, w); } catch (err: any) { grund = String(err?.message || err).slice(0, 300); console.error("[crm-ki]", grund); } }
+  if (!b) { b = regelBewertung(firma, w); b.infos.ki_fehler = grund; }
   return crm(c).bewertungSpeichern(firma.id, b);
 }
 
