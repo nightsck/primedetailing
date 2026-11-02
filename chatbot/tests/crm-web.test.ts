@@ -42,13 +42,16 @@ function miniApp() {
 
 /* ---------- simuliertes Internet ---------- */
 type Aufruf = { url: string; body: any };
-function netz(antworten: { overpass?: any; seiten?: Record<string, string>; ki?: any }) {
+function netz(antworten: { overpass?: any; seiten?: Record<string, string>; ki?: any; overpassAus?: string[] }) {
   const aufrufe: Aufruf[] = [];
   const f = (async (url: string, o: any = {}) => {
     const body = typeof o.body === "string" && o.body.startsWith("{") ? JSON.parse(o.body) : o.body;
     aufrufe.push({ url: String(url), body });
     if (String(url).startsWith("https://api.brevo.com")) return new Response("{}", { status: 201 });
-    if (String(url).startsWith("https://overpass-api.de")) return Response.json(antworten.overpass || { elements: [] });
+    if (B.OVERPASS.includes(String(url))) {
+      if (antworten.overpassAus?.some((h) => String(url).includes(h))) return new Response("down", { status: 521 });
+      return Response.json(antworten.overpass || { elements: [] });
+    }
     if (String(url).startsWith("https://api.anthropic.com")) return Response.json({ content: [{ type: "text", text: JSON.stringify(antworten.ki || { score: 80, begruendung: "Passt gut", einstieg: "Hallo" }) }] });
     const seite = antworten.seiten?.[String(url)];
     if (seite !== undefined) return new Response(seite, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -270,4 +273,13 @@ test("Zahlungserinnerung: überfällige Posten per Mail, nur einmal", async () =
   await R.geplant(env, Date.parse("2026-12-02T07:10:00Z"), n.f);
   assert.equal(n.mails().filter((x: any) => /überfällig/.test(x.subject)).length, 1, "nicht jeden Tag dieselben Posten");
   assert.ok(n.mails().length >= anzahl);
+});
+
+test("OpenStreetMap: fällt ein Server aus, wird der nächste gefragt", async () => {
+  const n = netz({ overpass: { elements: [{ type: "node", id: 5, tags: { name: "Ersatz GmbH" } }] }, overpassAus: ["overpass-api.de"] });
+  const t = await B.sucheFirmen(n.f, "maler", "Ulm");
+  assert.equal(t[0].name, "Ersatz GmbH");
+  assert.equal(n.aufrufe.filter((a) => B.OVERPASS.includes(a.url)).length, 2);
+  const alle = netz({ overpassAus: B.OVERPASS.map((u) => new URL(u).hostname) });
+  await assert.rejects(B.sucheFirmen(alle.f, "maler", "Ulm"), /nicht erreichbar: overpass-api\.de 521/);
 });

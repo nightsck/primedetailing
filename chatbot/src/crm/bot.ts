@@ -49,15 +49,30 @@ export function osmTreffer(json: any, branche: string): Treffer[] {
   return out;
 }
 
+// Öffentliche Overpass-Server. Ist einer überlastet oder lehnt ab, kommt der nächste dran.
+export const OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
 export async function sucheFirmen(f: Fetch, branche: string, region: string, max = 40): Promise<Treffer[]> {
   const abfrage = overpassAbfrage(branche, region, max);
   if (!abfrage) return [];
-  const r = await f("https://overpass-api.de/api/interpreter", {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "ki-vertrieb-crm/1.0" },
-    body: "data=" + encodeURIComponent(abfrage), signal: AbortSignal.timeout(30_000),
-  });
-  if (!r.ok) throw new Error(`OpenStreetMap antwortet mit ${r.status}`);
-  return osmTreffer(await r.json(), branche);
+  const fehler: string[] = [];
+  for (const server of OVERPASS) {
+    try {
+      const r = await f(server, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "ki-vertrieb-crm/1.0", Accept: "application/json" },
+        body: "data=" + encodeURIComponent(abfrage), signal: AbortSignal.timeout(25_000),
+      });
+      if (!r.ok) { fehler.push(`${new URL(server).hostname} ${r.status}`); continue; }
+      const j = await r.json();
+      if (!Array.isArray(j?.elements)) { fehler.push(`${new URL(server).hostname} ohne Daten`); continue; }
+      return osmTreffer(j, branche);
+    } catch (e: any) { fehler.push(`${new URL(server).hostname} ${String(e?.name === "TimeoutError" ? "Zeitüberschreitung" : e?.message || e).slice(0, 60)}`); }
+  }
+  throw new Error("OpenStreetMap nicht erreichbar: " + fehler.join("; "));
 }
 
 /* ---------- Website lesen ---------- */
