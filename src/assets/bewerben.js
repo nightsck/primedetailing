@@ -65,6 +65,8 @@ const BETRIEBE = {
 const ERREICHBAR = ['vormittags', 'nachmittags', 'ab 17 Uhr', 'egal'];
 const MAX_DATEIEN = 5, MAX_GROESSE = 10 * 1048576;
 const SCHRITTE = ['Stelle', 'Ein paar Fragen', 'Über dich', 'Kontakt', 'Prüfen und abschicken'];
+// Häufige Fragen zum Antippen, bevor man sich entscheidet
+const FAQ = ['Was verdient man?', 'Wie sind die Arbeitszeiten?', 'Brauche ich Erfahrung?', 'Wie geht es nach der Bewerbung weiter?'];
 
 /* ---------- Speicher (gemeinsam mit /demo) ---------- */
 const BKEY = 'af-demo-bewerbungen-v1', ZKEY = 'af-demo-zaehler-v1', DKEY = 'af-demo-bewerben-betrieb';
@@ -113,7 +115,7 @@ function zeigeFortschritt() {
 
 /* ---------- Ablauf ---------- */
 function start(neu = true) {
-  S.log = []; S.a = {}; S.entwurf = null; S.dateien = []; S.pos = 0; S.busy = false; S.gezaehlt = false; S.zurPruefung = false; S.fragen = []; S.verlauf = [];
+  S.log = []; S.a = {}; S.entwurf = null; S.dateien = []; S.pos = 0; S.busy = false; S.gezaehlt = false; S.zurPruefung = false; S.fragen = []; S.verlauf = []; S.gefragt = [];
   plane();
   bot(`Hi! Schön, dass du dich für ${B().name} interessierst. Bewerben dauert hier etwa drei Minuten, ohne Anschreiben. Ich bin ein Assistent mit KI und beantworte dir zwischendurch gern Fragen. Ob es passt, entscheidet ein Mensch aus dem Team.`);
   frage('stelle');
@@ -124,6 +126,8 @@ function frage(step) {
   S.step = step; S.pos = S.plan.indexOf(step);
   if (step === 'stelle') {
     bot('Für welche Stelle möchtest du dich bewerben?', { chips: B().stellen.map(s => ch(s.name, 'stelle', s.id)), hint: B().stellen.map(s => `${s.name}: ${s.info}`) });
+    const offen = FAQ.filter(f => !S.gefragt.includes(f));
+    if (offen.length) bot(S.gefragt.length ? 'Noch eine Frage?' : 'Oder erst mal was fragen?', { chips: offen.map(f => ch(f, 'faq', f)), faq: true });
   } else if (OPT[step]) {
     const o = OPT[step]; const st = stelle();
     const opts = step === 'umfang' && st && st.umfang ? o.opts.filter(x => st.umfang.includes(x[0])) : o.opts;
@@ -163,6 +167,12 @@ function aktion(act, val, idx) {
   }
   if (act === 'neu') { m.used = true; start(true); return; }
   if (act === 'betrieb') { location.href = '/demo/#bewerber'; return; }
+  if (act === 'faq') {
+    S.log.forEach(x => { if ((x.chips || x.card) && !x.used) x.used = true; });
+    S.gefragt.push(val); user(val); S.fragen.push(val);
+    kiFrage(val).then(() => frage(S.step));
+    return;
+  }
   m.used = true;
   if (act === 'stelle') {
     const alt = S.a.stelle; S.a.stelle = val; user(chip ? chip.label : val); zaehleStart();
@@ -180,6 +190,7 @@ function offeneChipsNeu() {
   // nach einer Frage die Knöpfe des aktuellen Schritts wieder zeigen
   const offen = [...S.log].reverse().find(m => (m.chips || m.card) && !m.used);
   if (!offen) return;
+  if (S.step === 'stelle') S.log.forEach(m => { if ((m.chips || m.card) && !m.used) m.used = true; });
   offen.used = true;
   frage(S.step);
 }
@@ -220,7 +231,13 @@ function lokaleAntwort(t) {
   if (/lebenslauf|zeugnis|anschreiben|unterlagen|dokument/.test(s)) return 'Brauchst du nicht unbedingt. Wenn du magst, kannst du gleich Lebenslauf oder Zeugnisse anhängen, auch als Handyfoto.';
   if (/wo |adresse|anfahrt|standort|wo seid/.test(s)) return `Du findest uns hier: ${b.adresse} (Beispieladresse).`;
   if (/ki|bot|mensch|computer/.test(s)) return 'Ich bin ein Assistent mit KI. Jede Bewerbung liest ein Mensch aus dem Team, ich bewerte und sortiere niemanden.';
-  if (/wie lange|wann melde|antwort|rückmeld|dauert/.test(s)) return 'Das Team meldet sich normalerweise innerhalb von zwei Werktagen, meistens per Telefon.';
+  if (/wie lange|wann melde|antwort|rückmeld|dauert|weiter nach|nach der bewerbung|wie geht es/.test(s)) return 'Das Team meldet sich normalerweise innerhalb von zwei Werktagen, meistens per Telefon. Danach gibt es ein kurzes Kennenlernen und bei Interesse einen Tag Probearbeiten.';
+  if (/erfahrung|quereinst|ungelernt|vorkenntnis|kann ich das/.test(s)) return 'Das kommt auf die Stelle an. Viele fangen ohne Erfahrung an und werden von Kollegen eingearbeitet. Schreib einfach, was du bisher gemacht hast.';
+  if (/urlaub|frei|überstund/.test(s)) return 'Urlaub und Überstunden bespricht das Team offen im ersten Gespräch.';
+  if (/probezeit|befrist|unbefrist|vertrag/.test(s)) return 'Die Details zum Vertrag klärt das Team im Gespräch mit dir.';
+  if (/deutsch|sprache|englisch/.test(s)) return 'Wichtig ist, dass ihr euch im Team gut verständigen könnt. Alles Weitere klärt ihr im Gespräch.';
+  if (/bus|bahn|anfahrt|auto|hinkommen/.test(s)) return `Du findest uns hier: ${b.adresse} (Beispieladresse). Wie du am besten hinkommst, kannst du im Gespräch fragen.`;
+  if (/kleidung|schuhe|werkzeug/.test(s)) return b.bietet;
   if (/bietet|vorteil|benefits|was gibt/.test(s)) return b.bietet;
   if (/daten|lösch|datenschutz/.test(s)) return 'Deine Angaben bekommt nur der Betrieb. Sie werden nach 6 Monaten gelöscht, auf Wunsch auch früher.';
   if (st && /stelle|aufgabe|was mach|tätigkeit/.test(s)) return `${st.name}: ${st.info}. Die Details erklärt dir das Team gern im Gespräch.`;

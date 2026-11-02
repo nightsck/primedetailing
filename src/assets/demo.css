@@ -343,3 +343,34 @@ a.mf-btn, a.launcher { text-decoration: none; display: inline-flex; align-items:
 .d-head .actions .btn { text-decoration: none; }
 .b-notiz { width: 100%; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--sheet); color: var(--ink); font-size: 15px; resize: vertical; }
 .sec h4 label { cursor: text; }
+
+/* Kunde: Links zu den anderen Bots */
+.k-links { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Dringlichkeit aus dem Anfrage-Chat */
+.dr { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.dr-notfall { background: var(--bad); color: #FFFFFF; }
+.dr-dringend { background: #FFF1D6; color: #6B4700; border: 1px solid #E3B04B; }
+/* Termine */
+.t-try { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.t-try a { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--sheet); text-decoration: none; color: var(--ink); }
+.t-try a:hover { border-color: var(--ink); }
+.t-try span { font-size: 14px; color: var(--muted); }
+.t-list { display: flex; flex-direction: column; background: var(--sheet); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 16px 12px; }
+.t-day { font-size: 15px; margin: 14px 0 4px; color: var(--ink-2); }
+.t-item { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.t-day + .t-item { border-top: 0; }
+.t-time { font-weight: 700; display: flex; flex-direction: column; }
+.t-time small { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.t-sub, .t-det { font-size: 14px; color: var(--muted); }
+.t-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.t-kal { border-color: var(--ok) !important; color: var(--ok) !important; }
+.t-weg { opacity: .55; }
+.t-weg b { text-decoration: line-through; }
+@media (max-width: 760px) {
+  .t-try { grid-template-columns: minmax(0, 1fr); }
+  .t-item { grid-template-columns: 56px minmax(0, 1fr); }
+  .t-tags { grid-column: 2; justify-content: flex-start; }
+}
+.chip-back { border-color: var(--mf-line); color: var(--mf-muted); font-weight: 500; }
+.chip-back:hover { background: #F3F5F6; }
+.t-tags .tagline { border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }

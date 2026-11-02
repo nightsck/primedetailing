@@ -25,8 +25,9 @@ noindex: true
       <button class="tab" role="tab" id="tab-kunde" data-view="kunde" aria-selected="true"><span>1</span> Kunde</button>
       <button class="tab" role="tab" id="tab-anruf" data-view="anruf" aria-selected="false"><span>2</span> Anruf verpasst</button>
       <button class="tab" role="tab" id="tab-chef" data-view="chef" aria-selected="false"><span>3</span> Chef</button>
-      <button class="tab" role="tab" id="tab-bewerber" data-view="bewerber" aria-selected="false"><span>4</span> Bewerber</button>
-      <button class="tab" role="tab" id="tab-auswertung" data-view="auswertung" aria-selected="false"><span>5</span> Auswertung</button>
+      <button class="tab" role="tab" id="tab-termine" data-view="termine" aria-selected="false"><span>4</span> Termine</button>
+      <button class="tab" role="tab" id="tab-bewerber" data-view="bewerber" aria-selected="false"><span>5</span> Bewerber</button>
+      <button class="tab" role="tab" id="tab-auswertung" data-view="auswertung" aria-selected="false"><span>6</span> Auswertung</button>
       <button class="tab" role="tab" id="tab-preise" data-view="preise" aria-selected="false">Preise</button>
     </nav>
   </div>
@@ -35,7 +36,10 @@ noindex: true
 <main>
   <!-- 1 KUNDE -->
   <section class="view" id="v-kunde" role="tabpanel" aria-labelledby="tab-kunde">
-    <p class="lead">So sieht es auf Ihrer Website aus. Tippen Sie unten rechts auf <b>Preis &amp; Termin</b> und fragen Sie als Kunde an. Danach sehen Sie unter <b>3 Chef</b>, was bei Ihnen ankommt.</p>
+    <div class="b-intro">
+      <p class="lead">So sieht es auf Ihrer Website aus. Tippen Sie unten rechts auf <b>Preis &amp; Termin</b> und fragen Sie als Kunde an. Danach sehen Sie unter <b>3 Chef</b>, was bei Ihnen ankommt.</p>
+      <div class="k-links"><a class="btn primary b-cta" href="/demo/anfrage/">Anfrage-Chat für Maler und Elektro<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a><a class="btn b-cta" href="/demo/termin/">Termin selbst buchen<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a></div>
+    </div>
 
     <div class="browser">
       <div class="browser-bar">
@@ -149,7 +153,31 @@ noindex: true
     </div>
   </section>
 
-  <!-- 4 BEWERBER -->
+  <!-- 4 TERMINE -->
+  <section class="view" id="v-termine" role="tabpanel" aria-labelledby="tab-termine" hidden>
+    <div class="b-intro">
+      <p class="lead">Kunden buchen ihren Termin selbst, auch abends und am Wochenende. Der Termin-Bot zeigt nur Zeiten, die im Kalender wirklich frei sind, plant bei Terminen vor Ort die Fahrzeit ein und trägt den Termin direkt in den Google Kalender ein.</p>
+      <a class="btn primary b-cta" href="/demo/termin/">Jetzt Termin buchen<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="t-try">
+      <a href="/demo/termin/?betrieb=fahrzeug"><b>Fahrzeugpflege</b><span>Außenwäsche, Innenreinigung, Keramik über 2 Tage</span></a>
+      <a href="/demo/termin/?betrieb=maler"><b>Maler</b><span>Besichtigung vor Ort, Farbberatung im Laden, Rückruf</span></a>
+      <a href="/demo/termin/?betrieb=elektro"><b>Elektro</b><span>Reparatur, Wallbox-Check, E-Check beim Kunden</span></a>
+    </div>
+    <div class="chef-head" style="margin-top:40px">
+      <h2>So sieht es der Betrieb</h2>
+      <p class="sum" id="tSum"></p>
+    </div>
+    <div class="toolbar">
+      <div class="filters" id="tFilter"></div>
+      <span class="spacer"></span>
+      <span id="tResetWrap"><button class="btn quiet danger" type="button" id="tReset">Zurücksetzen</button></span>
+    </div>
+    <div class="t-list" id="tList"></div>
+    <p class="aside">Ist der Kalender des Betriebs verbunden, steht jeder Termin zusätzlich sofort im Google Kalender, auf Handy und PC. Ohne Kalender bleiben die Termine in dieser Vorführung nur in Ihrem Browser.</p>
+  </section>
+
+  <!-- 5 BEWERBER -->
   <section class="view" id="v-bewerber" role="tabpanel" aria-labelledby="tab-bewerber" hidden>
     <div class="b-intro">
       <p class="lead">Leute finden ist schwer. Bewerber tippen auf der Website auf <b>Jetzt schnell mit KI bewerben</b> und sind in drei Minuten fertig, ohne Anschreiben. Fragen beantwortet die KI, Lebenslauf und Zeugnisse sind freiwillig. Darunter sehen Sie, was beim Betrieb ankommt.</p>
@@ -214,7 +242,7 @@ noindex: true
     </div>
   </section>
 
-  <!-- 5 AUSWERTUNG -->
+  <!-- 6 AUSWERTUNG -->
   <section class="view" id="v-auswertung" role="tabpanel" aria-labelledby="tab-auswertung" hidden>
     <div class="chef-head">
       <h2>Auswertung, letzte 30 Tage</h2>

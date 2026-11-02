@@ -1,0 +1,75 @@
+---
+permalink: /demo/anfrage/index.html
+eleventyExcludeFromCollections: true
+noindex: true
+---
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Anfrage mit KI · Vorführung</title>
+<meta name="description" content="Vorführung: Anfrage per Chat für Maler, Elektro und Fahrzeugpflege. Die KI fasst zusammen und erkennt Notfälle.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1B1D1F">
+<link rel="icon" href="data:,">
+<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-tight.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="/assets/betriebe.js">
+<link rel="stylesheet" href="/assets/demo.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/bewerben.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/termin.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/anfrage.css?v={{ build.version }}">
+</head>
+<body class="bw-page" data-api="{{ site.chatbot_url }}">
+<header class="top bw-top">
+  <div class="top-in bw-top-in">
+    <p class="mark">Auftragsfänger <span>Vorführung · Anfrage-Chat</span></p>
+    <div class="bw-switch" role="group" aria-label="Beispielbetrieb wählen">
+      <span class="bw-switch-label">Beispielbetrieb</span>
+      <button type="button" class="bw-b" data-betrieb="fahrzeug" aria-pressed="false">Fahrzeugpflege</button>
+      <button type="button" class="bw-b" data-betrieb="maler" aria-pressed="true">Maler</button>
+      <button type="button" class="bw-b" data-betrieb="elektro" aria-pressed="false">Elektro</button>
+    </div>
+    <a class="bw-back" href="/demo/#chef">So sieht es der Betrieb</a>
+  </div>
+</header>
+
+<main class="bw-main">
+  <section class="bw-app" id="afApp" aria-label="Anfrage">
+    <div class="bw-head">
+      <div class="bw-logo" id="afLogo" aria-hidden="true">M</div>
+      <div class="bw-title"><b id="afName">Malerbetrieb Muster</b><span>Anfrage · Assistent mit KI</span></div>
+      <button class="chat-x" type="button" id="afRestart" title="Von vorn anfangen" aria-label="Von vorn anfangen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+    </div>
+    <div class="bw-progress" aria-live="polite">
+      <div class="bw-bar"><span id="afBar"></span></div>
+      <p id="afStep">Schritt 1 von 5 · Worum geht es</p>
+    </div>
+    <div class="log bw-log" id="afLog" aria-live="polite"></div>
+    <input type="file" id="afFotos" accept="image/*" multiple hidden>
+    <form class="chat-input" id="afForm" autocomplete="off">
+      <input type="text" id="afText" placeholder="Frage stellen" aria-label="Nachricht" maxlength="600" enterkeyhint="send">
+      <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="chat-foot"><span id="afState"></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
+  </section>
+
+  <aside class="bw-side">
+    <h1>Anfragen, die das Team sofort versteht</h1>
+    <p>So sieht der Anfrage-Chat auf der Website eines Handwerksbetriebs aus. Statt „Bitte um Rückruf“ kommt eine fertige Anfrage an: was, wo, wie dringend, mit Fotos.</p>
+    <ol class="steps">
+      <li><b>Anliegen antippen</b> und ein paar Fragen per Knopfdruck beantworten.</li>
+      <li><b>In eigenen Worten beschreiben</b>, Fotos anhängen. Fragen beantwortet die KI zwischendurch.</li>
+      <li><b>Die KI fasst zusammen</b> und erkennt Notfälle. Bei Brandgeruch oder Wasser kommt sofort ein Sicherheitshinweis.</li>
+      <li><b>Rückruf, Angebot oder gleich einen Termin</b> buchen, dann absenden.</li>
+    </ol>
+    <p class="aside">Ob etwas ein Notfall ist, entscheiden zuerst feste Regeln. Die KI kann eine Anfrage nur höher einstufen, nie niedriger. Preise nennt sie nicht.</p>
+    <p class="aside">Vorführung: Ihre Eingaben bleiben in diesem Browser. Bitte keine echten Daten eingeben. Für Fahrzeugpflege mit Preisrechner gibt es den <a href="/demo/">Chat unter 1 Kunde</a>.</p>
+  </aside>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/assets/anfrage.js?v={{ build.version }}"></script>
+</body>
+</html>

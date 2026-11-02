@@ -19,7 +19,7 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add
 /* ---------- Zähler für die Auswertung ---------- */
 // Beispielmonat eines Betriebs plus die eigenen Klicks in dieser Demo (nur in diesem Browser).
 const ZKEY = 'af-demo-zaehler-v1';
-const ZBASIS = { chat_offen: 148, chat_start: 61, anfrage: 23, anruf_verpasst: 19, sms_offen: 11, sms_anfrage: 7, bew_offen: 42, bew_start: 15, bewerbung: 9, unterlagen: 4 };
+const ZBASIS = { chat_offen: 148, chat_start: 61, anfrage: 23, anruf_verpasst: 19, sms_offen: 11, sms_anfrage: 7, bew_offen: 42, bew_start: 15, bewerbung: 9, unterlagen: 4, termin_offen: 64, termin_start: 31, termin: 18, anf_offen: 37, anf_start: 19, anf_fertig: 12 };
 const ZEIT_BASIS = { morgens: 5, mittags: 8, abends: 12, nachts: 5 };
 let Z = { zahl: {}, zeit: {} };
 try { const raw = localStorage.getItem(ZKEY); if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') Z = { zahl: o.zahl || {}, zeit: o.zeit || {} }; } } catch (e) { /* ohne Speicher */ }
@@ -127,7 +127,15 @@ function normalize(id, d) {
     termin: String(d.termin || ''), bewertungOk: !!d.bewertungOk,
     verlauf: arr(d.verlauf).slice(-40).map(v => ({ von: String(v?.von || ''), text: String(v?.text || '') })),
     angebot: d.angebot ? { positionen: apos, summe: Number(d.angebot.summe) || 0, nr: String(d.angebot.nr || ''), datum: String(d.angebot.datum || '') } : null,
-    sentAt: String(d.sentAt || ''), wonAt: String(d.wonAt || ''), bestaetigtVon: String(d.bestaetigtVon || '')
+    sentAt: String(d.sentAt || ''), wonAt: String(d.wonAt || ''), bestaetigtVon: String(d.bestaetigtVon || ''),
+    // aus dem Anfrage-Chat für alle Branchen (/demo/anfrage/)
+    branche: String(d.branche || ''), betriebName: String(d.betriebName || ''), anliegen: String(d.anliegen || '').slice(0, 80),
+    liste: arr(d.liste).slice(0, 10).filter(x => Array.isArray(x)).map(x => [String(x[0] || '').slice(0, 40), String(x[1] || '').slice(0, 120)]),
+    beschreibung: String(d.beschreibung || '').slice(0, 1200), ort: String(d.ort || '').slice(0, 80), wunsch: String(d.wunsch || '').slice(0, 40),
+    dringlichkeit: ['notfall', 'dringend', 'normal'].includes(d.dringlichkeit) ? d.dringlichkeit : '',
+    zusammenfassung: String(d.zusammenfassung || '').slice(0, 400), rueckfragen: arr(d.rueckfragen).slice(0, 2).map(x => String(x).slice(0, 160)),
+    kiZusammenfassung: !!d.kiZusammenfassung, telefon: String(d.telefon || '').slice(0, 40), email: String(d.email || '').slice(0, 100),
+    erreichbar: String(d.erreichbar || '').slice(0, 40), notiz: String(d.notiz || '').slice(0, 1000)
   };
 }
 
@@ -202,45 +210,61 @@ function user(text, o = {}) { const m = Object.assign({ from: 'user', text }, o)
 function useChips() { C.log.forEach(m => { if (m.chips) m.used = true; }); }
 
 function startChat(kanal = 'Website') {
-  C.log = []; C.turns = []; C.ctx = { kanal, fotos: [], voll: [] }; C.busy = false; C.gezaehlt = false;
+  C.log = []; C.turns = []; C.ctx = { kanal, fotos: [], voll: [] }; C.busy = false; C.gezaehlt = false; C.hist = [];
   const hi = kanal === 'Anruf-SMS'
     ? 'Sie hatten gerade angerufen, wir waren leider im Einsatz. Worum geht es? Dann melden wir uns mit Preis und Termin.'
     : 'Guten Tag. Worum geht es? Wählen Sie eine Leistung, dann rechne ich Ihnen den Preis aus.';
-  bot(hi, { chips: SERVICES.map(s => ({ label: s.name, act: 'leistung', val: s.id })).concat([{ label: 'Ich habe eine Frage', act: 'frage' }]) });
-  C.step = 'leistung'; renderLog();
+  bot(hi); askLeistung(); renderLog();
 }
-
+// Zurück: Vor jedem Schritt wird der Stand gemerkt, „Zurück“ holt ihn wieder
+const zk = chips => (C.hist && C.hist.length ? chips.concat([{ label: 'Zurück', act: 'zurueck' }]) : chips);
+function merke() { C.hist = C.hist || []; C.hist.push({ ctx: clone(C.ctx), ask: C.ask }); if (C.hist.length > 20) C.hist.shift(); }
+function askLeistung() {
+  C.ask = 'askLeistung';
+  bot(C.hist && C.hist.length ? 'Welche Leistung soll es sein?' : 'Wählen Sie eine Leistung:', { chips: SERVICES.map(s => ({ label: s.name, act: 'leistung', val: s.id })).concat([{ label: 'Ich habe eine Frage', act: 'frage' }]) });
+  C.step = 'leistung';
+}
 function askFahrzeug() {
-  bot('Um welches Fahrzeug geht es? Sie können auch einfach das Modell schreiben.', { chips: KLASSEN.map(k => ({ label: k.name, act: 'fahrzeug', val: k.id })) });
+  C.ask = 'askFahrzeug';
+  bot('Um welches Fahrzeug geht es? Sie können auch einfach das Modell schreiben.', { chips: zk(KLASSEN.map(k => ({ label: k.name, act: 'fahrzeug', val: k.id }))) });
   C.step = 'fahrzeug';
 }
 function askFotos() {
   const t = C.ctx.leistung === 'smart'
     ? 'Schicken Sie mir bitte 1 bis 3 Fotos der Stelle, am besten eins mit etwas Abstand und eins nah dran.'
     : `Schicken Sie mir gern 1 bis 3 Fotos${C.ctx.leistung === 'innen' ? ' vom Innenraum' : ' vom Fahrzeug'}. Dann kann ich den Aufwand besser einschätzen.`;
-  bot(t, { chips: [{ label: 'Fotos auswählen', act: 'fotos' }, { label: 'Ohne Fotos weiter', act: 'ohne-fotos' }] });
+  C.ask = 'askFotos';
+  bot(t, { chips: zk([{ label: 'Fotos auswählen', act: 'fotos' }, { label: 'Ohne Fotos weiter', act: 'ohne-fotos' }]) });
   C.step = 'fotos';
 }
 function askDetails() {
   const l = C.ctx.leistung;
+  C.ask = 'askDetails';
   if (l === 'innen' || l === 'aussen') {
-    bot(`Wie stark ist ${l === 'innen' ? 'der Innenraum' : 'das Auto'} verschmutzt?`, { chips: ['leicht', 'normal', 'stark', 'extrem'].map(v => ({ label: VLABEL[v][0].toUpperCase() + VLABEL[v].slice(1), act: 'versch', val: v })) });
+    bot(`Wie stark ist ${l === 'innen' ? 'der Innenraum' : 'das Auto'} verschmutzt?`, { chips: zk(['leicht', 'normal', 'stark', 'extrem'].map(v => ({ label: VLABEL[v][0].toUpperCase() + VLABEL[v].slice(1), act: 'versch', val: v }))) });
     C.step = 'details';
   } else if (l === 'smart') {
-    bot('Wie groß ist die Stelle ungefähr?', { chips: [{ label: 'Bis 5 cm', act: 'groesse', val: 'klein' }, { label: '5 bis 15 cm', act: 'groesse', val: 'mittel' }, { label: 'Größer', act: 'groesse', val: 'gross' }] });
+    bot('Wie groß ist die Stelle ungefähr?', { chips: zk([{ label: 'Bis 5 cm', act: 'groesse', val: 'klein' }, { label: '5 bis 15 cm', act: 'groesse', val: 'mittel' }, { label: 'Größer', act: 'groesse', val: 'gross' }]) });
     C.step = 'details';
   } else { afterDetails(); }
 }
 function askExtras() {
-  bot('Gibt es Tierhaare oder Flecken?', { chips: [{ label: 'Tierhaare', act: 'extra', val: 't' }, { label: 'Flecken', act: 'extra', val: 'f' }, { label: 'Beides', act: 'extra', val: 'tf' }, { label: 'Nichts davon', act: 'extra', val: '' }] });
+  C.ask = 'askExtras';
+  bot('Gibt es Tierhaare oder Flecken?', { chips: zk([{ label: 'Tierhaare', act: 'extra', val: 't' }, { label: 'Flecken', act: 'extra', val: 'f' }, { label: 'Beides', act: 'extra', val: 'tf' }, { label: 'Nichts davon', act: 'extra', val: '' }]) });
+  C.step = 'details';
+}
+function askAnzahl() {
+  C.ask = 'askAnzahl';
+  bot('Wie viele Stellen sind es?', { chips: zk(['1', '2', '3', '4'].map(n => ({ label: n === '4' ? '4 oder mehr' : n, act: 'anzahl', val: n }))) });
   C.step = 'details';
 }
 function afterDetails() {
   const res = berechne(C.ctx); C.ctx.preis = res;
+  C.ask = 'afterDetails';
   if (res.besichtigung) {
-    bot('Bei größeren Schäden muss sich das Team das Auto kurz ansehen. Ich frage dafür gern einen Termin an.', { chips: [{ label: 'Termin anfragen', act: 'termin-anfragen' }, { label: 'Ich habe noch eine Frage', act: 'noch-frage' }] });
+    bot('Bei größeren Schäden muss sich das Team das Auto kurz ansehen. Ich frage dafür gern einen Termin an.', { chips: zk([{ label: 'Termin anfragen', act: 'termin-anfragen' }, { label: 'Ich habe noch eine Frage', act: 'noch-frage' }]) });
   } else {
-    bot('Hier ist Ihr Richtwert:', { card: { type: 'preis', data: res }, chips: [{ label: 'Termin anfragen', act: 'termin-anfragen' }, { label: 'Ich habe noch eine Frage', act: 'noch-frage' }] });
+    bot('Hier ist Ihr Richtwert:', { card: { type: 'preis', data: res }, chips: zk([{ label: 'Termin anfragen', act: 'termin-anfragen' }, { label: 'Ich habe noch eine Frage', act: 'noch-frage' }]) });
   }
   C.step = 'preis';
 }
@@ -255,13 +279,16 @@ function nextSlots() {
   return out;
 }
 function askTermin() {
-  bot('Wann passt es Ihnen? Ich frage den Termin an, das Team bestätigt ihn.', { chips: nextSlots().map(s => ({ label: s, act: 'termin', val: s })).concat([{ label: 'Bin flexibel', act: 'termin', val: 'flexibel' }]) });
+  C.ask = 'askTermin';
+  bot('Wann passt es Ihnen? Ich frage den Termin an, das Team bestätigt ihn. Oder Sie buchen gleich einen festen Termin aus dem Kalender.', { chips: zk(nextSlots().map(s => ({ label: s, act: 'termin', val: s })).concat([{ label: 'Bin flexibel', act: 'termin', val: 'flexibel' }, { label: 'Festen Termin buchen', act: 'termin-buchen' }])) });
   C.step = 'termin';
 }
 function askKontakt() {
-  bot('Fast geschafft. Wohin darf das Angebot gehen?', { card: { type: 'kontakt' } });
+  C.ask = 'askKontakt';
+  bot('Fast geschafft. Wohin darf das Angebot gehen?', { card: { type: 'kontakt' }, chips: zk([]) });
   C.step = 'kontakt';
 }
+const ASK = { kiCheck: () => askFotos(), askLeistung, askFahrzeug, askFotos, askDetails, askExtras, askAnzahl, afterDetails, askTermin, askKontakt };
 function reprompt() {
   for (let i = C.log.length - 1; i >= 0; i--) {
     const m = C.log[i];
@@ -278,6 +305,17 @@ function act(a, v, idx) {
   if (a !== 'neu' && a !== 'chef') chatBegonnen();
   if (a === 'fotos') { $('#photoInput').click(); return; }
   if (m) m.used = true;
+  if (a === 'zurueck') {
+    const h = (C.hist || []).pop();
+    user('Zurück');
+    if (h) { C.ctx = h.ctx; (ASK[h.ask] || askLeistung)(); } else askLeistung();
+    renderLog(); return;
+  }
+  if (a === 'termin-buchen') {
+    const tm = { innen: 'innen', aussen: 'aussen', politur: 'politur', keramik: 'keramik', smart: 'smart' }[C.ctx.leistung] || 'beratung';
+    location.href = `/demo/termin/?betrieb=fahrzeug&termin=${tm}`; return;
+  }
+  if (['leistung', 'fahrzeug', 'ohne-fotos', 'ki-ok', 'ki-korr', 'versch', 'extra', 'groesse', 'anzahl', 'termin-anfragen', 'termin'].includes(a)) merke();
   switch (a) {
     case 'leistung': C.ctx.leistung = v; user(svc(v).name); if (v === 'smart') askFotos(); else askFahrzeug(); break;
     case 'frage': user('Ich habe eine Frage'); bot('Gern, schreiben Sie Ihre Frage einfach unten ins Feld.', { chips: m ? m.chips.filter(c => c.act !== 'frage') : [] }); C.step = 'leistung'; break;
@@ -287,7 +325,7 @@ function act(a, v, idx) {
     case 'ki-korr': user('Korrigieren'); C.ctx.verschmutzung = null; C.ctx.tierhaare = false; C.ctx.flecken = false; askDetails(); break;
     case 'versch': C.ctx.verschmutzung = v; user(VLABEL[v][0].toUpperCase() + VLABEL[v].slice(1)); if (C.ctx.leistung === 'innen') askExtras(); else afterDetails(); break;
     case 'extra': C.ctx.tierhaare = v.includes('t'); C.ctx.flecken = v.includes('f'); user(v === 't' ? 'Tierhaare' : v === 'f' ? 'Flecken' : v === 'tf' ? 'Beides' : 'Nichts davon'); afterDetails(); break;
-    case 'groesse': C.ctx.kratzerGroesse = v; user(GLABEL[v]); if (v === 'gross') afterDetails(); else { bot('Wie viele Stellen sind es?', { chips: ['1', '2', '3', '4'].map(n => ({ label: n === '4' ? '4 oder mehr' : n, act: 'anzahl', val: n })) }); C.step = 'details'; } break;
+    case 'groesse': C.ctx.kratzerGroesse = v; user(GLABEL[v]); if (v === 'gross') afterDetails(); else askAnzahl(); break;
     case 'anzahl': C.ctx.kratzerAnzahl = Number(v); user(v === '4' ? '4 oder mehr' : v + (v === '1' ? ' Stelle' : ' Stellen')); afterDetails(); break;
     case 'termin-anfragen': user('Termin anfragen'); askTermin(); break;
     case 'noch-frage': user('Ich habe noch eine Frage'); bot('Schreiben Sie sie gern unten ins Feld.', { chips: [{ label: 'Termin anfragen', act: 'termin-anfragen' }] }); break;
@@ -307,7 +345,7 @@ async function onPhotos(files) {
   const prepped = [];
   for (const f of list) { try { prepped.push(await prepPhoto(f)); } catch (e) { toast('Ein Foto konnte nicht gelesen werden. Bitte JPG oder PNG nehmen.'); } }
   if (!prepped.length) { C.busy = false; return; }
-  useChips();
+  merke(); useChips();
   C.ctx.fotos = prepped.map(p => p.thumb); C.ctx.voll = prepped.map(p => p.full);
   user('', { photos: C.ctx.fotos }); renderLog();
   if (S.ai && S.canImages) { await analyze(); }
@@ -358,7 +396,8 @@ function applyKi(r) {
     if (l === 'innen') { C.ctx.tierhaare = ki.tierhaare; C.ctx.flecken = ki.flecken; parts.push('Tierhaare ' + (ki.tierhaare ? 'ja' : 'nein')); parts.push('Flecken ' + (ki.flecken ? 'ja' : 'nein')); }
   }
   const txt = (ki.kurz ? 'Ich sehe: ' + ki.kurz + '\n' : '') + (parts.length ? 'Meine Einschätzung: ' + parts.join(', ') + '.\n' : '') + 'Stimmt das so?';
-  bot(txt, { chips: [{ label: 'Ja, passt', act: 'ki-ok' }, { label: 'Korrigieren', act: 'ki-korr' }] });
+  C.ask = 'kiCheck';
+  bot(txt, { chips: zk([{ label: 'Ja, passt', act: 'ki-ok' }, { label: 'Korrigieren', act: 'ki-korr' }]) });
   C.step = 'ki-check';
 }
 const KLASSEN_WORTE = [
@@ -406,7 +445,7 @@ async function onText(t) {
   try {
     if (C.step === 'fahrzeug') {
       const k = guessKlasse(t);
-      if (k) { useChips(); C.ctx.fahrzeug = k; C.ctx.modell = t.slice(0, 60); bot(`Alles klar, ${t.slice(0, 60)} ordne ich als ${kl(k).name} ein.`); askFotos(); renderLog(); return; }
+      if (k) { merke(); useChips(); C.ctx.fahrzeug = k; C.ctx.modell = t.slice(0, 60); bot(`Alles klar, ${t.slice(0, 60)} ordne ich als ${kl(k).name} ein.`); askFotos(); renderLog(); return; }
     }
     if (C.step === 'kontakt') { bot('Tragen Sie Ihre Kontaktdaten bitte oben ins Formular ein.'); renderLog(); return; }
     await answer(t);
@@ -453,7 +492,7 @@ function renderLog(scroll = true) {
         <div class="note">Unverbindlich, aus der Preisliste des Betriebs gerechnet. Das Team prüft und schickt Ihnen das Angebot.</div></div>`;
     }
     if (m.card && m.card.type === 'kontakt') {
-      if (m.used) inner += `<div class="card"><div class="note">Kontakt gesendet</div><div>${esc(m.summary || '')}</div></div>`;
+      if (m.used) inner += m.summary ? `<div class="card"><div class="note">Kontakt gesendet</div><div>${esc(m.summary)}</div></div>` : '';
       else inner += `<form class="card" data-kontakt="${i}" novalidate>
           <label for="k-name">Ihr Name<input type="text" id="k-name" autocomplete="name" placeholder="Vor- und Nachname"></label>
           <label for="k-kontakt">Telefon oder E-Mail<input type="text" id="k-kontakt" autocomplete="email" placeholder="z. B. 0170 1234567"></label>
@@ -463,7 +502,7 @@ function renderLog(scroll = true) {
           <div class="note">Demo: Ihre Angaben bleiben nur in diesem Browser und werden nicht verschickt. Bitte keine echten Daten eingeben.</div>
         </form>`;
     }
-    if (m.chips && m.chips.length) inner += `<div class="chips">${m.chips.map(c => `<button type="button" class="chip" data-act="${esc(c.act)}" data-val="${esc(c.val || '')}" data-idx="${i}" ${m.used ? 'disabled' : ''}>${esc(c.label)}</button>`).join('')}</div>`;
+    if (m.chips && m.chips.length) inner += `<div class="chips">${m.chips.map(c => `<button type="button" class="chip${c.act === 'zurueck' ? ' chip-back' : ''}" data-act="${esc(c.act)}" data-val="${esc(c.val || '')}" data-idx="${i}" ${m.used ? 'disabled' : ''}>${esc(c.label)}</button>`).join('')}</div>`;
     return `<div class="msg ${m.from}">${inner}</div>`;
   }).join('');
   log.innerHTML = html;
@@ -552,8 +591,9 @@ function renderKpis() {
   const sms = rs.filter(r => r.kanal === 'Anruf-SMS').length;
   const wert = rs.reduce((s, r) => s + (r.preis && !r.preis.besichtigung ? (r.preis.summe || 0) : 0), 0);
   const auftraege = rs.filter(r => r.status === 'gewonnen').length;
-  $('#kpis').innerHTML = `${zahl(rs.length, 'Anfrage', 'Anfragen')}, davon ${zahl(ah, 'nach Feierabend', 'nach Feierabend')} und ${zahl(sms, 'über den Anruf-Retter', 'über den Anruf-Retter')}. `
-    + `Richtwerte zusammen rund <mark class="num">${euro(wert)}</mark>, daraus ${auftraege === 1 ? 'wurde' : 'wurden'} bisher ${zahl(auftraege, 'Auftrag', 'Aufträge')}.`;
+  const eilig = rs.filter(r => r.dringlichkeit === 'notfall' || r.dringlichkeit === 'dringend').length;
+  $('#kpis').innerHTML = `${zahl(rs.length, 'Anfrage', 'Anfragen')}, davon ${zahl(ah, 'nach Feierabend', 'nach Feierabend')} und ${zahl(sms, 'über den Anruf-Retter', 'über den Anruf-Retter')}${eilig ? `, ${zahl(eilig, 'dringend', 'dringend')}` : ''}. `
+    + (wert ? `Richtwerte zusammen rund <mark class="num">${euro(wert)}</mark>, daraus ${auftraege === 1 ? 'wurde' : 'wurden'} bisher ${zahl(auftraege, 'Auftrag', 'Aufträge')}.` : `Bisher ${zahl(auftraege, 'Auftrag', 'Aufträge')} daraus.`);
 }
 function renderFilters() {
   const all = allRequests(); const n = s => s === 'alle' ? all.length : all.filter(r => r.status === s).length;
@@ -572,11 +612,22 @@ function renderList() {
   }
   $('#reqList').innerHTML = rs.map(r => `<button type="button" class="req" data-id="${esc(r.id)}" aria-current="${S.selected === r.id}">
       <span class="req-name">${esc(r.kunde.name)}</span><span class="req-time">${esc(fmtTime(r.createdAt))}</span>
-      <span class="req-meta">${esc(svc(r.leistung).name)}${r.fahrzeug ? ', ' + esc(kl(r.fahrzeug).name) : ''} · ${esc(r.kanal)}${afterHours(r.createdAt) ? ' · nach Feierabend' : ''}</span>
-      <span class="req-bottom"><span class="state st-${r.status}">${STATUS[r.status]}</span><span class="req-price num">${esc(priceText(r))}</span></span>
+      <span class="req-meta">${r.anliegen ? esc(r.anliegen) + ' · ' + esc(r.betriebName) : esc(svc(r.leistung).name) + (r.fahrzeug ? ', ' + esc(kl(r.fahrzeug).name) : '')} · ${esc(r.kanal)}${afterHours(r.createdAt) ? ' · nach Feierabend' : ''}</span>
+      <span class="req-bottom"><span class="state st-${r.status}">${STATUS[r.status]}</span>${r.dringlichkeit && r.dringlichkeit !== 'normal' ? `<span class="dr dr-${r.dringlichkeit}">${DR[r.dringlichkeit]}</span>` : ''}<span class="req-price num">${esc(r.anliegen ? (r.wunsch || '') : priceText(r))}</span></span>
     </button>`).join('');
 }
+const DR = { notfall: 'Notfall', dringend: 'Dringend', normal: 'Normal' };
 function factRows(r) {
+  if (r.anliegen) {
+    const rows = [['Betrieb', r.betriebName || '–'], ['Anliegen', r.anliegen]];
+    for (const [k, v] of r.liste) rows.push([k, v]);
+    if (r.ort) rows.push(['Ort', r.ort]);
+    rows.push(['Beschreibung', r.beschreibung || 'keine']);
+    if (r.dringlichkeit) rows.push(['Dringlichkeit', DR[r.dringlichkeit]]);
+    rows.push(['Wie weiter', r.wunsch || '–']);
+    if (r.erreichbar) rows.push(['Erreichbar', r.erreichbar]);
+    return rows;
+  }
   const a = r.angaben || {}; const rows = [];
   rows.push(['Leistung', svc(r.leistung).name]);
   if (r.fahrzeug) rows.push(['Fahrzeug', kl(r.fahrzeug).name + (r.modell ? ` (${r.modell})` : '')]);
@@ -592,9 +643,10 @@ function factRows(r) {
 const factsHtml = rows => `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 function akteHtml(r) {
   return `<div class="doc" aria-label="Anfrage">
-    <div class="doc-head"><div><div class="doc-firm">Anfrage von ${esc(r.kunde.name)}</div><div class="doc-small">${esc(r.kunde.kontakt)} · ${esc(r.kanal)} · ${esc(fmtTime(r.createdAt))}</div></div><div class="doc-small" style="text-align:right">Muster Fahrzeugpflege</div></div>
+    <div class="doc-head"><div><div class="doc-firm">Anfrage von ${esc(r.kunde.name)}</div><div class="doc-small">${esc(r.kunde.kontakt)} · ${esc(r.kanal)} · ${esc(fmtTime(r.createdAt))}</div></div><div class="doc-small" style="text-align:right">${esc(r.betriebName || 'Muster Fahrzeugpflege')}</div></div>
     <table>${factRows(r).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
     ${r.ki && r.ki.kurz ? `<div class="doc-small">Einschätzung aus den Fotos: ${esc(r.ki.kurz)}</div>` : ''}
+    ${r.zusammenfassung ? `<div class="doc-small">Zusammenfassung: ${esc(r.zusammenfassung)}</div>` : ''}
   </div>`;
 }
 function renderDetail(force) {
@@ -605,10 +657,13 @@ function renderDetail(force) {
   if (!force && key === S.detailKey) return;
   S.detailKey = key;
   const ki = r.ki;
+  const tel = r.telefon || (!/@/.test(r.kunde.kontakt) ? r.kunde.kontakt : ''), mail = r.email || (/@/.test(r.kunde.kontakt) ? r.kunde.kontakt : '');
   box.innerHTML = `<div class="detail">
-    <div class="d-head"><div class="d-tags"><span class="state st-${r.status}">${STATUS[r.status]}</span>${afterHours(r.createdAt) ? '<span class="tagline">kam außerhalb der Öffnungszeiten</span>' : ''}${r.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
+    <div class="d-head"><div class="d-tags"><span class="state st-${r.status}">${STATUS[r.status]}</span>${r.dringlichkeit && r.dringlichkeit !== 'normal' ? `<span class="dr dr-${r.dringlichkeit}">${DR[r.dringlichkeit]}</span>` : ''}${afterHours(r.createdAt) ? '<span class="tagline">kam außerhalb der Öffnungszeiten</span>' : ''}${r.beispiel ? '<span class="tagline">Beispiel</span>' : ''}</div>
       <h3>${esc(r.kunde.name)}</h3>
-      <div class="d-sub"><span>${esc(r.kunde.kontakt)}</span><span>·</span><span>${esc(r.kanal)}</span><span>·</span><span>${esc(fmtTime(r.createdAt))}</span></div></div>
+      <div class="d-sub"><span>${esc(r.kunde.kontakt)}</span><span>·</span><span>${esc(r.kanal)}</span><span>·</span><span>${esc(fmtTime(r.createdAt))}</span></div>
+      ${r.anliegen ? `<div class="actions">${tel ? `<a class="btn primary" href="tel:${esc(tel.replace(/[^\d+]/g, ''))}">Anrufen ${esc(tel)}</a>` : ''}${mail ? `<a class="btn" href="mailto:${esc(mail)}">E-Mail an ${esc(mail)}</a>` : ''}</div>` : ''}</div>
+    ${r.zusammenfassung ? `<div class="sec"><h4>Zusammenfassung${r.kiZusammenfassung ? ' der KI' : ''}</h4><div class="ki"><div>${esc(r.zusammenfassung)}</div>${r.rueckfragen.length ? `<div class="hint">Beim Rückruf fragen: ${r.rueckfragen.map(esc).join(' · ')}</div>` : ''}</div></div>` : ''}
     ${r.fotos.length ? `<div class="sec"><h4>Fotos</h4><div class="d-photos">${r.fotos.map(u => `<img src="${esc(u)}" alt="Foto vom Kunden">`).join('')}</div></div>` : ''}
     ${ki ? `<div class="sec"><h4>Einschätzung aus den Fotos</h4><div class="ki"><div>${esc(ki.kurz || 'Keine Beschreibung.')}</div><div class="hint">Nur ein Hinweis. Der Preisrahmen kommt aus Ihrer Preisliste.</div></div></div>` : ''}
     <div class="sec"><h4>Angaben</h4>${factsHtml(factRows(r))}</div>
@@ -784,12 +839,65 @@ $('#bDetail').addEventListener('input', e => {
   b.notiz = e.target.value.slice(0, 1000); BW.detailKey = JSON.stringify(b); bStore();
 });
 // Neue Bewerbung in einem anderen Tab (/demo/bewerben/) gleich anzeigen
-window.addEventListener('storage', e => { if (e.key === BKEY) { bLoad(); bRender(true); } });
+window.addEventListener('storage', e => {
+  if (e.key === BKEY) { bLoad(); bRender(true); }
+  if (e.key === AKEY) { loadStore(); renderChef(true); }
+  if (e.key === TKEY) { tLoad(); tRender(); }
+});
 $('#bResetWrap').addEventListener('click', e => {
   const knopf = '<button class="btn quiet danger" type="button" id="bReset">Zurücksetzen</button>';
   if (e.target.closest('#bReset')) { $('#bResetWrap').innerHTML = '<span class="confirm">Eigene Bewerbungen löschen? <button class="btn danger" type="button" id="bResetYes">Ja, zurücksetzen</button><button class="btn quiet" type="button" id="bResetNo">Abbrechen</button></span>'; return; }
   if (e.target.closest('#bResetNo')) { $('#bResetWrap').innerHTML = knopf; return; }
   if (e.target.closest('#bResetYes')) { BW.list = bBeispiele(); BW.selected = null; bStore(); $('#bResetWrap').innerHTML = knopf; bRender(true); toast('Zurückgesetzt.'); }
+});
+
+/* ---------- Termine (vom Termin-Bot /demo/termin/) ---------- */
+const TKEY = 'af-demo-termine-v1';
+const TW = { list: [], filter: 'alle' };
+const TBETRIEBE = { fahrzeug: 'Fahrzeugpflege', maler: 'Maler', elektro: 'Elektro' };
+function tBeispiele() {
+  // Drei erfundene Termine in den nächsten Tagen, damit die Ansicht nicht leer ist
+  const tag = (n, h, m) => { const d = new Date(); d.setDate(d.getDate() + n); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); d.setHours(h, m, 0, 0); return d; };
+  const mk = (d, min, o) => ({ id: uid(), beispiel: true, createdAt: new Date().toISOString(), start: d.getTime(), ende: d.getTime() + min * 60000, datum: '', kalender: false, abgesagt: false, ...o });
+  return [
+    mk(tag(1, 9, 0), 60, { betrieb: 'fahrzeug', betriebName: 'Muster Fahrzeugpflege', terminName: 'Außenwäsche', name: 'Jonas R. (Beispiel)', telefon: '0171 0000005', ortText: 'Muster Fahrzeugpflege', details: 'BMW 3er Touring' }),
+    mk(tag(1, 13, 30), 45, { betrieb: 'maler', betriebName: 'Malerbetrieb Muster', terminName: 'Besichtigung vor Ort', name: 'Familie Weber (Beispiel)', telefon: '0157 0000006', ortText: 'Bei Ihnen: Lindenweg 4, 78000 Musterstadt', details: 'Wohnzimmer, Flur und Treppenhaus' }),
+    mk(tag(2, 10, 0), 90, { betrieb: 'elektro', betriebName: 'Muster Elektrotechnik', terminName: 'Reparatur vor Ort', name: 'Petra L. (Beispiel)', email: 'petra@example.org', ortText: 'Bei Ihnen: Am Bach 2, 78000 Musterstadt', details: 'Sicherung fliegt im Bad raus' })
+  ];
+}
+function tLoad() {
+  let a = null; try { a = JSON.parse(localStorage.getItem(TKEY) || 'null'); } catch (e) { a = null; }
+  TW.list = Array.isArray(a) ? a : [];
+  TW.beispiele = TW.beispiele || tBeispiele();
+}
+const tUhr = ms => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const tTag = ms => { const d = new Date(ms); return `${['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()]}, ${d.getDate()}.${d.getMonth() + 1}.`; };
+function tRender() {
+  const jetzt = Date.now();
+  const alle = [...TW.list, ...TW.beispiele].filter(t => Number(t.ende) > jetzt - 3600000 && (TW.filter === 'alle' || t.betrieb === TW.filter)).sort((a, b) => a.start - b.start);
+  const eigene = TW.list.filter(t => !t.abgesagt && t.ende > jetzt).length;
+  $('#tSum').innerHTML = `${zahl(alle.filter(t => !t.abgesagt).length, 'Termin', 'Termine')} in den nächsten Tagen${eigene ? `, davon ${zahl(eigene, 'von Ihnen gebucht', 'von Ihnen gebucht')}` : ''}. Jeder Termin kam ohne Anruf rein.`;
+  $('#tFilter').innerHTML = ['alle', 'fahrzeug', 'maler', 'elektro'].map(f => `<button type="button" class="filter" data-tfilter="${f}" aria-pressed="${TW.filter === f}">${f === 'alle' ? 'Alle Betriebe' : TBETRIEBE[f]}</button>`).join('');
+  if (!alle.length) { $('#tList').innerHTML = '<div class="empty"><h3>Keine Termine</h3><p>Buchen Sie oben einen Termin, er erscheint hier sofort.</p></div>'; return; }
+  let tagVorher = '';
+  $('#tList').innerHTML = alle.map(t => {
+    const tg = tTag(t.start); const kopf = tg !== tagVorher ? `<h3 class="t-day">${esc(tg)}</h3>` : ''; tagVorher = tg;
+    const kontakt = [t.telefon, t.email].filter(Boolean).join(' · ');
+    return `${kopf}<div class="t-item${t.abgesagt ? ' t-weg' : ''}">
+      <div class="t-time num">${esc(tUhr(t.start))}<small>bis ${esc(tUhr(t.ende))}</small></div>
+      <div class="t-body"><b>${esc(t.terminName)}</b> · ${esc(t.name)}${t.details ? ` <span class="t-det">· ${esc(t.details)}</span>` : ''}
+        <div class="t-sub">${esc(t.ortText || '')}${kontakt ? ' · ' + esc(kontakt) : ''}</div>
+        ${t.notiz ? `<div class="t-sub">Notiz: ${esc(t.notiz)}</div>` : ''}</div>
+      <div class="t-tags">${TW.filter === 'alle' ? `<span class="tagline">${esc(TBETRIEBE[t.betrieb] || '')}</span>` : ''}${t.abgesagt ? '<span class="tagline">abgesagt</span>' : t.kalender ? '<span class="tagline t-kal">im Google Kalender</span>' : t.beispiel ? '<span class="tagline">Beispiel</span>' : '<span class="tagline">neu</span>'}</div>
+    </div>`;
+  }).join('');
+}
+$('#tFilter').addEventListener('click', e => { const b = e.target.closest('[data-tfilter]'); if (!b) return; TW.filter = b.dataset.tfilter; tRender(); });
+$('#tResetWrap').addEventListener('click', e => {
+  const knopf = '<button class="btn quiet danger" type="button" id="tReset">Zurücksetzen</button>';
+  if (e.target.closest('#tReset')) { $('#tResetWrap').innerHTML = '<span class="confirm">Eigene Termine aus der Liste löschen? <button class="btn danger" type="button" id="tResetYes">Ja</button><button class="btn quiet" type="button" id="tResetNo">Abbrechen</button></span>'; return; }
+  if (e.target.closest('#tResetNo')) { $('#tResetWrap').innerHTML = knopf; return; }
+  if (e.target.closest('#tResetYes')) { try { localStorage.removeItem(TKEY); } catch (x) { /* egal */ } tLoad(); $('#tResetWrap').innerHTML = knopf; tRender(); toast('Zurückgesetzt. Termine im echten Kalender bleiben dort stehen.'); }
 });
 
 /* ---------- Auswertung ---------- */
@@ -812,11 +920,13 @@ function renderAuswertung() {
   const anfragen = zWert('anfrage') + zWert('sms_anfrage');
   const zeit = Object.keys(ZEIT_LABEL).map(k => ({ label: ZEIT_LABEL[k], wert: (ZEIT_BASIS[k] || 0) + (Z.zeit[k] || 0), eigen: Z.zeit[k] || 0 }));
   const feierabend = zeit[2].wert + zeit[3].wert;
-  $('#aSum').innerHTML = `Der Chat wurde <b>${zWert('chat_offen')}</b>-mal geöffnet. Insgesamt kamen <b>${anfragen}</b> Anfragen rein, <mark class="num">${feierabend} davon nach Feierabend</mark>. Über den Anruf-Retter kamen <b>${zWert('sms_anfrage')}</b> Anfragen, die sonst verloren gewesen wären. Dazu <b>${zWert('bewerbung')}</b> Bewerbungen.`;
+  $('#aSum').innerHTML = `Der Chat wurde <b>${zWert('chat_offen')}</b>-mal geöffnet. Insgesamt kamen <b>${anfragen}</b> Anfragen rein, <mark class="num">${feierabend} davon nach Feierabend</mark>. Über den Anruf-Retter kamen <b>${zWert('sms_anfrage')}</b> Anfragen, die sonst verloren gewesen wären. Dazu <b>${zWert('termin')}</b> online gebuchte Termine und <b>${zWert('bewerbung')}</b> Bewerbungen.`;
   $('#aFunnels').innerHTML = [
     ['Website-Chat', balken([zr('Chat geöffnet', 'chat_offen'), zr('Gespräch begonnen', 'chat_start'), zr('Anfrage abgeschickt', 'anfrage')], { quote: true })],
     ['Anruf-Retter', balken([zr('Anruf verpasst', 'anruf_verpasst'), zr('Link aus der SMS geöffnet', 'sms_offen'), zr('Anfrage abgeschickt', 'sms_anfrage')], { quote: true })],
     ['Bewerber-Chat', balken([zr('Chat geöffnet', 'bew_offen'), zr('Bewerbung begonnen', 'bew_start'), zr('Bewerbung abgeschickt', 'bewerbung'), zr('mit Unterlagen', 'unterlagen')], { quote: true })],
+    ['Termin-Bot', balken([zr('Seite geöffnet', 'termin_offen'), zr('Buchung begonnen', 'termin_start'), zr('Termin gebucht', 'termin')], { quote: true })],
+    ['Anfrage-Chat Handwerk', balken([zr('Chat geöffnet', 'anf_offen'), zr('Anfrage begonnen', 'anf_start'), zr('Anfrage abgeschickt', 'anf_fertig')], { quote: true })],
     ['Wann Anfragen reinkommen', balken(zeit)]
   ].map(([t, html]) => `<div class="a-block"><h3>${esc(t)}</h3>${html}</div>`).join('');
 }
@@ -846,13 +956,14 @@ document.getElementById('v-preise').addEventListener('input', e => {
 $('#priceReset').addEventListener('click', () => { PRICES = clone(DEFAULT_PRICES); savePrices(); renderPrices(); renderServices(); toast('Beispielpreise wiederhergestellt.'); });
 
 /* ---------- routing ---------- */
-const VIEWS = ['kunde', 'anruf', 'chef', 'bewerber', 'auswertung', 'preise'];
+const VIEWS = ['kunde', 'anruf', 'chef', 'termine', 'bewerber', 'auswertung', 'preise'];
 function go(v, push = true) {
   if (!VIEWS.includes(v)) v = 'kunde';
   VIEWS.forEach(x => { document.getElementById('v-' + x).hidden = x !== v; document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === v)); });
   if (push && location.hash !== '#' + v) { try { history.replaceState(null, '', '#' + v); } catch (e) { location.hash = v; } }
   if (v === 'chef') renderChef(true);
   if (v === 'bewerber') bRender(true);
+  if (v === 'termine') { tLoad(); tRender(); }
   if (v === 'auswertung') renderAuswertung();
   window.scrollTo(0, 0);
 }

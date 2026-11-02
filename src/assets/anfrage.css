@@ -1,0 +1,18 @@
+/* Vorführseite /demo/anfrage/: Anfrage-Chat für mehrere Branchen. Baut auf demo.css, bewerben.css und termin.css auf. */
+
+.af-warn { border-color: #C7362B; background: #FDF1EF; color: #5A1712; }
+.af-warn b { color: #A3241A; font-size: 15px; }
+.af-warn .note { color: #7A3A33; }
+.card .btn.af-call { background: #A3241A; border-color: #A3241A; color: #FFFFFF; border-radius: var(--r-mf); justify-content: center; text-decoration: none; }
+
+.af-photos { display: flex; gap: 6px; flex-wrap: wrap; }
+.af-photos img { width: 84px; height: 84px; object-fit: cover; border-radius: var(--r-mf); border: 1px solid var(--mf-line); display: block; }
+.af-ph { position: relative; }
+.af-ph-x { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--mf-ink); color: #FFFFFF; font-size: 15px; line-height: 1; display: grid; place-items: center; }
+
+.af-sum { gap: 10px; }
+.af-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.af-tag, .af-d { font-size: 12.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--mf-line); color: var(--mf-muted); }
+.af-d-notfall { background: #A3241A; border-color: #A3241A; color: #FFFFFF; }
+.af-d-dringend { background: #FFF1D6; border-color: #E3B04B; color: #6B4700; }
+.af-d-normal { background: var(--mf-brand-2); border-color: transparent; color: var(--mf-brand); }
