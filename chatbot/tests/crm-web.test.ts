@@ -327,3 +327,9 @@ test("KI-Antwort: Punkte als Text, JSON im Codeblock, unlesbare Antwort → Rege
   await R.bewerteFirma({ env: ENV(kern, { ANTHROPIC_API_KEY: "sk" }) }, kern.firma(id), kaputt.f);
   assert.match(kern.firma(id)!.infos.ki_fehler, /unlesbar/);
 });
+
+test("KI-Antwort: erstes vollständiges Objekt, auch mit Text danach oder abgeschnittenem Rest", () => {
+  assert.equal(B.kiJson('{"score": 70, "begruendung": "a } b \\" c"}\nNoch eine Erklärung {abgeschn').score, 70);
+  assert.equal(B.kiJson('Vorweg {kaputt} und dann {"score": 12}').score, 12);
+  assert.equal(B.kiJson('{"score": 40, "begruendung": "abgeschnitt'), null);
+});
