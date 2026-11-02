@@ -9,7 +9,7 @@
 // Die harte Obergrenze bleibt das Ausgabenlimit in der Anthropic Console.
 import { config, env, texte } from "./config.ts";
 
-export type Art = "chat" | "foto" | "anfrage";
+export type Art = "chat" | "foto" | "anfrage" | "datei";
 type Fenster = { minute?: number; stunde?: number; tag?: number };
 export type Stand = { zeiten: Record<string, number[]>; budgetTag?: string; budget?: number };
 
@@ -19,6 +19,8 @@ export const grenzen: Record<Art, Fenster> = {
   chat: { minute: 8, stunde: L.anfragenProIpProStunde ?? 40, tag: 100, ...(L.proIp || {}) },
   foto: { minute: 3, stunde: L.fotosProIpProStunde ?? 6, tag: 10, ...(L.fotosProIp || {}) },
   anfrage: { minute: 2, stunde: 5, tag: 10, ...(L.anfragenFormularProIp || {}) },
+  // Bewerbungsunterlagen (kein KI-Aufruf, zählt nicht zum Tagesbudget)
+  datei: { minute: 10, stunde: 20, tag: 30 },
 };
 export const tagesbudget: number = L.tagesbudgetNachrichten ?? L.tagesbudgetAnfragen ?? 1500;
 
@@ -58,7 +60,7 @@ function imSpeicher(schluessel: string, art: Art) {
   speicher.set(schluessel, s);
   const grund = zaehle(s, art);
   if (grund) return grund;
-  if (art !== "anfrage" && !zaehleBudget(global)) return "budget";
+  if (art !== "anfrage" && art !== "datei" && !zaehleBudget(global)) return "budget";
   return null;
 }
 /** Nur für Tests. */
@@ -85,7 +87,7 @@ export async function pruefeLimit(c: any, art: Art): Promise<string | null> {
   if (ns?.idFromName) {
     try {
       grund = await ns.get(ns.idFromName("ip:" + schluessel)).zaehle(art, grenzen[art]);
-      if (!grund && art !== "anfrage" && !(await ns.get(ns.idFromName("global")).budget(tagesbudget))) grund = "budget";
+      if (!grund && art !== "anfrage" && art !== "datei" && !(await ns.get(ns.idFromName("global")).budget(tagesbudget))) grund = "budget";
     } catch (e: any) {
       console.error("[limits]", e?.message || e);
       grund = imSpeicher(schluessel, art); // Zähler nicht erreichbar → lokal weiterzählen

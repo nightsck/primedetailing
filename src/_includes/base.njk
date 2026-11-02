@@ -23,6 +23,8 @@
 <link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-tight.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/style.css?v={{ build.version }}">
+{% if css %}<link rel="stylesheet" href="/assets/{{ css }}?v={{ build.version }}">
+{% endif %}
 <script>document.documentElement.classList.remove('no-js')</script>
 {% block head %}{% endblock %}
 </head>
@@ -52,6 +54,7 @@
         {% if rechner.aktiv %}<li><a href="{{ home }}#rechner">Preisrechner</a></li>{% endif %}
         <li><a href="{{ home }}#team">Über uns</a></li>
         <li><a href="{{ home }}#faq">FAQ</a></li>
+        {% if jobs.aktiv %}<li><a href="/jobs/"{% if page.url == "/jobs/" %} aria-current="page"{% endif %}>Jobs</a></li>{% endif %}
       </ul>
     </nav>
     <a class="btn btn-primary btn-sm header-cta" href="{{ home }}#kontakt">Termin anfragen</a>
@@ -66,6 +69,7 @@
   {% if rechner.aktiv %}<a href="{{ home }}#rechner">Preisrechner</a>{% endif %}
   <a href="{{ home }}#team">Über uns</a>
   <a href="{{ home }}#faq">FAQ</a>
+  {% if jobs.aktiv %}<a href="/jobs/">Jobs</a>{% endif %}
   <a class="btn btn-primary btn-block" href="{{ home }}#kontakt">Termin anfragen</a>
 </nav>
 
@@ -87,6 +91,7 @@
           <li><a href="{{ home }}#preise">Preise</a></li>
           <li><a href="{{ home }}#kontakt">Kontakt</a></li>
           <li><a href="/feedback/">Feedback geben</a></li>
+          {% if jobs.aktiv %}<li><a href="/jobs/">Jobs</a></li>{% endif %}
         </ul>
       </div>
       <div>
@@ -112,6 +117,6 @@
 {% endif %}
 
 <script src="/assets/main.js?v={{ build.version }}" defer></script>
-{% if site.chatbot_url %}<script src="{{ site.chatbot_url }}/widget.js" defer></script>{% endif %}
+{% if site.chatbot_url and page.url != "/jobs/" %}<script src="{{ site.chatbot_url }}/widget.js" defer></script>{% endif %}
 </body>
 </html>

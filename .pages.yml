@@ -188,6 +188,35 @@ content:
           - { name: frage, label: Frage, type: string }
           - { name: antwort, label: Antwort, type: text }
 
+  - name: jobs
+    label: Jobs (Bewerber-Chat)
+    type: file
+    path: src/_data/jobs.yml
+    format: yaml
+    fields:
+      - { name: aktiv, label: Jobs-Seite anzeigen, type: boolean, description: "Aus = Seite /jobs/ sagt „gerade keine offenen Stellen“, der Link im Menü verschwindet." }
+      - { name: titel, label: Überschrift, type: string }
+      - { name: text, label: Einleitung, type: text }
+      - { name: zeiten, label: Arbeitszeiten, type: text, description: "Die KI im Chat beantwortet Fragen nur mit diesen Angaben." }
+      - { name: bietet, label: Das bieten wir, type: text }
+      - { name: ablauf, label: So geht es nach der Bewerbung weiter, type: text }
+      - name: stellen
+        label: Stellen
+        type: object
+        list: true
+        fields:
+          - { name: id, label: "Kürzel (klein, ohne Leerzeichen, z. B. minijob)", type: string }
+          - { name: name, label: Stellenname, type: string }
+          - { name: umfang, label: Umfang, type: string }
+          - { name: text, label: Beschreibung, type: text }
+          - name: fragen
+            label: Fragen im Chat
+            type: select
+            description: "erfahrung, fuehrerschein, wochenende, stunden, start, praktikum_art, zeitraum"
+            options:
+              multiple: true
+              values: [erfahrung, fuehrerschein, wochenende, stunden, start, praktikum_art, zeitraum]
+
   - name: impressum
     label: Impressum
     type: file

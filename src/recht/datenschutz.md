@@ -3,7 +3,7 @@ titel: "Datenschutz – Prime Detailing"
 beschreibung: "Datenschutzerklärung der Prime Detailing GbR."
 ueberschrift: "Datenschutz&shy;erklärung"
 lead: "Kurz gesagt: keine Cookies, kein Tracking, keine Werbung. Daten, die Sie uns schicken, nutzen wir nur, um Ihre Anfrage zu bearbeiten."
-stand: "Oktober 2026"
+stand: "November 2026"
 ---
 
 
@@ -44,7 +44,17 @@ Rechtsgrundlage ist unser berechtigtes Interesse, Fragen von Interessenten schne
 
 **Vorführseite (primedetailing.eu/demo):** Dort zeigen wir einen Chat für einen erfundenen Beispielbetrieb. Für Nachrichten und Fotos gilt dasselbe wie oben: Sie gehen nur zur Auswertung an die KI und werden nicht gespeichert. Was Sie auf der Vorführseite in Formulare eintragen (zum Beispiel Name und Kontakt) und Ihre Testanfragen werden nicht an uns übermittelt. Sie liegen nur im lokalen Speicher Ihres Browsers (localStorage), damit die Vorführung funktioniert. Sie können sie jederzeit über „Demo zurücksetzen“ oder durch Löschen der Websitedaten in Ihrem Browser entfernen. Bitte geben Sie dort keine echten Daten ein.
 
-{% endif %}## 5. Kontakt per E-Mail, Telefon oder WhatsApp
+{% if jobs.aktiv %}<h2 id="bewerbungen">4b. Bewerbungen über die Jobs-Seite</h2>
+
+Auf primedetailing.eu/jobs/ können Sie sich über einen Chat bei uns bewerben. Verarbeitet werden die gewählte Stelle, Ihre Antworten auf die Fragen im Chat, Ihr Name, Ihre Telefonnummer und/oder E-Mail-Adresse, wann Sie erreichbar sind, was Sie freiwillig über sich schreiben, Unterlagen, die Sie freiwillig hochladen (z. B. Lebenslauf, Zeugnisse), Fragen, die Sie dem Assistenten stellen, sowie technisch notwendige Daten wie Ihre IP-Adresse.
+
+Die Bewerbung wird beim Absenden über Web3Forms per E-Mail an uns geschickt (siehe Abschnitt 4). Hochgeladene Unterlagen speichern wir auf Servern von Cloudflare, Inc. (USA), die in unserem Auftrag tätig ist. Abrufen kann man sie nur über einen langen, zufälligen Link, der ausschließlich in der Bewerbungs-Mail an uns steht. Unterlagen, die hochgeladen, aber nicht abgeschickt werden, löschen wir automatisch nach 2 Tagen.
+
+Fragen an den Assistenten beantwortet eine KI (Claude von Anthropic, siehe Abschnitt 4a). Die KI bekommt dabei nur Ihre Frage und die gewählte Stelle, nicht Ihre Angaben oder Unterlagen. Sie bewertet und sortiert keine Bewerber. Über jede Bewerbung entscheiden wir selbst.
+
+Rechtsgrundlage ist die Anbahnung eines Beschäftigungsverhältnisses (Art. 6 Abs. 1 lit. b DSGVO) sowie Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie vor dem Absenden geben und jederzeit per E-Mail widerrufen können. Wir löschen Bewerbungen und Unterlagen 6 Monate nach Eingang, auf Wunsch früher. Kommt es zu einer Zusammenarbeit, nehmen wir die nötigen Angaben in die Personalakte. Im Browser speichern wir bei der Bewerbung nichts.
+
+{% endif %}{% endif %}## 5. Kontakt per E-Mail, Telefon oder WhatsApp
 
 Wenn Sie uns per E-Mail, Telefon oder WhatsApp kontaktieren, verarbeiten wir Ihre Angaben zur Bearbeitung Ihres Anliegens. Die WhatsApp-Buttons sind einfache Links: Erst wenn Sie einen anklicken, wird WhatsApp (WhatsApp Ireland Limited bzw. Meta) geöffnet und es gelten die Datenschutzbestimmungen von WhatsApp. Wenn Sie das nicht möchten, erreichen Sie uns jederzeit per Telefon oder E-Mail.
 

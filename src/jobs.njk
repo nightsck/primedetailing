@@ -1,0 +1,68 @@
+---
+layout: base.njk
+permalink: /jobs/
+titel: "Jobs bei Prime Detailing – Fahrzeugaufbereitung in St. Georgen"
+beschreibung: "Minijob, Aushilfe, Werkstudent oder Praktikum in der mobilen Fahrzeugaufbereitung in St. Georgen und Umgebung. Bewirb dich in drei Minuten per Chat, ohne Anschreiben."
+css: jobs.css
+---
+
+<div class="page-head"><div class="wrap">
+  <span class="eyebrow">Jobs</span>
+  <h1>{{ jobs.titel }}</h1>
+  {% if jobs.aktiv and jobs.stellen.length %}<p class="lead">{{ jobs.text }}</p>
+  <div class="hero-actions"><a class="btn btn-primary" href="#jbApp">Jetzt bewerben<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+  {% else %}<p class="lead">Gerade haben wir keine offenen Stellen. Wenn du trotzdem Lust hast, bei uns mitzumachen, schreib uns einfach an <a class="textlink" href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>{% endif %}
+</div></div>
+
+{% if jobs.aktiv and jobs.stellen.length %}
+<section class="jb-section"><div class="wrap jb-grid">
+
+  <section class="jb-app" id="jbApp" aria-label="Bewerbung per Chat">
+    <div class="jb-head">
+      <div class="jb-logo" aria-hidden="true">PD</div>
+      <div class="jb-title"><b>Bewerbung bei {{ site.name }}</b><span>Assistent mit KI · deine Bewerbung lesen wir selbst</span></div>
+      <button class="jb-icon" type="button" id="jbRestart" title="Von vorn anfangen" aria-label="Bewerbung von vorn anfangen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+    </div>
+    <div class="jb-progress" aria-live="polite">
+      <div class="jb-bar"><span id="jbBar"></span></div>
+      <p id="jbStep">Schritt 1 von 5 · Stelle</p>
+    </div>
+    <div class="jb-log" id="jbLog" aria-live="polite">
+      <noscript><div class="jb-msg bot"><div class="jb-bubble">Der Chat braucht JavaScript. Bewirb dich gern einfach per E-Mail an <a class="textlink" href="mailto:{{ site.email }}?subject=Bewerbung">{{ site.email }}</a> oder per <a class="textlink" href="https://wa.me/{{ site.whatsapp }}">WhatsApp</a>.</div></div></noscript>
+    </div>
+    <input type="file" id="jbFiles" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif,.docx" multiple hidden>
+    <form class="jb-input" id="jbForm" autocomplete="off">
+      <input type="text" id="jbText" placeholder="Frag einfach, z. B. nach Arbeitszeiten" aria-label="Nachricht oder Frage" maxlength="400" enterkeyhint="send">
+      <button class="jb-send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="jb-foot">KI-Assistent, bewertet niemanden · <a href="/datenschutz/#bewerbungen">Datenschutz</a></p>
+  </section>
+
+  <aside class="jb-side">
+    <h2>Offene Stellen</h2>
+    <ul class="jb-jobs">
+      {%- for s in jobs.stellen %}
+      <li>
+        <div><h3>{{ s.name }}</h3><p class="jb-umfang">{{ s.umfang }}</p><p>{{ s.text }}</p></div>
+        <a class="btn btn-ghost btn-sm" href="?stelle={{ s.id }}" data-stelle="{{ s.id }}">Bewerben<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </li>
+      {%- endfor %}
+    </ul>
+    <dl class="jb-facts">
+      {% if jobs.zeiten %}<div><dt>Arbeitszeiten</dt><dd>{{ jobs.zeiten }}</dd></div>{% endif %}
+      {% if jobs.bietet %}<div><dt>Das bieten wir</dt><dd>{{ jobs.bietet }}</dd></div>{% endif %}
+      {% if jobs.ablauf %}<div><dt>Nach der Bewerbung</dt><dd>{{ jobs.ablauf }}</dd></div>{% endif %}
+    </dl>
+    <p class="jb-small">Lieber anders? Schreib uns per <a class="textlink" href="https://wa.me/{{ site.whatsapp }}?text={{ 'Hallo Prime Detailing, ich möchte mich bewerben.' | urlencode }}" target="_blank" rel="noopener">WhatsApp</a> oder an <a class="textlink" href="mailto:{{ site.email }}?subject=Bewerbung">{{ site.email }}</a>.</p>
+  </aside>
+
+</div></section>
+
+<div class="jb-toast" id="jbToast" role="status" aria-live="polite"></div>
+<script type="application/json" id="jbDaten">{{ {
+  name: site.name, gebiet: site.einsatzgebiet, api: site.chatbot_url, web3forms: site.web3forms_key,
+  whatsapp: site.whatsapp, email: site.email,
+  zeiten: jobs.zeiten, bietet: jobs.bietet, ablauf: jobs.ablauf, stellen: jobs.stellen
+} | dump | replace("</", "<\\/") | safe }}</script>
+<script src="/assets/jobs.js?v={{ build.version }}" defer></script>
+{% endif %}
