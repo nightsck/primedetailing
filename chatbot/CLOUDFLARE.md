@@ -63,6 +63,27 @@ Nach jeder Buchung bekommen **Kunde und Betrieb eine Mail** mit allen Angaben un
 
 Optional: eigene Empfänger je Beispielbetrieb `TERMIN_MAIL_BETRIEB_FAHRZEUG` / `_MALER` / `_ELEKTRO`, Tagesgrenze für alle Mails `MAIL_TAGESLIMIT` (Standard 100), Adresse der Termin-Seite für den Absage-Link `TERMIN_SEITE` (Standard `https://primedetailing.eu/demo/termin/`). Statt Brevo geht auch Resend (`RESEND_API_KEY`). In die Datenschutzerklärung gehört dann ein Satz zu Brevo als Mail-Dienstleister.
 
+## Anruf-Retter: verpasster Anruf → SMS (optional, sipgate)
+Geht beim Betrieb niemand ans Telefon, bekommt der Anrufer wenige Sekunden später eine SMS mit dem Link zur Anfrage, und der Betrieb sofort eine Mail mit der Nummer und einem Rückruf-Knopf. Code: `src/anruf.ts`, Tests: `tests/anruf.test.ts`.
+
+**Ablauf:** Handy des Chefs leitet „bei Nichtmelden“ (z. B. nach 20 Sekunden) auf eine sipgate-Nummer um → sipgate meldet den Anruf an `…/api/anruf/sipgate` → der Bot prüft die Signatur von sipgate, schickt die SMS (nur an deutsche Handynummern, höchstens eine pro Nummer und Tag) und die Mail.
+
+**Ohne sipgate (Probelauf, kostenlos):** Fehlen die sipgate-Zugangsdaten, wird keine SMS verschickt, nur die Mail an den Betrieb. Zum Vorführen ohne Telefon: Variable `ANRUF_PROBE = "1"` setzen, dann löst `POST /api/anruf/probe` mit `{"von":"4915712345678"}` eine Probe-Mail aus. Danach `ANRUF_PROBE` wieder löschen.
+
+**Mit sipgate (kostet Geld, erst nach Freigabe):**
+1. sipgate-Konto mit Rufnummer und SMS-Funktion. Im Konto das Zusatzpaket **sipgate.io** buchen (S: bis 100 Anrufe/Monat ohne Aufpreis) und als Webhook-URL für eingehende Anrufe eintragen: `https://primedetailing-chat.tom-schindler999.workers.dev/api/anruf/sipgate`
+2. Einen **persönlichen Zugangs-Token** (Personal Access Token) mit dem Recht zum SMS-Versand erstellen. Er besteht aus Token-ID und Token.
+3. Cloudflare → Worker → **Variables and secrets**:
+   - **Secret** `SIPGATE_TOKEN_ID` und **Secret** `SIPGATE_TOKEN`
+   - **Text** `SIPGATE_SMS_ID` = SMS-Absender-ID aus sipgate (meist `s0`)
+   - **Text** `ANRUF_BETRIEB` = `fahrzeug`, `maler` oder `elektro` (für echte Kunden später eigener Eintrag)
+   - optional **Text** `ANRUF_LINK` = Link in der SMS (Standard: Anfrage-Seite der Vorführung)
+   - optional **Text** `ANRUF_MAIL_BETRIEB` = Empfänger der Mail (Standard: `TERMIN_MAIL_BETRIEB`)
+   - optional **Text** `ANRUF_ANSAGE` = https-Adresse einer WAV-Datei (mono, 16 Bit, 8 kHz), wird dem Anrufer vorgespielt
+4. Beim Handy des Chefs die Rufumleitung „bei Nichtmelden“ auf die sipgate-Nummer stellen (beim Mobilfunkanbieter, oft per Code `**61*NUMMER**20#`).
+
+Mehrere Betriebe: je Rufnummer `ANRUF_BETRIEB_<Nummer ohne +>` = Betrieb, eigener Link `ANRUF_LINK_<BETRIEB>`, eigener Empfänger `ANRUF_MAIL_BETRIEB_<BETRIEB>`. Die Notbremse `KILL_SWITCH` stoppt auch den Anruf-Retter. Die SMS ist eine Antwort auf den Anruf und keine Werbung; in die Datenschutzerklärung gehört trotzdem ein Satz dazu (Telefonnummer, sipgate als Dienstleister).
+
 ## Schutz vor Spam und Kosten (eingebaut)
 | Schutz | Wert | Wo ändern |
 |---|---|---|
