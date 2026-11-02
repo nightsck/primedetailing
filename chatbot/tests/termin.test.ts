@@ -190,3 +190,84 @@ test("Google: Anmeldung per Dienstkonto, freie Zeiten lesen, Termin eintragen", 
     assert.ok(aufrufe.some((a) => a.u.includes(encodeURIComponent("kal@group.calendar.google.com"))));
   } finally { globalThis.fetch = echtesFetch; }
 });
+
+/* ---------- Bestätigung per E-Mail ---------- */
+test("Mails: Kunde und Betrieb bekommen den Termin mit Kalender-Datei, Absage-Link funktioniert", async () => {
+  const M = await import("../src/mail.ts");
+  M._resetMail();
+  const kal = speicherKalender();
+  T._setKalender(() => kal);
+  const gesendet: any[] = [];
+  const echtesFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: any, init: any) => {
+    if (String(url).startsWith("https://api.brevo.com/v3/smtp/email")) {
+      assert.equal(init.headers["api-key"], "xkeysib-test");
+      gesendet.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ messageId: "m" + gesendet.length }), { status: 201 });
+    }
+    return echtesFetch(url, init);
+  }) as any;
+  const env = { MAIL_ABSENDER: "termine@example.org", BREVO_API_KEY: "xkeysib-test", TERMIN_MAIL_BETRIEB: "chef@example.org", TERMIN_MAIL_BETRIEB_MALER: "maler@example.org" };
+  const req = (pfad: string, body: any, ip: string) => app.request(pfad, { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": ip }, body: JSON.stringify(body) }, env);
+  try {
+    const r = await (await req("/api/demo/termin/buchen", gueltig({ email: "kunde@example.org", zeit: "13:00", name: "Alex <b>Test</b>" }), "41.0.0.1")).json();
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.mail, { kunde: true, betrieb: true });
+    assert.equal(gesendet.length, 2);
+    const kunde = gesendet.find((m) => m.to[0].email === "kunde@example.org");
+    const chef = gesendet.find((m) => m.to[0].email === "chef@example.org");
+    assert.match(kunde.subject, /^Ihr Termin bei Muster Fahrzeugpflege: Dienstag, \d+\. \w+ \d{4}, 13:00–14:00 Uhr$/);
+    assert.equal(kunde.sender.email, "termine@example.org");
+    assert.equal(kunde.sender.name, "Muster Fahrzeugpflege");
+    assert.match(kunde.htmlContent, /Alex &lt;b&gt;Test&lt;\/b&gt;/, "Name wird in HTML maskiert");
+    assert.match(kunde.textContent, /absagen=/);
+    const ics = Buffer.from(kunde.attachment[0].content, "base64").toString();
+    assert.equal(kunde.attachment[0].name, "termin.ics");
+    assert.match(ics, /BEGIN:VEVENT/); assert.match(ics, /DTSTART:\d{8}T120000Z/);
+    assert.match(chef.subject, /^\[Demo\] Neuer Termin: Außenwäsche – Alex <b>Test<\/b>/);
+    assert.equal(chef.replyTo.email, "kunde@example.org");
+    assert.match(chef.textContent, /steht schon im Kalender/);
+
+    // Absagen über den Link aus der Mail
+    const token = decodeURIComponent(kunde.textContent.match(/absagen=([^\s]+)/)[1]);
+    gesendet.length = 0;
+    const a = await (await req("/api/demo/termin/absagen", { token }, "41.0.0.2")).json();
+    assert.equal(a.ok, true);
+    assert.equal(kal.events.length, 0);
+    assert.equal(gesendet.length, 2);
+    assert.ok(gesendet.some((m) => m.to[0].email === "chef@example.org" && /Abgesagt: Außenwäsche/.test(m.subject)));
+    assert.ok(gesendet.some((m) => m.to[0].email === "kunde@example.org" && /Abgesagt: Ihr Termin/.test(m.subject)));
+
+    // Ohne E-Mail des Kunden: nur der Betrieb. Maler hat eigene Adresse.
+    gesendet.length = 0;
+    const r2 = await (await req("/api/demo/termin/buchen", gueltig({ betrieb: "maler", termin: "telefon", zeit: "09:00", email: "" }), "41.0.0.3")).json();
+    assert.deepEqual(r2.mail, { kunde: false, betrieb: true });
+    assert.equal(gesendet[0].to[0].email, "maler@example.org");
+
+    // Ohne Kalender: Mails trotzdem, aber ohne Absage-Link
+    T._setKalender(null); gesendet.length = 0;
+    const r3 = await (await req("/api/demo/termin/buchen", gueltig({ email: "kunde@example.org", zeit: "15:00" }), "41.0.0.4")).json();
+    assert.equal(r3.kalender, false);
+    assert.deepEqual(r3.mail, { kunde: true, betrieb: true });
+    assert.doesNotMatch(gesendet.find((m) => m.to[0].email === "kunde@example.org").textContent, /absagen=/);
+    assert.match(gesendet.find((m) => m.to[0].email === "chef@example.org").textContent, /bitte selbst eintragen/);
+  } finally { globalThis.fetch = echtesFetch; T._setKalender(null); }
+});
+
+test("Mails: ohne Einrichtung nichts, Tageslimit greift", async () => {
+  const M = await import("../src/mail.ts");
+  M._resetMail();
+  assert.equal(M.mailAktiv({ env: {} }), false);
+  assert.equal(M.mailAktiv({ env: { BREVO_API_KEY: "x" } }), false, "ohne Absender nichts");
+  let n = 0; const echtesFetch = globalThis.fetch;
+  globalThis.fetch = (async () => { n++; return new Response("{}", { status: 201 }); }) as any;
+  try {
+    const c = { env: { MAIL_ABSENDER: "a@example.org", RESEND_API_KEY: "re_x", MAIL_TAGESLIMIT: "2" } };
+    const m = { an: "b@example.org", betreff: "x", text: "x", html: "x" };
+    assert.equal(await M.sendeMail(c, m), true);
+    assert.equal(await M.sendeMail(c, m), true);
+    assert.equal(await M.sendeMail(c, m), false, "drittes Mal über dem Limit");
+    assert.equal(await M.sendeMail(c, { ...m, an: "kaputt" }), false);
+    assert.equal(n, 2);
+  } finally { globalThis.fetch = echtesFetch; M._resetMail(); }
+});

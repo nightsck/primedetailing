@@ -49,6 +49,20 @@ Ohne Kalender läuft `/demo/termin/` im Vorführmodus: Zeiten nach Öffnungszeit
 
 Danach die JSON-Datei löschen oder sicher ablegen, **nie ins Repo**. Optional je Beispielbetrieb ein eigener Kalender: `TERMIN_KALENDER_FAHRZEUG`, `TERMIN_KALENDER_MALER`, `TERMIN_KALENDER_ELEKTRO`. Termine aus der Vorführung tragen „[Demo]“ im Titel; `TERMIN_DEMO = "0"` schaltet das für echte Kunden ab. Buchungen zählen zum Formular-Limit (max. 10 pro Besucher und Tag), die Notbremse `KILL_SWITCH` stoppt auch den Termin-Bot.
 
+## Termin-Bestätigung per E-Mail (optional)
+Nach jeder Buchung bekommen **Kunde und Betrieb eine Mail** mit allen Angaben und dem Termin als Kalender-Datei (`termin.ics`). Der Kunde bekommt dazu einen Link zum Absagen, beim Absagen gehen wieder beide Mails raus. Ohne Einrichtung wird nichts verschickt.
+
+1. **brevo.com** → kostenlos registrieren (bis 300 Mails/Tag gratis, Firma in der EU). Im Konto den Vertrag zur Auftragsverarbeitung (AVV) annehmen.
+2. **Absender → Domains → Domain hinzufügen**, z. B. `primedetailing.eu` oder später die neue Firmen-Domain. Brevo zeigt 3–4 DNS-Einträge (Brevo-Code, DKIM, DMARC) → beim Domain-Anbieter eintragen → in Brevo **Authentifizieren**. Ohne diesen Schritt landen die Mails im Spam.
+3. **SMTP & API → API-Schlüssel → Neuen Schlüssel erstellen** (beginnt mit `xkeysib-`).
+4. Cloudflare → Worker `primedetailing-chat` → **Settings → Variables and secrets**:
+   - **Secret** `BREVO_API_KEY` = der Schlüssel
+   - **Text** `MAIL_ABSENDER` = z. B. `termine@primedetailing.eu` (muss zur bestätigten Domain passen)
+   - **Text** `TERMIN_MAIL_BETRIEB` = Adresse, an die neue Termine gehen, z. B. `support@primedetailing.eu`
+   - → **Deploy**
+
+Optional: eigene Empfänger je Beispielbetrieb `TERMIN_MAIL_BETRIEB_FAHRZEUG` / `_MALER` / `_ELEKTRO`, Tagesgrenze für alle Mails `MAIL_TAGESLIMIT` (Standard 100), Adresse der Termin-Seite für den Absage-Link `TERMIN_SEITE` (Standard `https://primedetailing.eu/demo/termin/`). Statt Brevo geht auch Resend (`RESEND_API_KEY`). In die Datenschutzerklärung gehört dann ein Satz zu Brevo als Mail-Dienstleister.
+
 ## Schutz vor Spam und Kosten (eingebaut)
 | Schutz | Wert | Wo ändern |
 |---|---|---|
