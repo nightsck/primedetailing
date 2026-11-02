@@ -231,7 +231,7 @@ const ANSICHTEN = {
           <label>Straße<input name="strasse" value="${esc(f.strasse || "")}"></label><label>PLZ<input name="plz" value="${esc(f.plz || "")}"></label><label>Ort<input name="ort" value="${esc(f.ort || "")}"></label>
           <label>Wiedervorlage<input type="date" name="wiedervorlage" value="${esc(f.wiedervorlage || "")}"></label><label>Zuständig<input name="zustaendig" value="${esc(f.zustaendig || "")}"></label>
           <label>Notiz<textarea name="notiz">${esc(f.notiz || "")}</textarea></label><button class="haupt" type="submit">Speichern</button></form></details>
-        <div class="zeile">${f.gesperrt ? '<button type="button" id="entsperren">Sperre aufheben</button>' : '<button type="button" class="gefahr" id="sperren">Sperren</button>'}<button type="button" class="gefahr" id="loeschen">Firma löschen</button></div>
+        <div class="zeile">${f.gesperrt ? "" : `<button type="button" id="bewerten">${f.score == null ? "Mit KI bewerten" : "Neu bewerten"}</button>`}${f.gesperrt ? '<button type="button" id="entsperren">Sperre aufheben</button>' : '<button type="button" class="gefahr" id="sperren">Sperren</button>'}<button type="button" class="gefahr" id="loeschen">Firma löschen</button></div>
         <p class="leise">Quelle: ${esc(f.quelle || "")}${f.quelle_id && f.quelle_id.startsWith("osm:") ? " (OpenStreetMap)" : ""} · angelegt ${datum(f.erstellt)}</p>
       </div></div></div>`;
   },
@@ -337,6 +337,7 @@ function verdrahten(name, idTeil) {
       try { await api("PUT", "/vertrag/" + b.dataset.kuendigen, { status: "gekuendigt", ende: `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` }); neu(); } catch (e) { toast(e.message); }
     }));
     document.querySelectorAll("[data-beenden]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Vertrag als beendet markieren?")) { await api("PUT", "/vertrag/" + b.dataset.beenden, { status: "beendet" }); neu(); } }));
+    if ($("#bewerten")) $("#bewerten").addEventListener("click", async (e) => { e.target.disabled = true; e.target.textContent = "Liest Website …"; try { const r = await api("POST", `/firma/${fid}/bewerten`, {}); toast(`Bewertet: ${r.score} Punkte.`); neu(); } catch (err) { toast(err.message); e.target.disabled = false; } });
     if ($("#sperren")) $("#sperren").addEventListener("click", async () => { const g = prompt("Grund für die Sperre?", "Möchte nicht kontaktiert werden"); if (g === null) return; await api("POST", `/firma/${fid}/sperren`, { grund: g }); neu(); });
     if ($("#entsperren")) $("#entsperren").addEventListener("click", async () => { if (confirm("Sperre wirklich aufheben? Nur wenn die Firma selbst wieder Kontakt möchte.")) { await api("POST", `/firma/${fid}/entsperren`, {}); neu(); } });
     $("#loeschen").addEventListener("click", async () => { if (confirm("Firma mit allen Kontakten, Dateien, Verträgen und Zahlungen endgültig löschen? Für eine Sperrliste lieber „Sperren“.")) { await api("DELETE", `/firma/${fid}`); toast("Gelöscht."); location.hash = "#/firmen"; } });
