@@ -34,6 +34,12 @@ class_name = "LimitZaehler"
 name = "ABLAGE"
 class_name = "UnterlagenAblage"
 
+# Internes Vertriebs-CRM (/crm): eine SQLite-Datenbank für Firmen, Kontakte,
+# Kundenakte, Verträge und Zahlungen. Getrennt von den Daten der Kunden-Bots.
+[[durable_objects.bindings]]
+name = "CRM"
+class_name = "CrmDaten"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["LimitZaehler"]
@@ -41,6 +47,15 @@ new_sqlite_classes = ["LimitZaehler"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["UnterlagenAblage"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["CrmDaten"]
+
+# Akquise-Bot des CRM: alle 10 Minuten ein kleiner Schritt (suchen, bewerten,
+# Anruf-Impulse, Monatsposten). Im kostenlosen Tarif enthalten.
+[triggers]
+crons = ["*/10 * * * *"]
 
 # Läuft nahe an der KI-Schnittstelle statt am zufälligen Cloudflare-Standort
 # des Besuchers – schneller und vermeidet vereinzelte Ablehnungen durch den Anbieter.

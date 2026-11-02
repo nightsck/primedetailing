@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>KI-Vertrieb</title>
+<style>
+:root{--paper:#F4F2EE;--sheet:#FFFFFF;--ink:#1B1D1F;--ink-2:#4A4E52;--muted:#6B6F73;--line:#D9D5CE;--signal:#F2C200;--ok:#2E6B45;--wait:#8A5A00;--bad:#A8322A;--on-signal:#1B1D1F;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--paper:#151617;--sheet:#1E2022;--ink:#ECEAE6;--ink-2:#B9B6B0;--muted:#8E9196;--line:#33363A;--ok:#7CC79A;--wait:#E6B85C;--bad:#F08A80;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+a{color:inherit}
+h1,h2,h3{line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em}
+h1{font-size:28px}h2{font-size:22px}h3{font-size:18px}
+.num,td.betrag,.betrag{font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.top{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.mark{font-weight:700;white-space:nowrap}.mark span{background:var(--signal);color:var(--on-signal);padding:0 4px;margin-left:4px;font-size:13px}
+nav{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+nav a{padding:6px 10px;text-decoration:none;color:var(--ink-2);white-space:nowrap;border-bottom:3px solid transparent;font-size:15px}
+nav a[aria-current=page]{color:var(--ink);border-bottom-color:var(--signal)}
+main{max-width:1200px;margin:0 auto;padding:24px 16px 64px}
+.zeile{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.zwischen{justify-content:space-between}
+.stapel>*+*{margin-top:16px}
+.blatt{background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:16px}
+.leise{color:var(--muted);font-size:13px}
+.zweit{color:var(--ink-2)}
+.fehler{color:var(--bad)}
+button,.knopf{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);padding:8px 14px;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+button.haupt,.knopf.haupt{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+button.gefahr{color:var(--bad)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-height:40px}
+textarea{min-height:90px;resize:vertical}
+label{display:block;font-size:13px;color:var(--ink-2)}
+label>input,label>select,label>textarea{margin-top:4px}
+.felder{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.felder .breit{grid-column:1/-1}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--ink)}
+.check input{width:auto;min-height:0;margin-top:4px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:13px;color:var(--muted);font-weight:600;padding:8px 8px 6px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.klick{cursor:pointer}tr.klick:hover td{background:color-mix(in srgb,var(--signal) 8%,transparent)}
+.tabelle{overflow-x:auto}
+.marke{display:inline-block;font-size:13px;padding:1px 6px;border:1px solid var(--line);border-radius:4px;white-space:nowrap}
+.marke.ok{color:var(--ok);border-color:currentColor}.marke.wait{color:var(--wait);border-color:currentColor}.marke.bad{color:var(--bad);border-color:currentColor}
+.score{font-weight:700;font-variant-numeric:tabular-nums}
+.score.hoch{background:var(--signal);color:var(--on-signal);padding:0 4px}
+.zahlen{display:flex;gap:32px;flex-wrap:wrap}
+.zahlen div b{display:block;font-size:28px;line-height:1.1}
+.zahlen div span{font-size:13px;color:var(--muted)}
+.spalten{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.spalte h3{font-size:15px;padding-bottom:6px;border-bottom:3px solid var(--line);margin-bottom:8px}
+.spalte h3 .leise{font-weight:400}
+.karte{display:block;background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin-bottom:8px;text-decoration:none;font-size:15px}
+.karte:hover{border-color:var(--ink-2)}
+.raster{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.raster{grid-template-columns:1fr}}
+.verlauf li{list-style:none;padding:8px 0;border-bottom:1px solid var(--line)}
+.verlauf{padding:0;margin:0}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radios label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:15px;color:var(--ink);cursor:pointer}
+.radios input{width:auto;min-height:0}
+.radios label:has(input:checked){border-color:var(--ink);box-shadow:inset 0 -3px 0 var(--signal)}
+.hinweis{border-left:3px solid var(--signal);padding:8px 12px;background:var(--sheet)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:none;max-width:calc(100% - 32px);z-index:20}
+.versteckt{display:none!important}
+details summary{cursor:pointer;font-weight:600}
+@media (max-width:600px){main{padding-top:16px}h1{font-size:22px}.zahlen{gap:20px}}
+</style>
+</head>
+<body>
+<header><div class="top"><span class="mark">KI-Vertrieb<span>CRM</span></span>
+<nav id="nav" aria-label="Bereiche">
+<a href="#/heute">Heute</a><a href="#/pipeline">Pipeline</a><a href="#/firmen">Firmen</a><a href="#/vertraege">Verträge</a><a href="#/zahlungen">Zahlungen</a><a href="#/produkte">Produkte</a><a href="#/einstellungen">Einstellungen</a>
+</nav><button id="abmelden" type="button" class="versteckt">Abmelden</button></div></header>
+<main id="app" aria-live="polite"><p class="leise">Lädt …</p></main>
+<div id="toast" role="status"></div>
+<script>
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const eur = (ct) => ((Number(ct) || 0) / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const eurFeld = (ct) => ((Number(ct) || 0) / 100).toFixed(2).replace(".", ",");
+const datum = (t) => { if (!t) return ""; const d = typeof t === "number" ? new Date(t) : new Date(t + "T12:00:00"); return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }); };
+const zeit = (ms) => new Date(ms).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+const heute = () => new Date().toLocaleDateString("sv-SE");
+let ICH = null;
+const STATUS = () => (ICH && ICH.status) || {};
+
+function toast(t) { const el = $("#toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => (el.style.display = "none"), 3500); }
+async function api(methode, pfad, daten, extra) {
+  const o = { method: methode, headers: { "x-crm": "1" }, credentials: "same-origin" };
+  if (daten instanceof Blob) { o.body = daten; Object.assign(o.headers, extra || {}); }
+  else if (daten !== undefined) { o.body = JSON.stringify(daten); o.headers["Content-Type"] = "application/json"; }
+  const r = await fetch("/api/crm" + pfad, o);
+  const j = await r.json().catch(() => ({ ok: false, fehler: "Keine Antwort vom Server." }));
+  if (r.status === 401 && j.anmelden) { zeigeLogin(); throw new Error("abgemeldet"); }
+  if (!j.ok) throw new Error(j.fehler || "Das hat nicht geklappt.");
+  return j;
+}
+function formDaten(form) { const d = {}; for (const el of form.elements) { if (!el.name) continue; if (el.type === "checkbox") d[el.name] = el.checked; else if (el.type === "radio") { if (el.checked) d[el.name] = el.value; } else d[el.name] = el.value; } return d; }
+function beiAbsenden(form, f) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const b = form.querySelector("button[type=submit]"); if (b) b.disabled = true;
+    try { await f(formDaten(form), form); } catch (err) { if (err.message !== "abgemeldet") toast(err.message); } finally { if (b) b.disabled = false; }
+  });
+}
+const marke = (s) => { const t = STATUS()[s] || s; const k = s === "kunde" ? "ok" : s === "anruf_impuls" || s === "termin" || s === "angebot" ? "wait" : s === "kein_interesse" ? "bad" : ""; return `<span class="marke ${k}">${esc(t)}</span>`; };
+const scoreHtml = (s) => s == null ? `<span class="leise">–</span>` : `<span class="score ${s >= 70 ? "hoch" : ""}">${s}</span>`;
+const telLink = (t) => t ? `<a href="tel:${esc(String(t).replace(/[^\d+]/g, ""))}">${esc(t)}</a>` : `<span class="leise">keine Nummer</span>`;
+
+/* ---------- Anmeldung ---------- */
+function zeigeLogin() {
+  $("#nav").classList.add("versteckt"); $("#abmelden").classList.add("versteckt");
+  $("#app").innerHTML = `<div class="blatt" style="max-width:440px;margin:48px auto"><h1>Anmelden</h1>
+    <p class="zweit">Sie bekommen einen Anmelde-Link per E-Mail. Er ist 20 Minuten gültig.</p>
+    <form id="login" class="stapel"><label>E-Mail-Adresse<input name="email" type="email" autocomplete="email" required></label>
+    <button class="haupt" type="submit">Link schicken</button></form><p id="loginInfo" class="zweit"></p></div>`;
+  beiAbsenden($("#login"), async (d) => {
+    const r = await fetch("/api/crm/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) });
+    if (!r.ok) throw new Error("Das hat nicht geklappt.");
+    $("#loginInfo").textContent = "Wenn die Adresse freigeschaltet ist, ist der Link unterwegs. Bitte im Postfach nachsehen (auch im Spam-Ordner).";
+  });
+}
+$("#abmelden").addEventListener("click", async () => { await fetch("/api/crm/abmelden", { method: "POST" }); ICH = null; zeigeLogin(); });
+
+/* ---------- Ansichten ---------- */
+const ANSICHTEN = {
+  async heute() {
+    const [s, h] = await Promise.all([api("GET", "/start"), api("GET", "/heute")]);
+    const b = s.bot || {};
+    const suche = b.letzte_suche ? (b.letzte_suche.fehler ? `Letzte Suche am ${datum(b.letzte_suche.tag)}: Fehler (${esc(b.letzte_suche.fehler)})` : `Letzte Suche am ${datum(b.letzte_suche.tag)}: ${esc(ICH.branchen[b.letzte_suche.branche] || b.letzte_suche.branche)} in ${esc(b.letzte_suche.region)}, ${b.letzte_suche.neu} neue Firmen`) : "Der Bot hat noch nicht gesucht.";
+    return `<div class="stapel"><div class="zeile zwischen"><h1>Heute anrufen</h1><a class="knopf" href="#/firmen?neu=1">+ Firma anlegen</a></div>
+      <div class="zahlen"><div><b class="num">${s.anrufen}</b><span>heute anrufen</span></div><div><b class="num">${s.kunden}</b><span>Kunden</span></div>
+      <div><b class="num">${eur(s.monat_ct)}</b><span>monatlich aus Verträgen</span></div><div><b class="num">${eur(s.offen_ct)}</b><span>offene Zahlungen${s.ueberfaellig ? `, ${s.ueberfaellig} überfällig` : ""}</span></div></div>
+      <p class="leise">${suche}${b.wartend ? ` · ${b.wartend} Firmen warten auf Bewertung` : ""}</p>
+      ${h.liste.length ? `<div class="tabelle"><table><thead><tr><th>Firma</th><th>Telefon</th><th>Punkte</th><th>Warum anrufen</th></tr></thead><tbody>
+      ${h.liste.map((f) => `<tr class="klick" data-href="#/firma/${f.id}"><td><a href="#/firma/${f.id}"><b>${esc(f.name)}</b></a><br><span class="leise">${esc([f.branche, f.ort].filter(Boolean).join(", "))}</span>
+        ${f.wiedervorlage && f.wiedervorlage <= heute() ? `<br><span class="marke wait">Wiedervorlage ${datum(f.wiedervorlage)}</span>` : ""}</td>
+        <td>${telLink(f.telefon)}</td><td>${scoreHtml(f.score)}</td><td class="zweit">${esc(f.score_grund || "")}${f.einstieg ? `<br><span class="leise">Einstieg: „${esc(f.einstieg)}“</span>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="hinweis">Gerade niemand anzurufen. Der Bot sucht jeden Morgen neue Firmen und bewertet sie im Laufe des Tages.</p>`}</div>`;
+  },
+  async pipeline() {
+    const p = await api("GET", "/pipeline");
+    return `<div class="stapel"><h1>Pipeline</h1><div class="spalten">${Object.keys(STATUS()).map((s) => `<section class="spalte"><h3>${esc(STATUS()[s])} <span class="leise">${p.zahlen[s] || 0}</span></h3>
+      ${(p.spalten[s] || []).map((f) => `<a class="karte" href="#/firma/${f.id}"><b>${esc(f.name)}</b>${f.gesperrt ? ' <span class="marke bad">gesperrt</span>' : ""}<br><span class="leise">${esc(f.ort || "")}${f.score != null ? ` · ${f.score} Punkte` : ""}${f.wiedervorlage ? ` · WV ${datum(f.wiedervorlage)}` : ""}</span></a>`).join("")}
+      ${(p.zahlen[s] || 0) > 40 ? `<a class="leise" href="#/firmen?status=${s}">alle ${p.zahlen[s]} ansehen</a>` : ""}</section>`).join("")}</div></div>`;
+  },
+  async firmen(par) {
+    const qs = new URLSearchParams(); if (par.get("q")) qs.set("q", par.get("q")); if (par.get("status")) qs.set("status", par.get("status"));
+    const l = await api("GET", "/firmen?" + qs);
+    return `<div class="stapel"><div class="zeile zwischen"><h1>Firmen</h1><button type="button" id="neuKnopf">+ Firma anlegen</button></div>
+      <form id="neuForm" class="blatt stapel ${par.get("neu") ? "" : "versteckt"}"><h2>Neue Firma</h2><div class="felder">
+        <label>Name<input name="name" required></label><label>Branche<input name="branche" list="branchenListe"></label>
+        <label>Telefon<input name="telefon" type="tel"></label><label>Website<input name="website"></label><label>E-Mail (allgemein)<input name="email" type="email"></label>
+        <label>Straße<input name="strasse"></label><label>PLZ<input name="plz" inputmode="numeric"></label><label>Ort<input name="ort"></label>
+        <label class="breit">Notiz<textarea name="notiz"></textarea></label></div>
+        <datalist id="branchenListe">${Object.values(ICH.branchen).map((b) => `<option value="${esc(b)}">`).join("")}</datalist>
+        <button class="haupt" type="submit">Anlegen</button></form>
+      <form id="suche" class="zeile"><input name="q" placeholder="Suchen: Name, Ort, PLZ, Telefon, Website" value="${esc(par.get("q") || "")}" style="flex:1;min-width:200px">
+        <select name="status" style="width:auto"><option value="">Alle Status</option>${Object.entries(STATUS()).map(([k, v]) => `<option value="${k}" ${par.get("status") === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><button type="submit">Suchen</button></form>
+      <div class="tabelle"><table><thead><tr><th>Firma</th><th>Telefon</th><th>Status</th><th>Punkte</th></tr></thead><tbody>
+      ${l.liste.map((f) => `<tr class="klick" data-href="#/firma/${f.id}"><td><a href="#/firma/${f.id}"><b>${esc(f.name)}</b></a>${f.gesperrt ? ' <span class="marke bad">gesperrt</span>' : ""}<br><span class="leise">${esc([f.branche, [f.plz, f.ort].filter(Boolean).join(" ")].filter(Boolean).join(", "))}</span></td>
+        <td>${telLink(f.telefon)}</td><td>${marke(f.status)}</td><td>${scoreHtml(f.score)}</td></tr>`).join("") || `<tr><td colspan="4" class="leise">Keine Firmen gefunden.</td></tr>`}</tbody></table></div></div>`;
+  },
+  async firma(par, idTeil) {
+    const { firma: f } = await api("GET", "/firma/" + idTeil);
+    const p = (await api("GET", "/produkte")).liste.filter((x) => x.aktiv);
+    const inf = f.infos || {};
+    const erg = [["nicht_erreicht", "Nicht erreicht"], ["rueckruf", "Rückruf"], ["infos_mail", "Infos per Mail erwünscht"], ["termin", "Termin vereinbart"], ["kein_interesse", "Kein Interesse"], ["widerspruch", "Widerspruch (sperren)"]];
+    return `<div class="stapel">
+      <div class="zeile zwischen"><div><a class="leise" href="#/firmen">← Firmen</a><h1>${esc(f.name)}</h1>
+        <p class="zweit" style="margin:4px 0 0">${esc([f.branche, [f.plz, f.ort].filter(Boolean).join(" ")].filter(Boolean).join(" · "))} · ${telLink(f.telefon)}${f.website ? ` · <a href="${esc(/^https?:/.test(f.website) ? f.website : "https://" + f.website)}" target="_blank" rel="noopener noreferrer">Website</a>` : ""}</p></div>
+        <div class="zeile">${marke(f.status)} ${scoreHtml(f.score)} ${f.gesperrt ? `<span class="marke bad">gesperrt seit ${datum(f.gesperrt_datum)}</span>` : ""}</div></div>
+      ${f.gesperrt ? `<p class="hinweis fehler">Gesperrt: ${esc(f.gesperrt_grund || "")}. Keine Anrufe und keine Mails.</p>` : ""}
+      ${f.score_grund ? `<div class="hinweis"><b>Warum anrufen:</b> ${esc(f.score_grund)}${f.einstieg ? `<br><b>Einstieg:</b> „${esc(f.einstieg)}“` : ""}
+        ${inf.telefonzeiten || inf.online_buchung !== undefined ? `<br><span class="leise">${[inf.telefonzeiten ? "Telefonzeiten: " + esc(inf.telefonzeiten) : "", inf.online_buchung !== undefined ? "Online-Buchung: " + (inf.online_buchung ? "ja" : "nein") : "", inf.chat !== undefined ? "Chat: " + (inf.chat ? "ja" : "nein") : "", inf.methode === "regeln" ? "bewertet nach Regeln (ohne KI)" : ""].filter(Boolean).join(" · ")}</span>` : ""}</div>` : ""}
+      <div class="raster"><div class="stapel">
+        <form id="anruf" class="blatt stapel ${f.gesperrt ? "versteckt" : ""}"><h2>Anruf erfassen</h2>
+          <div class="radios">${erg.map(([k, t]) => `<label><input type="radio" name="ergebnis" value="${k}" required> ${t}</label>`).join("")}</div>
+          <label class="check versteckt" id="einwBox"><input type="checkbox" name="einwilligung"> <span>Der Angerufene hat ausdrücklich zugestimmt, dass wir ihm Infos per E-Mail schicken.</span></label>
+          <div class="felder"><label>Wiedervorlage<input type="date" name="wiedervorlage"></label><label class="breit">Notiz zum Gespräch<textarea name="notiz" placeholder="Wer, was besprochen, nächster Schritt"></textarea></label></div>
+          <button class="haupt" type="submit">Speichern</button></form>
+        <section class="blatt stapel"><h2>Kontakthistorie</h2>
+          <ul class="verlauf">${f.kontakte.map((k) => `<li><div class="zeile zwischen"><b>${esc(k.ergebnis || k.kanal)}</b><span class="leise">${zeit(k.zeitpunkt)} · ${esc(k.kanal)}${k.richtung ? (k.richtung === "aus" ? " ausgehend" : " eingehend") : ""} · ${esc(k.durch || "")}</span></div>
+            ${k.notiz ? `<div class="zweit" style="white-space:pre-wrap">${esc(k.notiz)}</div>` : ""}${k.wiedervorlage ? `<div class="leise">Wiedervorlage ${datum(k.wiedervorlage)}</div>` : ""}${k.einwilligung ? '<span class="marke ok">Einwilligung E-Mail</span>' : ""}</li>`).join("") || '<li class="leise">Noch keine Einträge.</li>'}</ul>
+          <details><summary>Kontakt oder Notiz nachtragen</summary><form id="kontakt" class="stapel" style="margin-top:12px"><div class="felder">
+            <label>Kanal<select name="kanal"><option value="notiz">Notiz</option><option value="anruf">Anruf</option><option value="email">E-Mail</option><option value="termin">Termin</option><option value="brief">Brief</option></select></label>
+            <label>Richtung<select name="richtung"><option value="">–</option><option value="aus">ausgehend</option><option value="ein">eingehend</option></select></label>
+            <label class="breit">Ergebnis<input name="ergebnis" placeholder="z. B. Angebot besprochen"></label><label class="breit">Notiz<textarea name="notiz"></textarea></label></div>
+            <button type="submit">Eintragen</button></form></details></section>
+        <section class="blatt stapel"><h2>Verträge und Zahlungen</h2>
+          ${f.vertraege.length ? `<div class="tabelle"><table><thead><tr><th>Vertrag</th><th>Beginn</th><th class="betrag">Einmalig</th><th class="betrag">Monatlich</th><th>Status</th><th></th></tr></thead><tbody>
+          ${f.vertraege.map((v) => `<tr><td><b>${esc(v.nummer)}</b><br><span class="leise">${esc(v.produkt || "")}</span></td><td>${datum(v.beginn)}${v.ende ? `<br><span class="leise">bis ${datum(v.ende)}</span>` : ""}</td>
+            <td class="betrag">${eur(v.einmal_ct)}</td><td class="betrag">${eur(v.monat_ct)}</td><td>${v.status === "aktiv" ? '<span class="marke ok">aktiv</span>' : v.status === "gekuendigt" ? '<span class="marke wait">gekündigt</span>' : '<span class="marke">beendet</span>'}</td>
+            <td>${v.status === "aktiv" ? `<button type="button" data-kuendigen="${v.id}">Kündigen</button>` : v.status === "gekuendigt" ? `<button type="button" data-beenden="${v.id}">Beenden</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<p class="leise">Noch kein Vertrag.</p>'}
+          ${f.zahlungen.length ? zahlTabelle(f.zahlungen, false) : ""}
+          <details><summary>Neuen Vertrag anlegen</summary><form id="vertrag" class="stapel" style="margin-top:12px"><div class="felder">
+            <label class="breit">Produkt<select name="produktwahl"><option value="">Frei eingeben</option>${p.map((x) => `<option value="${x.id}">${esc(x.name)} (${eur(x.einmal_ct)} + ${eur(x.monat_ct)}/Monat)</option>`).join("")}</select></label>
+            <label class="breit">Bezeichnung<input name="produkt" required></label><label>Beginn<input type="date" name="beginn" required value="${heute()}"></label>
+            <label>Einrichtung (€ netto)<input name="einmal" inputmode="decimal" value="0,00"></label><label>Monatlich (€ netto)<input name="monatlich" inputmode="decimal" value="0,00"></label>
+            <label>Mindestlaufzeit (Monate)<input name="mindestlaufzeit" inputmode="numeric"></label><label>Kündigungsfrist<input name="kuendigungsfrist" placeholder="z. B. 1 Monat zum Monatsende"></label></div>
+            <p class="leise">Die Einrichtungsgebühr wird 14 Tage nach Beginn fällig, die Monatsgebühr jeweils zum 15. Die Posten legt das CRM selbst an.</p>
+            <button class="haupt" type="submit">Vertrag anlegen</button></form></details></section>
+      </div><div class="stapel">
+        <section class="blatt stapel"><h2>E-Mail</h2>
+          ${f.einwilligung ? `<p><span class="marke ok">Einwilligung seit ${datum(f.einwilligung_datum)}</span><br><span class="leise">${esc(f.einwilligung_nachweis || "")}</span></p>
+            <div class="zeile"><button type="button" id="infomail" class="haupt" ${!ICH.absender || f.gesperrt ? "disabled" : ""}>Info-Mail senden</button><button type="button" id="einwWeg">Einwilligung zurückziehen</button></div>
+            ${!ICH.absender ? '<p class="leise">Info-Mails sind noch ausgeschaltet: Es fehlt ein Absender (VERTRIEB_ABSENDER) für eure eigene Domain. Vorlage und Ablauf vorher anwaltlich prüfen lassen.</p>' : ""}`
+            : `<p class="zweit">Keine Einwilligung. Werbe-Mails sind gesperrt, auch an info@-Adressen.</p><details><summary>Einwilligung eintragen</summary><form id="einw" class="stapel" style="margin-top:12px"><label>Nachweis (wann, wie, wer)<textarea name="nachweis" required placeholder="z. B. Telefonat am 03.11. mit Herrn X, möchte Infos per Mail"></textarea></label><button type="submit">Einwilligung speichern</button></form></details>`}
+        </section>
+        <section class="blatt stapel"><h2>Ansprechpartner</h2>
+          ${f.ansprechpartner.map((a) => `<div class="zeile zwischen"><div><b>${esc(a.name)}</b> <span class="leise">${esc(a.rolle || "")}</span><br>${a.telefon ? telLink(a.telefon) : ""}${a.email ? ` <a href="mailto:${esc(a.email)}">${esc(a.email)}</a>` : ""}</div><button type="button" class="gefahr" data-apweg="${a.id}" aria-label="Entfernen">✕</button></div>`).join("") || '<p class="leise">Noch niemand eingetragen.</p>'}
+          <details><summary>Ansprechpartner hinzufügen</summary><form id="ap" class="stapel" style="margin-top:12px"><label>Name<input name="name" required></label><label>Rolle<input name="rolle" placeholder="z. B. Inhaber"></label><label>Telefon direkt<input name="telefon" type="tel"></label><label>E-Mail<input name="email" type="email"></label><button type="submit">Hinzufügen</button></form></details>
+        </section>
+        <section class="blatt stapel"><h2>Kundenakte</h2>
+          ${f.dokumente.map((d) => `<div class="zeile zwischen"><div><a href="/api/crm/dokument/${esc(d.id)}">${esc(d.titel)}</a><br><span class="leise">${esc(d.typ)} · ${datum(d.datum)} · ${Math.max(1, Math.round(d.groesse / 1024))} KB</span></div><button type="button" class="gefahr" data-dokweg="${esc(d.id)}" aria-label="Löschen">✕</button></div>`).join("") || '<p class="leise">Noch keine Dateien.</p>'}
+          <form id="dok" class="stapel"><label>Datei (max. 10 MB)<input type="file" name="datei" required></label><label>Titel<input name="titel" placeholder="z. B. Angebot A-2026-001"></label>
+            <label>Art<select name="typ"><option value="angebot">Angebot</option><option value="vertrag">Vertrag</option><option value="protokoll">Protokoll</option><option value="notiz">Notiz</option><option value="sonstiges">Sonstiges</option></select></label><button type="submit">Hochladen</button></form>
+        </section>
+        <details class="blatt"><summary>Stammdaten bearbeiten</summary><form id="stamm" class="stapel" style="margin-top:12px">
+          <label>Name<input name="name" value="${esc(f.name)}" required></label><label>Branche<input name="branche" value="${esc(f.branche || "")}"></label>
+          <label>Status<select name="status">${Object.entries(STATUS()).map(([k, v]) => `<option value="${k}" ${f.status === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>
+          <label>Telefon<input name="telefon" value="${esc(f.telefon || "")}"></label><label>Website<input name="website" value="${esc(f.website || "")}"></label><label>E-Mail (allgemein)<input name="email" value="${esc(f.email || "")}"></label>
+          <label>Straße<input name="strasse" value="${esc(f.strasse || "")}"></label><label>PLZ<input name="plz" value="${esc(f.plz || "")}"></label><label>Ort<input name="ort" value="${esc(f.ort || "")}"></label>
+          <label>Wiedervorlage<input type="date" name="wiedervorlage" value="${esc(f.wiedervorlage || "")}"></label><label>Zuständig<input name="zustaendig" value="${esc(f.zustaendig || "")}"></label>
+          <label>Notiz<textarea name="notiz">${esc(f.notiz || "")}</textarea></label><button class="haupt" type="submit">Speichern</button></form></details>
+        <div class="zeile">${f.gesperrt ? '<button type="button" id="entsperren">Sperre aufheben</button>' : '<button type="button" class="gefahr" id="sperren">Sperren</button>'}<button type="button" class="gefahr" id="loeschen">Firma löschen</button></div>
+        <p class="leise">Quelle: ${esc(f.quelle || "")}${f.quelle_id && f.quelle_id.startsWith("osm:") ? " (OpenStreetMap)" : ""} · angelegt ${datum(f.erstellt)}</p>
+      </div></div></div>`;
+  },
+  async vertraege(par) {
+    const laufend = par.get("alle") !== "1";
+    const l = await api("GET", "/vertraege?laufend=" + (laufend ? "1" : "0"));
+    const summe = l.liste.reduce((n, v) => n + (laufend ? v.monat_ct : 0), 0);
+    return `<div class="stapel"><div class="zeile zwischen"><h1>${laufend ? "Laufende Verträge" : "Beendete Verträge"}</h1><a class="knopf" href="#/vertraege${laufend ? "?alle=1" : ""}">${laufend ? "Beendete ansehen" : "Laufende ansehen"}</a></div>
+      ${laufend ? `<p class="zweit">Zusammen <b class="num">${eur(summe)}</b> pro Monat (netto).</p>` : ""}
+      <div class="tabelle"><table><thead><tr><th>Firma</th><th>Vertrag</th><th>Beginn</th><th>Ende</th><th class="betrag">Einmalig</th><th class="betrag">Monatlich</th><th>Status</th></tr></thead><tbody>
+      ${l.liste.map((v) => `<tr class="klick" data-href="#/firma/${v.firma_id}"><td><a href="#/firma/${v.firma_id}"><b>${esc(v.firma)}</b></a></td><td>${esc(v.nummer)}<br><span class="leise">${esc(v.produkt || "")}</span></td><td>${datum(v.beginn)}</td><td>${datum(v.ende) || "–"}</td>
+        <td class="betrag">${eur(v.einmal_ct)}</td><td class="betrag">${eur(v.monat_ct)}</td><td>${esc(v.status)}</td></tr>`).join("") || '<tr><td colspan="7" class="leise">Keine Verträge.</td></tr>'}</tbody></table></div></div>`;
+  },
+  async zahlungen(par) {
+    const alle = par.get("alle") === "1";
+    const l = await api("GET", "/zahlungen" + (alle ? "" : "?offen=1"));
+    if (!alle) l.liste.sort((a, b) => (a.zahlstatus === "ueberfaellig" ? 0 : 1) - (b.zahlstatus === "ueberfaellig" ? 0 : 1) || a.faellig.localeCompare(b.faellig));
+    const summe = l.liste.filter((z) => !z.bezahlt).reduce((n, z) => n + z.betrag_ct, 0);
+    return `<div class="stapel"><div class="zeile zwischen"><h1>${alle ? "Alle Zahlungen" : "Offene Zahlungen"}</h1><a class="knopf" href="#/zahlungen${alle ? "" : "?alle=1"}">${alle ? "Nur offene" : "Alle ansehen"}</a></div>
+      <p class="zweit">Offen: <b class="num">${eur(summe)}</b> (netto)</p>${zahlTabelle(l.liste, true)}</div>`;
+  },
+  async produkte() {
+    const l = await api("GET", "/produkte");
+    return `<div class="stapel"><h1>Produkte und Preise</h1><p class="zweit">Vorlage für Verträge. Preise netto.</p>
+      <div class="tabelle"><table><thead><tr><th>Produkt</th><th class="betrag">Einmalig</th><th class="betrag">Monatlich</th><th>Enthalten</th><th></th></tr></thead><tbody>
+      ${l.liste.map((p) => `<tr><td><b>${esc(p.name)}</b>${p.aktiv ? "" : ' <span class="marke">inaktiv</span>'}<br><span class="leise">${esc(p.beschreibung || "")}</span></td><td class="betrag">${eur(p.einmal_ct)}</td><td class="betrag">${eur(p.monat_ct)}</td><td>${esc(p.leistung || "")}</td>
+        <td><button type="button" data-produkt='${esc(JSON.stringify(p))}'>Bearbeiten</button></td></tr>`).join("") || '<tr><td colspan="5" class="leise">Noch keine Produkte. Giosuè liefert die echten Preise nach.</td></tr>'}</tbody></table></div>
+      <form id="produkt" class="blatt stapel"><h2 id="produktTitel">Produkt anlegen</h2><input type="hidden" name="pid"><div class="felder">
+        <label>Name<input name="name" required></label><label>Einrichtung (€)<input name="einmal" inputmode="decimal" value="0,00"></label><label>Monatlich (€)<input name="monatlich" inputmode="decimal" value="0,00"></label>
+        <label>Enthalten<input name="leistung" placeholder="z. B. 300 Minuten"></label><label class="breit">Beschreibung<textarea name="beschreibung"></textarea></label>
+        <label class="check"><input type="checkbox" name="aktiv" checked> <span>aktiv</span></label></div><button class="haupt" type="submit">Speichern</button></form></div>`;
+  },
+  async einstellungen() {
+    const { einstellungen: e } = await api("GET", "/einstellungen");
+    const s = await api("GET", "/start");
+    return `<div class="stapel"><h1>Einstellungen</h1>
+      <form id="einst" class="blatt stapel"><h2>Akquise-Bot</h2>
+        <label class="check"><input type="checkbox" name="bot_aktiv" ${e.bot_aktiv ? "checked" : ""}> <span>Bot ist aktiv (sucht morgens neue Firmen, bewertet sie, schickt werktags ab 8 Uhr Anruf-Impulse)</span></label>
+        <fieldset style="border:0;padding:0;margin:0"><legend class="leise">Zielbranchen</legend><div class="radios">${Object.entries(ICH.branchen).map(([k, v]) => `<label><input type="checkbox" name="b_${k}" ${e.zielbranchen.includes(k) ? "checked" : ""}> ${esc(v)}</label>`).join("")}</div></fieldset>
+        <div class="felder"><label class="breit">Zielregionen (Städte, Landkreise oder Bundesländer, eine pro Zeile)<textarea name="zielregionen">${esc(e.zielregionen.join("\n"))}</textarea></label>
+          <label>Anruf-Impuls ab Punkten<input name="schwelle" type="number" min="0" max="100" value="${e.schwelle}"></label><label>Impulse pro Tag<input name="impulse_pro_tag" type="number" min="1" max="100" value="${e.impulse_pro_tag}"></label>
+          <label>Höchstens neue Firmen pro Suche<input name="neue_pro_lauf" type="number" min="5" max="100" value="${e.neue_pro_lauf}"></label><label>Anruf-Impulse an<input name="impulse_an" type="email" value="${esc(e.impulse_an)}"></label></div>
+        <h2>Info-Mail (nur mit Einwilligung)</h2><div class="felder"><label class="breit">Betreff<input name="infomail_betreff" value="${esc(e.infomail_betreff)}"></label>
+          <label class="breit">Text (Platzhalter {firma} und {ansprechpartner})<textarea name="infomail_text" rows="10">${esc(e.infomail_text)}</textarea></label>
+          <label class="breit">Impressum (wird unter jede Info-Mail gesetzt)<textarea name="impressum" placeholder="Firmenname, Anschrift, Vertretungsberechtigte, Kontakt">${esc(e.impressum)}</textarea></label></div>
+        <button class="haupt" type="submit">Speichern</button></form>
+      <section class="blatt stapel"><h2>Bot jetzt laufen lassen</h2><p class="zweit">Läuft sonst alle 10 Minuten von allein. ${s.bot.wartend} Firmen warten auf Bewertung.</p>
+        <div class="zeile"><button type="button" data-bot="bewerten">Zwei Firmen bewerten</button><button type="button" data-bot="suche">Jetzt neue Firmen suchen</button><button type="button" data-bot="impulse">Anruf-Impulse jetzt schicken</button></div>
+        <pre id="botBericht" class="leise" style="white-space:pre-wrap;margin:0"></pre></section></div>`;
+  },
+};
+function zahlTabelle(liste, mitFirma) {
+  return `<div class="tabelle"><table><thead><tr>${mitFirma ? "<th>Firma</th>" : ""}<th>Posten</th><th>Fällig</th><th class="betrag">Betrag</th><th>Status</th><th></th></tr></thead><tbody>
+    ${liste.map((z) => `<tr>${mitFirma ? `<td><a href="#/firma/${z.firma_id}"><b>${esc(z.firma)}</b></a><br><span class="leise">${esc(z.vertrag)}</span></td>` : ""}<td>${z.art === "einrichtung" ? "Einrichtung" : "Monat " + esc(z.leistungsmonat)}</td><td>${datum(z.faellig)}</td>
+      <td class="betrag">${eur(z.betrag_ct)}</td><td>${z.zahlstatus === "bezahlt" ? `<span class="marke ok">bezahlt ${datum(z.bezahlt_am)}</span>` : z.zahlstatus === "ueberfaellig" ? '<span class="marke bad">überfällig</span>' : '<span class="marke">offen</span>'}</td>
+      <td>${z.bezahlt ? `<button type="button" data-unbezahlt="${z.id}">Zurücksetzen</button>` : `<button type="button" data-bezahlt="${z.id}">Bezahlt</button>`}</td></tr>`).join("") || `<tr><td colspan="${mitFirma ? 6 : 5}" class="leise">Keine Posten.</td></tr>`}</tbody></table></div>`;
+}
+
+/* ---------- Aktionen nach dem Zeichnen ---------- */
+function verdrahten(name, idTeil) {
+  document.querySelectorAll("tr.klick").forEach((tr) => tr.addEventListener("click", (e) => { if (!e.target.closest("a,button")) location.hash = tr.dataset.href; }));
+  document.querySelectorAll("[data-bezahlt],[data-unbezahlt]").forEach((b) => b.addEventListener("click", async () => {
+    const bez = !!b.dataset.bezahlt; let d;
+    if (bez) { d = prompt("Bezahlt am (TT.MM.JJJJ)?", new Date().toLocaleDateString("de-DE")); if (d === null) return; const m = d.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); d = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : undefined; }
+    try { await api("POST", "/zahlung/" + (b.dataset.bezahlt || b.dataset.unbezahlt), { bezahlt: bez, datum: d }); toast(bez ? "Als bezahlt markiert." : "Zurückgesetzt."); zeichnen(); } catch (e) { toast(e.message); }
+  }));
+  if (name === "firmen") {
+    $("#neuKnopf").addEventListener("click", () => { $("#neuForm").classList.toggle("versteckt"); $("#neuForm").elements.name.focus(); });
+    beiAbsenden($("#neuForm"), async (d) => { const r = await api("POST", "/firmen", d); toast(r.neu ? "Firma angelegt." : "Die Firma gibt es schon."); location.hash = "#/firma/" + r.id; });
+    beiAbsenden($("#suche"), async (d) => { const q = new URLSearchParams(); if (d.q) q.set("q", d.q); if (d.status) q.set("status", d.status); location.hash = "#/firmen?" + q; });
+  }
+  if (name === "firma") {
+    const fid = idTeil, neu = () => zeichnen();
+    const anruf = $("#anruf");
+    anruf.addEventListener("change", () => $("#einwBox").classList.toggle("versteckt", formDaten(anruf).ergebnis !== "infos_mail"));
+    beiAbsenden(anruf, async (d) => {
+      if (d.ergebnis === "widerspruch" && !confirm("Die Firma wird gesperrt: keine Anrufe und keine Mails mehr. Fortfahren?")) return;
+      const r = await api("POST", `/firma/${fid}/anruf`, d);
+      toast(r.wiedervorlage ? `Gespeichert. Wiedervorlage am ${datum(r.wiedervorlage)}.` : "Gespeichert.");
+      if (r.infomail && ICH.absender && confirm("Einwilligung gespeichert. Info-Mail jetzt senden?")) { try { await api("POST", `/firma/${fid}/infomail`, {}); toast("Info-Mail verschickt."); } catch (e) { toast(e.message); } }
+      neu();
+    });
+    beiAbsenden($("#kontakt"), async (d) => { await api("POST", `/firma/${fid}/kontakt`, d); toast("Eingetragen."); neu(); });
+    beiAbsenden($("#stamm"), async (d) => { await api("PUT", `/firma/${fid}`, d); toast("Gespeichert."); neu(); });
+    beiAbsenden($("#ap"), async (d) => { await api("POST", `/firma/${fid}/ansprechpartner`, d); neu(); });
+    const vf = $("#vertrag");
+    const ve = vf.elements;
+    ve.produktwahl.addEventListener("change", async () => { const p = (await api("GET", "/produkte")).liste.find((x) => String(x.id) === ve.produktwahl.value); if (p) { ve.produkt.value = p.name; ve.einmal.value = eurFeld(p.einmal_ct); ve.monatlich.value = eurFeld(p.monat_ct); } });
+    beiAbsenden(vf, async (d) => { const r = await api("POST", `/firma/${fid}/vertrag`, d); toast(`Vertrag ${r.nummer} angelegt.`); neu(); });
+    if ($("#einw")) beiAbsenden($("#einw"), async (d) => { await api("POST", `/firma/${fid}/einwilligung`, { ja: true, nachweis: d.nachweis }); toast("Einwilligung gespeichert."); neu(); });
+    if ($("#einwWeg")) $("#einwWeg").addEventListener("click", async () => { if (!confirm("Einwilligung wirklich zurückziehen?")) return; await api("POST", `/firma/${fid}/einwilligung`, { ja: false }); neu(); });
+    if ($("#infomail")) $("#infomail").addEventListener("click", async () => { if (!confirm("Info-Mail jetzt senden?")) return; try { await api("POST", `/firma/${fid}/infomail`, {}); toast("Info-Mail verschickt."); neu(); } catch (e) { toast(e.message); } });
+    beiAbsenden($("#dok"), async (d, form) => {
+      const datei = form.elements.datei.files[0]; if (!datei) throw new Error("Bitte eine Datei wählen.");
+      if (datei.size > 10_000_000) throw new Error("Die Datei ist größer als 10 MB.");
+      await api("POST", `/firma/${fid}/dokument`, datei, { "Content-Type": datei.type || "application/octet-stream", "x-name": encodeURIComponent(datei.name), "x-titel": encodeURIComponent(d.titel || datei.name), "x-typ": encodeURIComponent(d.typ) });
+      toast("Hochgeladen."); neu();
+    });
+    document.querySelectorAll("[data-dokweg]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Datei löschen?")) { await api("DELETE", "/dokument/" + b.dataset.dokweg); neu(); } }));
+    document.querySelectorAll("[data-apweg]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Ansprechpartner entfernen?")) { await api("DELETE", "/ansprechpartner/" + b.dataset.apweg); neu(); } }));
+    document.querySelectorAll("[data-kuendigen]").forEach((b) => b.addEventListener("click", async () => {
+      const d = prompt("Vertragsende (TT.MM.JJJJ)?"); if (!d) return; const m = d.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (!m) return toast("Bitte als TT.MM.JJJJ eingeben.");
+      try { await api("PUT", "/vertrag/" + b.dataset.kuendigen, { status: "gekuendigt", ende: `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` }); neu(); } catch (e) { toast(e.message); }
+    }));
+    document.querySelectorAll("[data-beenden]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Vertrag als beendet markieren?")) { await api("PUT", "/vertrag/" + b.dataset.beenden, { status: "beendet" }); neu(); } }));
+    if ($("#sperren")) $("#sperren").addEventListener("click", async () => { const g = prompt("Grund für die Sperre?", "Möchte nicht kontaktiert werden"); if (g === null) return; await api("POST", `/firma/${fid}/sperren`, { grund: g }); neu(); });
+    if ($("#entsperren")) $("#entsperren").addEventListener("click", async () => { if (confirm("Sperre wirklich aufheben? Nur wenn die Firma selbst wieder Kontakt möchte.")) { await api("POST", `/firma/${fid}/entsperren`, {}); neu(); } });
+    $("#loeschen").addEventListener("click", async () => { if (confirm("Firma mit allen Kontakten, Dateien, Verträgen und Zahlungen endgültig löschen? Für eine Sperrliste lieber „Sperren“.")) { await api("DELETE", `/firma/${fid}`); toast("Gelöscht."); location.hash = "#/firmen"; } });
+  }
+  if (name === "produkte") {
+    const pf = $("#produkt");
+    document.querySelectorAll("[data-produkt]").forEach((b) => b.addEventListener("click", () => {
+      const p = JSON.parse(b.dataset.produkt), el = pf.elements; el.pid.value = p.id; el.name.value = p.name; el.einmal.value = eurFeld(p.einmal_ct); el.monatlich.value = eurFeld(p.monat_ct); el.leistung.value = p.leistung || ""; el.beschreibung.value = p.beschreibung || ""; el.aktiv.checked = p.aktiv;
+      $("#produktTitel").textContent = "Produkt bearbeiten"; pf.scrollIntoView({ behavior: "smooth" });
+    }));
+    beiAbsenden(pf, async (d) => { d.id = d.pid || undefined; delete d.pid; await api("POST", "/produkte", d); toast("Gespeichert."); zeichnen(); });
+  }
+  if (name === "einstellungen") {
+    beiAbsenden($("#einst"), async (d) => {
+      d.zielbranchen = Object.keys(ICH.branchen).filter((k) => d["b_" + k]); for (const k of Object.keys(d)) if (k.startsWith("b_")) delete d[k];
+      d.zielregionen = d.zielregionen.split("\n");
+      await api("PUT", "/einstellungen", d); toast("Gespeichert.");
+    });
+    document.querySelectorAll("[data-bot]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true; $("#botBericht").textContent = "Läuft …";
+      try { const r = await api("POST", "/bot/jetzt", { suche: b.dataset.bot === "suche", impulse: b.dataset.bot === "impulse" }); $("#botBericht").textContent = JSON.stringify(r.bericht, null, 2); }
+      catch (e) { $("#botBericht").textContent = e.message; } finally { b.disabled = false; }
+    }));
+  }
+}
+
+async function zeichnen() {
+  const h = location.hash.replace(/^#\/?/, "") || "heute";
+  const [pfad, qs] = h.split("?");
+  const [name, idTeil] = pfad.split("/");
+  const ansicht = ANSICHTEN[name] ? name : "heute";
+  document.querySelectorAll("nav a").forEach((a) => { if (a.getAttribute("href") === "#/" + (ansicht === "firma" ? "firmen" : ansicht)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  try {
+    if (!ICH) { ICH = await api("GET", "/ich"); $("#nav").classList.remove("versteckt"); $("#abmelden").classList.remove("versteckt"); }
+    const html = await ANSICHTEN[ansicht](new URLSearchParams(qs || ""), idTeil);
+    $("#app").innerHTML = html;
+    verdrahten(ansicht, idTeil);
+  } catch (e) { if (e.message !== "abgemeldet") $("#app").innerHTML = `<p class="fehler">${esc(e.message)}</p>`; }
+}
+window.addEventListener("hashchange", () => { zeichnen(); window.scrollTo(0, 0); });
+zeichnen();
+</script>
+</body>
+</html>
