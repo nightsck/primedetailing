@@ -283,3 +283,32 @@ test("OpenStreetMap: fällt ein Server aus, wird der nächste gefragt", async ()
   const alle = netz({ overpassAus: B.OVERPASS.map((u) => new URL(u).hostname) });
   await assert.rejects(B.sucheFirmen(alle.f, "maler", "Ulm"), /nicht erreichbar: overpass-api\.de 521/);
 });
+
+test("Suche fehlgeschlagen: nach einer Stunde neuer Versuch, nicht erst am nächsten Tag", async () => {
+  const kern = crmKern(testSql()); const env = ENV(kern);
+  kern.einstellungenSetzen({ zielbranchen: ["maler"], zielregionen: ["Ulm"] });
+  const aus = netz({ overpassAus: B.OVERPASS.map((u) => new URL(u).hostname) });
+  let b: any = await R.geplant(env, Date.parse("2026-11-03T05:10:00Z"), aus.f);
+  assert.match(b.suche.fehler, /nicht erreichbar/);
+  const an = netz({ overpass: { elements: [{ type: "node", id: 7, tags: { name: "Maler Später" } }] } });
+  b = await R.geplant(env, Date.parse("2026-11-03T05:40:00Z"), an.f);
+  assert.equal(b.suche, undefined, "nicht schon nach 30 Minuten");
+  b = await R.geplant(env, Date.parse("2026-11-03T06:20:00Z"), an.f);
+  assert.equal(b.suche.neu, 1, "nach einer Stunde geklappt");
+  b = await R.geplant(env, Date.parse("2026-11-03T07:30:00Z"), an.f);
+  assert.equal(b.suche, undefined, "danach für heute erledigt");
+});
+
+test("Von Hand bewerten: auch angelegte Firmen, Status springt auf Anruf-Impuls", async () => {
+  const kern = crmKern(testSql()); const n = netz({ seiten: { "https://hand.de": "<p>Werkstatt</p>" }, ki: { score: 91, begruendung: "Sehr gut", einstieg: "Hallo" } }); globalThis.fetch = n.f;
+  const app = miniApp(); R.crmRouten(app); const env = ENV(kern, { ANTHROPIC_API_KEY: "sk" });
+  const h = await anmelden(app, env, n);
+  const { id } = kern.firmaAnlegen({ name: "Hand GmbH", website: "https://hand.de" }, "Tom");
+  const r = await app.anfrage("POST", `/api/crm/firma/${id}/bewerten`, { env, header: h, body: {} });
+  const j = await r.json();
+  assert.equal(j.score, 91);
+  assert.equal(kern.firma(id)!.status, "anruf_impuls");
+  kern.anrufErfassen(id, { ergebnis: "termin" }, "Tom");
+  await app.anfrage("POST", `/api/crm/firma/${id}/bewerten`, { env, header: h, body: {} });
+  assert.equal(kern.firma(id)!.status, "termin", "Neubewertung ändert keinen späteren Status");
+});

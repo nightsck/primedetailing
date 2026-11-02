@@ -391,7 +391,7 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
     if (!f) return null;
     const schwelle = einstellungen().schwelle;
     const score = Math.max(0, Math.min(100, Math.round(Number(r.score) || 0)));
-    const status = f.status === "neu" ? (score >= schwelle ? "anruf_impuls" : "bewertet") : f.status;
+    const status = f.status === "neu" || f.status === "bewertet" || f.status === "anruf_impuls" ? (score >= schwelle ? "anruf_impuls" : "bewertet") : f.status;
     const tel = f.telefon || txt(r.telefon, 60);
     q(`UPDATE firma SET score = ?, score_grund = ?, einstieg = ?, infos = ?, status = ?, bewertet_am = ?, telefon = ?, telefon_norm = ?, email = COALESCE(email, ?), geaendert = ? WHERE id = ?`,
       score, txt(r.begruendung, 1500), txt(r.einstieg, 500), r.infos ? JSON.stringify(r.infos).slice(0, 4000) : null, status, uhr(), tel, nurZiffern(tel) || null, txt(r.email, 200), uhr(), id);

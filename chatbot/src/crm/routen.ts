@@ -112,6 +112,16 @@ function impulseMail(url: string, i: { neu: any[]; faellig: any[] }) {
      <p style="margin:12px 0 0;color:#6B6F73;font-size:13px">Nach jedem Telefonat im CRM „Anruf erfassen“. Werbe-Mails nur nach Einwilligung.</p>`);
 }
 
+/** Website lesen und bewerten (KI, sonst Regeln); speichert das Ergebnis in der Kundenakte. */
+export async function bewerteFirma(c: any, firma: any, f: typeof fetch = fetch) {
+  const schluessel = wert(c, "ANTHROPIC_API_KEY"), modell = wert(c, "CRM_MODELL") || "claude-haiku-5-5";
+  const w = await websiteLesen(f, firma.website);
+  let b = null;
+  if (schluessel) { try { b = await kiBewertung(f, schluessel, modell, firma, w); } catch (err: any) { console.error("[crm-ki]", err?.message || err); } }
+  if (!b) b = regelBewertung(firma, w);
+  return crm(c).bewertungSpeichern(firma.id, b);
+}
+
 /* ---------- Zeitplan (alle 10 Minuten) ---------- */
 // Stunde in deutscher Zeit als Zahl (formatToParts, weil "de-DE" sonst "06 Uhr" liefert)
 const stundeBerlin = (ms: number) => Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(ms)).find((p) => p.type === "hour")?.value ?? 0);
@@ -141,9 +151,10 @@ export async function geplant(env: any, jetzt = Date.now(), f: typeof fetch = fe
   }
   if (!e.bot_aktiv) return { ...bericht, bot: "aus" };
 
-  // 2) Neue Firmen suchen: einmal am Tag ab 6 Uhr (W1)
-  if (stunde >= 6 && (await k.zustand("suche_tag")) !== heute) {
-    await k.zustand("suche_tag", heute);
+  // 2) Neue Firmen suchen: einmal am Tag ab 6 Uhr (W1). Schlägt die Suche fehl
+  //    (OpenStreetMap überlastet), nach einer Stunde noch einmal, höchstens bis 20 Uhr.
+  const fehlversuch = Number(await k.zustand("suche_fehlversuch")) || 0;
+  if (stunde >= 6 && stunde < 20 && (await k.zustand("suche_tag")) !== heute && jetzt - fehlversuch >= 3_600_000) {
     const s = await k.naechsteSuche();
     if (s) {
       try {
@@ -154,27 +165,21 @@ export async function geplant(env: any, jetzt = Date.now(), f: typeof fetch = fe
           const r = await k.firmaAnlegen({ ...t, bundesland: null }, "Bot", "bot");
           if (r.neu) neu++;
         }
+        await k.zustand("suche_tag", heute);
         await k.zustand("letzte_suche", { tag: heute, ...s, treffer: treffer.length, neu, gesperrt });
         bericht.suche = { ...s, treffer: treffer.length, neu };
       } catch (err: any) {
-        await k.zustand("letzte_suche", { tag: heute, ...s, fehler: String(err?.message || err).slice(0, 200) });
+        await k.zustand("suche_fehlversuch", jetzt);
+        await k.zustand("letzte_suche", { tag: heute, ...s, fehler: String(err?.message || err).slice(0, 300) });
         bericht.suche = { fehler: String(err?.message || err) };
       }
-    }
+    } else await k.zustand("suche_tag", heute);
   }
 
   // 3) Bewerten: bei jedem Durchlauf zwei Firmen (W1 Website lesen + W2 Bewertung)
   const offen = await k.zuBewerten(2);
-  const schluessel = wert(c, "ANTHROPIC_API_KEY"), modell = wert(c, "CRM_MODELL") || "claude-haiku-5-5";
   let bewertet = 0;
-  for (const firma of offen) {
-    const w = await websiteLesen(f, firma.website);
-    let b = null;
-    if (schluessel) { try { b = await kiBewertung(f, schluessel, modell, firma, w); } catch (err: any) { console.error("[crm-ki]", err?.message || err); } }
-    if (!b) b = regelBewertung(firma, w);
-    await k.bewertungSpeichern(firma.id, b);
-    bewertet++;
-  }
+  for (const firma of offen) { await bewerteFirma(c, firma, f); bewertet++; }
   if (bewertet) bericht.bewertet = bewertet;
 
   // 4) Anruf-Impulse: werktags ab 8 Uhr, einmal am Tag (W3)
@@ -261,6 +266,12 @@ export function crmRouten(app: Hono) {
   app.post("/api/crm/firma/:id/sperren", geschuetzt(async (c, n) => { const b: any = await json(c); await crm(c).sperren(id(c), b.grund || "Manuell gesperrt", n.name); return c.json({ ok: true }); }));
   app.post("/api/crm/firma/:id/entsperren", geschuetzt(async (c, n) => { await crm(c).entsperren(id(c), n.name); return c.json({ ok: true }); }));
   app.post("/api/crm/firma/:id/einwilligung", geschuetzt(async (c, n) => { const b: any = await json(c); if (b.ja && !String(b.nachweis || "").trim()) throw new Error("Bitte festhalten, wann und wie die Einwilligung erteilt wurde."); await crm(c).einwilligungSetzen(id(c), !!b.ja, String(b.nachweis || ""), n.name); return c.json({ ok: true }); }));
+  app.post("/api/crm/firma/:id/bewerten", geschuetzt(async (c) => {
+    const k = crm(c), f = await k.firma(id(c));
+    if (!f) throw new Error("Firma nicht gefunden.");
+    if (await k.zaehle("bewerten", 60, 3_600_000) === false) throw new Error("Bitte etwas später noch einmal.");
+    return c.json({ ok: true, ...(await bewerteFirma(c, f)) });
+  }));
   app.post("/api/crm/firma/:id/infomail", geschuetzt(async (c, n) => { const r = await infomailSenden(c, id(c), n.name); return c.json(r, r.ok ? 200 : 400); }));
   app.post("/api/crm/firma/:id/dokument", geschuetzt(async (c) => {
     const groesse = Number(c.req.header("content-length") || 0);
@@ -293,7 +304,7 @@ export function crmRouten(app: Hono) {
   app.post("/api/crm/bot/jetzt", geschuetzt(async (c) => {
     const b: any = await json(c);
     const k = crm(c);
-    if (b.suche) await k.zustand("suche_tag", "");
+    if (b.suche) { await k.zustand("suche_tag", ""); await k.zustand("suche_fehlversuch", 0); }
     if (b.impulse) await k.zustand("impulse_tag", "");
     return c.json({ ok: true, bericht: await geplant(c.env) });
   }));
