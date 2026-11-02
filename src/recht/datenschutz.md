@@ -42,7 +42,7 @@ Wir speichern Ihre Chatverläufe nicht. Der Verlauf liegt nur in Ihrem Browser (
 
 Rechtsgrundlage ist unser berechtigtes Interesse, Fragen von Interessenten schnell zu beantworten (Art. 6 Abs. 1 lit. f DSGVO), bei Terminanfragen Art. 6 Abs. 1 lit. b DSGVO. Bitte geben Sie im Chat keine sensiblen Daten ein.
 
-**Vorführseite (primedetailing.eu/demo):** Dort zeigen wir einen Chat für einen erfundenen Beispielbetrieb. Für Nachrichten und Fotos gilt dasselbe wie oben: Sie gehen nur zur Auswertung an die KI und werden nicht gespeichert. Was Sie auf der Vorführseite in Formulare eintragen (zum Beispiel Name und Kontakt) und Ihre Testanfragen werden nicht an uns übermittelt. Sie liegen nur im lokalen Speicher Ihres Browsers (localStorage), damit die Vorführung funktioniert. Sie können sie jederzeit über „Demo zurücksetzen“ oder durch Löschen der Websitedaten in Ihrem Browser entfernen. Bitte geben Sie dort keine echten Daten ein.
+**Vorführseite (primedetailing.eu/demo):** Dort zeigen wir einen Chat für einen erfundenen Beispielbetrieb. Für Nachrichten und Fotos gilt dasselbe wie oben: Sie gehen nur zur Auswertung an die KI und werden nicht gespeichert. Was Sie auf der Vorführseite in Formulare eintragen (zum Beispiel Name und Kontakt) und Ihre Testanfragen werden nicht an uns übermittelt. Sie liegen nur im lokalen Speicher Ihres Browsers (localStorage), damit die Vorführung funktioniert. Sie können sie jederzeit über „Demo zurücksetzen“ oder durch Löschen der Websitedaten in Ihrem Browser entfernen. Bitte geben Sie dort keine echten Daten ein. Ausnahme ist die Terminbuchung unter primedetailing.eu/demo/termin/: Dort gebuchte Termine werden tatsächlich in einen Kalender eingetragen und per E-Mail bestätigt (siehe Abschnitt 4c).
 
 {% if jobs.aktiv %}<h2 id="bewerbungen">4b. Bewerbungen über die Jobs-Seite</h2>
 
@@ -54,7 +54,15 @@ Fragen an den Assistenten beantwortet eine KI (Claude von Anthropic, siehe Absch
 
 Rechtsgrundlage ist die Anbahnung eines Beschäftigungsverhältnisses (Art. 6 Abs. 1 lit. b DSGVO) sowie Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie vor dem Absenden geben und jederzeit per E-Mail widerrufen können. Wir löschen Bewerbungen und Unterlagen 6 Monate nach Eingang, auf Wunsch früher. Kommt es zu einer Zusammenarbeit, nehmen wir die nötigen Angaben in die Personalakte. Im Browser speichern wir bei der Bewerbung nichts.
 
-{% endif %}{% endif %}## 5. Kontakt per E-Mail, Telefon oder WhatsApp
+{% endif %}<h2 id="termine">4c. Terminbuchung auf der Vorführseite</h2>
+
+Auf primedetailing.eu/demo/termin/ zeigen wir, wie Kunden eines Betriebs online selbst einen Termin buchen. Wenn Sie dort einen Termin buchen, verarbeiten wir die Angaben aus dem Formular (Name, Telefonnummer, E-Mail-Adresse, gegebenenfalls Adresse, Angaben zum Auftrag und Ihre Notiz), die gewählte Zeit sowie technisch notwendige Daten wie Ihre IP-Adresse.
+
+Die Buchung läuft über unseren Server bei Cloudflare (siehe Abschnitt 4a). Er prüft, welche Zeiten frei sind, und trägt Ihren Termin in einen Google Kalender ein (Google Ireland Limited, Dublin, Irland). Anschließend bekommen Sie und wir eine Bestätigung per E-Mail mit einer Kalenderdatei und einem Link zum Absagen. Die E-Mails verschicken wir über Brevo (Sendinblue SAS, Paris, Frankreich). Google und Brevo verarbeiten die Daten in unserem Auftrag. Bei Google ist eine Übermittlung in die USA möglich; sie stützt sich auf das EU-US Data Privacy Framework bzw. Standardvertragsklauseln. Eine KI ist an der Terminbuchung nicht beteiligt.
+
+Rechtsgrundlage ist Ihre Einwilligung, die Sie vor dem Buchen mit dem Häkchen geben (Art. 6 Abs. 1 lit. a DSGVO). Sie können sie jederzeit per E-Mail widerrufen. Sagen Sie über den Link in der Bestätigung ab, wird der Termin sofort aus dem Kalender gelöscht. Andernfalls löschen wir Buchungen der Vorführseite spätestens einen Monat nach dem gebuchten Termin. Da es sich um eine Vorführung handelt, genügt ein ausgedachter Name; Ihre echte E-Mail-Adresse brauchen Sie nur, wenn Sie die Bestätigung sehen möchten.
+
+{% endif %}## 5. Kontakt per E-Mail, Telefon oder WhatsApp
 
 Wenn Sie uns per E-Mail, Telefon oder WhatsApp kontaktieren, verarbeiten wir Ihre Angaben zur Bearbeitung Ihres Anliegens. Die WhatsApp-Buttons sind einfache Links: Erst wenn Sie einen anklicken, wird WhatsApp (WhatsApp Ireland Limited bzw. Meta) geöffnet und es gelten die Datenschutzbestimmungen von WhatsApp. Wenn Sie das nicht möchten, erreichen Sie uns jederzeit per Telefon oder E-Mail.
 
