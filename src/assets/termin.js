@@ -165,6 +165,8 @@ function aktion(act, val, idx) {
   if (act === 'ics') { icsLaden(); return; }
   if (act === 'absagen') { absagen(m); return; }
   if (act === 'absagen-ja') { absagenJa(m); return; }
+  if (act === 'link-absagen') { linkAbsagen(m); return; }
+  if (act === 'link-behalten') { m.used = true; user('Nein, Termin behalten'); bot('Gut, Ihr Termin bleibt bestehen. Bis dann!', { chips: [ch('Neuen Termin buchen', 'neu')] }); render(); return; }
   m.used = true;
   if (act === 'termin') {
     const alt = S.a.termin; S.a.termin = val; user(chip ? chip.label : val); zaehleStart();
@@ -256,7 +258,8 @@ async function buchen(f, idx) {
     id: uid(), createdAt: new Date().toISOString(), betrieb: b.id, betriebName: b.name, termin: t.id, terminName: t.name, ort: t.ort,
     datum: a.datum, zeit: z.zeit, start: z.start, ende: z.ende, zeitText: zeitText(), ortText: ortText(),
     name: a.name, telefon: a.telefon || '', email: a.email || '', adresse: a.adresse || null, notiz: a.notiz || '', details: a.details || '',
-    kalender: imKalender, token: imKalender ? r.token : '', abgesagt: false
+    kalender: imKalender, token: imKalender ? r.token : '', abgesagt: false,
+    mailKunde: !!(r && r.mail && r.mail.kunde), mailBetrieb: !!(r && r.mail && r.mail.betrieb)
   };
   const l = liste(); l.unshift(eintrag); speichereListe(l);
   S.buchung = eintrag; zaehle('termin');
@@ -451,7 +454,7 @@ function karte(m, i) {
     if (t.abgesagt) return `<div class="card tm-done tm-abgesagt"><b>Abgesagt</b><div>${esc(t.terminName)} · ${esc(t.zeitText)}</div></div>`;
     return `<div class="card tm-done"><div class="tm-ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><b>${esc(t.terminName)}</b></div>
       <dl class="bw-check"><div><dt>Wann</dt><dd>${esc(t.zeitText)}</dd></div><div><dt>Wo</dt><dd>${esc(t.ortText)}</dd></div></dl>
-      <div class="note">${t.kalender ? 'Der Termin steht jetzt im Kalender des Betriebs.' : 'Vorführung: Der Termin ist nur in diesem Browser gespeichert.'} ${t.email ? 'Eine Bestätigung per E-Mail wäre im echten Betrieb schon unterwegs.' : ''}</div>
+      <div class="note">${t.kalender ? 'Der Termin steht jetzt im Kalender des Betriebs.' : 'Vorführung: Der Termin ist nur in diesem Browser gespeichert.'} ${t.mailKunde ? `Die Bestätigung mit dem Termin für Ihren Kalender ist an ${esc(t.email)} unterwegs.` : ''}${t.mailBetrieb ? ' Der Betrieb hat den Termin auch per E-Mail bekommen.' : ''}</div>
       ${m.frageAbsage ? `<div class="tm-confirm">Termin wirklich absagen? <button type="button" class="btn danger" data-act="absagen-ja" data-idx="${i}" ${S.busy ? 'disabled' : ''}>Ja, absagen</button></div>` : ''}
       <div class="chips"><button type="button" class="chip" data-act="ics" data-idx="${i}">In meinen Kalender</button><button type="button" class="chip bw-zurueck" data-act="absagen" data-idx="${i}" ${m.frageAbsage ? 'disabled' : ''}>Termin absagen</button></div></div>`;
   }
@@ -520,6 +523,36 @@ const setH = () => document.documentElement.style.setProperty('--toph', $('.bw-t
 setH(); window.addEventListener('resize', setH);
 const q = new URLSearchParams(location.search).get('betrieb');
 setzeBetrieb(q || ls.get(DKEY) || 'fahrzeug', true);
+
+/* ---------- Absagen über den Link aus der Bestätigungs-Mail ---------- */
+function leseToken(tok) {
+  try { const b = tok.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); } catch (e) { return null; }
+}
+function absageAnzeigen(tok) {
+  const d = leseToken(tok);
+  try { const u = new URL(location.href); u.searchParams.delete('absagen'); history.replaceState(null, '', u); } catch (e) { /* egal */ }
+  if (!d || typeof d.s !== 'number') { bot('Der Absage-Link ist leider ungültig. Bitte rufen Sie kurz an.'); render(); return; }
+  const t = terminArt(BETRIEBE[d.b] || B(), d.t || '');
+  const wann = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(d.s));
+  S.log = []; S.step = 'absage'; S.absageToken = tok;
+  if (d.s < Date.now()) { bot(`Der Termin am ${wann} Uhr liegt schon in der Vergangenheit.`, { chips: [ch('Neuen Termin buchen', 'neu')] }); render(); return; }
+  bot(`Guten Tag${d.n ? ' ' + d.n : ''}! Möchten Sie diesen Termin absagen?`);
+  bot(`${t ? t.name : 'Termin'} · ${wann} Uhr`, { chips: [ch('Ja, absagen', 'link-absagen'), ch('Nein, Termin behalten', 'link-behalten')] });
+  $('#tmStep').textContent = 'Termin absagen'; $('#tmBar').style.width = '100%';
+  render();
+}
+async function linkAbsagen(m) {
+  m.used = true; user('Ja, absagen'); S.busy = true; const warte = bot('', { typing: true }); render();
+  const r = await rufe('/api/demo/termin/absagen', { token: S.absageToken });
+  S.log.splice(S.log.indexOf(warte), 1); S.busy = false;
+  if (r && r.ok) {
+    const l = liste(); const x = l.find(y => y.token === S.absageToken); if (x) { x.abgesagt = true; speichereListe(l); }
+    bot('Ihr Termin ist abgesagt und aus dem Kalender des Betriebs gelöscht. Möchten Sie einen neuen Termin buchen?', { chips: [ch('Neuen Termin buchen', 'neu')] });
+  } else bot((r && r.fehler) || 'Das hat nicht geklappt. Bitte rufen Sie kurz an.', { chips: [ch('Nochmal versuchen', 'link-absagen'), ch('Neuen Termin buchen', 'neu')] });
+  render();
+}
+const absageParam = new URLSearchParams(location.search).get('absagen');
+if (absageParam) absageAnzeigen(absageParam);
 // Kalender schon vorab prüfen, damit der Hinweis unten stimmt
 if (API) rufe(`/api/demo/termin/zeiten?betrieb=${S.betrieb}&termin=${B().termine[0].id}&tage=1`).then(r => { if (r && r.ok && S.kalender === null) { S.kalender = !!r.kalender; status(); render(); } });
 else { S.kalender = false; status(); }

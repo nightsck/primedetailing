@@ -19,6 +19,7 @@ import type { Hono } from "hono";
 import { BETRIEBE, terminArt, terminZeitraum, freieZeiten, istDatum, plusTage, zeitpunkt, isoBerlin, TZ } from "../../src/assets/betriebe.js";
 import { pruefeLimit } from "./limits.ts";
 import { env } from "./config.ts";
+import { sendeMail, mailAktiv, gueltigeMail, type Mail } from "./mail.ts";
 
 export type Belegt = { start: number; ende: number };
 export interface Kalender {
@@ -126,12 +127,13 @@ async function hmacKey() {
   hmac = await crypto.subtle.importKey("raw", enc.encode("termin-absage|" + geheim), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
   return hmac;
 }
-export async function absageToken(daten: { b: string; e: string; s: number }) {
+type AbsageDaten = { b: string; e: string; s: number; t?: string; n?: string; m?: string };
+export async function absageToken(daten: AbsageDaten) {
   const body = b64u(JSON.stringify(daten));
   return body + "." + b64u(new Uint8Array(await crypto.subtle.sign("HMAC", await hmacKey(), enc.encode(body))));
 }
-export async function leseAbsageToken(token: unknown): Promise<{ b: string; e: string; s: number } | null> {
-  if (typeof token !== "string" || token.length > 600 || !token.includes(".")) return null;
+export async function leseAbsageToken(token: unknown): Promise<AbsageDaten | null> {
+  if (typeof token !== "string" || token.length > 900 || !token.includes(".")) return null;
   const [body, sig] = token.split(".");
   try {
     if (!(await crypto.subtle.verify("HMAC", await hmacKey(), unb64u(sig), enc.encode(body)))) return null;
@@ -174,6 +176,73 @@ function eintrag(d: any) {
   return { titel: `${demo ? "[Demo] " : ""}${t.name} – ${d.name}`.slice(0, 120), text, ort, start: z.start, ende: z.ende, privat: { quelle: "termin-bot", betrieb: betrieb.id, termin: t.id } };
 }
 
+/* ---------- Bestätigung per E-Mail ---------- */
+const escH = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
+const uhr = (ms: number) => new Intl.DateTimeFormat("de-DE", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
+const tagText = (ms: number) => new Intl.DateTimeFormat("de-DE", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(ms));
+export function wannText(t: any, z: { start: number; ende: number }) {
+  if (t.ganztag) return `${tagText(z.start)}, bringen um ${uhr(z.start)} Uhr${t.ganztag > 1 ? `, fertig nach ${t.ganztag} Arbeitstagen` : ", abholen am Abend"}`;
+  return `${tagText(z.start)}, ${uhr(z.start)}–${uhr(z.ende)} Uhr`;
+}
+const icsZeit = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+const icsText = (s: string) => s.replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n");
+export function icsDatei(o: { uid: string; start: number; ende: number; titel: string; ort: string; text: string }) {
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Auftragsfaenger//Termin-Bot//DE", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    `UID:${o.uid}@termin-bot`, `DTSTAMP:${icsZeit(Date.now())}`, `DTSTART:${icsZeit(o.start)}`, `DTEND:${icsZeit(o.ende)}`,
+    `SUMMARY:${icsText(o.titel)}`, `LOCATION:${icsText(o.ort)}`, `DESCRIPTION:${icsText(o.text)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Erinnerung", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+}
+const zeilenHtml = (zeilen: [string, string][]) => `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12px 0">${zeilen.map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#5A6A73;vertical-align:top">${escH(k)}</td><td style="padding:4px 0">${escH(v).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table>`;
+const rahmen = (farbe: string, kopf: string, inhalt: string) => `<!doctype html><html lang="de"><body style="margin:0;background:#F4F2EE;font-family:Arial,Helvetica,sans-serif;color:#16222A">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px"><div style="background:#FFFFFF;border-radius:10px;overflow:hidden;border:1px solid #E1E4E6">
+<div style="background:${farbe};color:#FFFFFF;padding:16px 20px;font-size:17px;font-weight:bold">${escH(kopf)}</div>
+<div style="padding:20px;font-size:15px;line-height:1.5">${inhalt}</div></div></div></body></html>`;
+const empfaengerBetrieb = (c: any, id: string) => [wert(c, "TERMIN_MAIL_BETRIEB_" + id.toUpperCase()), wert(c, "TERMIN_MAIL_BETRIEB")].find((x) => x && gueltigeMail(x)) || "";
+const seite = (c: any) => wert(c, "TERMIN_SEITE") || "https://primedetailing.eu/demo/termin/";
+
+export function terminMails(c: any, d: any, o: { id: string; token: string; ort: string }): { kunde: Mail | null; betrieb: Mail | null } {
+  const { betrieb: b, t, z } = d;
+  const wann = wannText(t, z);
+  const demo = process.env.TERMIN_DEMO !== "0";
+  const anhang = [{ name: "termin.ics", inhalt: icsDatei({ uid: o.id || `${b.id}-${z.start}`, start: z.start, ende: z.ende, titel: `${t.name} bei ${b.name}`, ort: o.ort, text: `${t.name} bei ${b.name}. Kontakt: ${b.adresse}` }) }];
+  const absagen = o.token ? `${seite(c)}?betrieb=${b.id}&absagen=${encodeURIComponent(o.token)}` : "";
+  const kundeZeilen: [string, string][] = [["Termin", t.name], ["Wann", wann], ["Wo", o.ort]];
+  if (d.details) kundeZeilen.push([b.id === "fahrzeug" ? "Fahrzeug" : "Worum es geht", d.details]);
+  if (d.notiz) kundeZeilen.push(["Ihre Notiz", d.notiz]);
+  const kunde: Mail | null = d.email ? {
+    an: d.email, anName: d.name, absenderName: b.name, betreff: `Ihr Termin bei ${b.name}: ${wann}`,
+    text: [`Guten Tag ${d.name},`, "", `Ihr Termin bei ${b.name} steht.`, "", ...kundeZeilen.map(([k, v]) => `${k}: ${v}`), "",
+      "Den Termin finden Sie auch im Anhang, zum Übernehmen in Ihren Kalender.",
+      absagen ? `Sie können nicht? Hier absagen: ${absagen}` : `Sie können nicht? Bitte kurz Bescheid geben.`, "",
+      `${b.name} · ${b.adresse} · ${b.zeitenText}`, demo ? "\n(Vorführung des Termin-Bots, erfundener Beispielbetrieb.)" : ""].join("\n"),
+    html: rahmen(b.farbe, `Ihr Termin bei ${b.name}`, `<p style="margin:0 0 4px">Guten Tag ${escH(d.name)},</p><p style="margin:0">Ihr Termin steht.</p>${zeilenHtml(kundeZeilen)}
+      <p style="margin:0 0 12px">Im Anhang finden Sie den Termin zum Übernehmen in Ihren Kalender.</p>
+      ${absagen ? `<p style="margin:0 0 16px"><a href="${escH(absagen)}" style="color:${b.farbe}">Sie können nicht? Termin absagen</a></p>` : ""}
+      <p style="margin:0;color:#5A6A73;font-size:13px">${escH(b.name)} · ${escH(b.adresse)} · ${escH(b.zeitenText)}${demo ? "<br>Vorführung des Termin-Bots, erfundener Beispielbetrieb." : ""}</p>`),
+    anhang,
+  } : null;
+  const an = empfaengerBetrieb(c, b.id);
+  const betriebZeilen: [string, string][] = [["Termin", t.name], ["Wann", wann], ["Wo", o.ort], ["Name", d.name]];
+  if (d.telefon) betriebZeilen.push(["Telefon", d.telefon]);
+  if (d.email) betriebZeilen.push(["E-Mail", d.email]);
+  if (d.details) betriebZeilen.push([b.id === "fahrzeug" ? "Fahrzeug" : "Worum es geht", d.details]);
+  if (d.notiz) betriebZeilen.push(["Notiz", d.notiz]);
+  const betriebMail: Mail | null = an ? {
+    an, absenderName: "Termin-Bot", antwortAn: d.email || undefined, betreff: `${demo ? "[Demo] " : ""}Neuer Termin: ${t.name} – ${d.name}, ${wann}`,
+    text: ["Neuer Termin über den Termin-Bot:", "", ...betriebZeilen.map(([k, v]) => `${k}: ${v}`), "",
+      o.id ? "Der Termin steht schon im Kalender." : "Kein Kalender verbunden: Termin bitte selbst eintragen (Anhang).",
+      d.email ? "Mit „Antworten“ schreiben Sie direkt dem Kunden." : ""].join("\n"),
+    html: rahmen("#1B1D1F", `Neuer Termin: ${t.name}`, `${zeilenHtml(betriebZeilen)}
+      <p style="margin:0;color:#5A6A73;font-size:13px">${o.id ? "Der Termin steht schon im Kalender." : "Kein Kalender verbunden: Termin bitte selbst eintragen (Anhang)."}${d.email ? " Mit „Antworten“ schreiben Sie direkt dem Kunden." : ""}</p>`),
+    anhang,
+  } : null;
+  return { kunde, betrieb: betriebMail };
+}
+async function verschicke(c: any, mails: { kunde: Mail | null; betrieb: Mail | null }) {
+  const [k, b] = await Promise.all([mails.kunde ? sendeMail(c, mails.kunde) : false, mails.betrieb ? sendeMail(c, mails.betrieb) : false]);
+  return { kunde: k, betrieb: b };
+}
+
 const TEXT = {
   belegt: "Diese Zeit ist gerade weg. Bitte eine andere wählen.",
   kalender: "Der Kalender ist gerade nicht erreichbar.",
@@ -209,15 +278,22 @@ export function terminRouten(app: Hono) {
     if (sperre) return c.json({ ok: false, limit: true, fehler: sperre }, 429);
     const d = p.d;
     const kal = kalenderFuer(c, d.betrieb.id);
-    if (!kal) return c.json({ ok: true, kalender: false });
+    const ev = eintrag(d);
+    if (!kal) {
+      // Ohne Kalender: Bestätigung trotzdem per Mail, wenn eingerichtet
+      const mail = mailAktiv(c) ? await verschicke(c, terminMails(c, d, { id: "", token: "", ort: ev.ort })) : undefined;
+      return c.json({ ok: true, kalender: false, ...(mail ? { mail } : {}) });
+    }
     try {
       // Kurz vor dem Eintragen noch einmal prüfen: Ist die Zeit wirklich noch frei?
       const belegt = await kal.belegt(d.z.blockVon - 86_400_000, d.z.blockBis + 86_400_000);
       const frei = freieZeiten(d.betrieb, d.t.id, { von: d.datum, tage: 1, belegt })[0];
       if (!frei || !frei.slots.includes(d.z.zeit)) return c.json({ ok: false, belegt: true, fehler: TEXT.belegt }, 409);
-      const id = await kal.eintragen(eintrag(d));
+      const id = await kal.eintragen(ev);
       console.log(`[termin] ${d.betrieb.id}/${d.t.id} ${d.datum} ${d.z.zeit}`);
-      return c.json({ ok: true, kalender: true, id, token: await absageToken({ b: d.betrieb.id, e: id, s: d.z.start }), start: isoBerlin(d.z.start), ende: isoBerlin(d.z.ende) });
+      const token = await absageToken({ b: d.betrieb.id, e: id, s: d.z.start, t: d.t.id, n: d.name.slice(0, 40), m: d.email || undefined });
+      const mail = mailAktiv(c) ? await verschicke(c, terminMails(c, d, { id, token, ort: ev.ort })) : undefined;
+      return c.json({ ok: true, kalender: true, id, token, start: isoBerlin(d.z.start), ende: isoBerlin(d.z.ende), ...(mail ? { mail } : {}) });
     } catch (e: any) {
       console.error("[termin-buchen]", e?.message || e);
       return c.json({ ok: false, kalender: true, fehler: TEXT.kalender }, 502);
@@ -231,7 +307,24 @@ export function terminRouten(app: Hono) {
     if (t.s < Date.now()) return c.json({ ok: false, fehler: "Der Termin liegt schon in der Vergangenheit." }, 400);
     const kal = kalenderFuer(c, t.b);
     if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
-    try { await kal.loeschen(t.e); return c.json({ ok: true }); }
+    try {
+      await kal.loeschen(t.e);
+      if (mailAktiv(c)) {
+        const b = (BETRIEBE as any)[t.b], art = b && terminArt(b, t.t || "");
+        const was = `${art ? art.name : "Termin"} am ${tagText(t.s)} um ${uhr(t.s)} Uhr`;
+        const an = b ? empfaengerBetrieb(c, b.id) : "";
+        const demo = process.env.TERMIN_DEMO !== "0";
+        await Promise.all([
+          an ? sendeMail(c, { an, absenderName: "Termin-Bot", antwortAn: t.m, betreff: `${demo ? "[Demo] " : ""}Abgesagt: ${was}${t.n ? " – " + t.n : ""}`,
+            text: `Der Kunde hat abgesagt: ${was}${t.n ? ` (${t.n})` : ""}. Der Termin ist aus dem Kalender gelöscht.`,
+            html: rahmen("#1B1D1F", "Termin abgesagt", `<p style="margin:0">Der Kunde hat abgesagt: <b>${escH(was)}</b>${t.n ? ` (${escH(t.n)})` : ""}.</p><p style="margin:8px 0 0">Der Termin ist aus dem Kalender gelöscht.</p>`) }) : false,
+          t.m && b ? sendeMail(c, { an: t.m, anName: t.n, absenderName: b.name, betreff: `Abgesagt: Ihr Termin bei ${b.name}`,
+            text: `Guten Tag${t.n ? " " + t.n : ""},\n\nIhr Termin (${was}) ist abgesagt. Einen neuen Termin buchen Sie hier: ${seite(c)}?betrieb=${b.id}`,
+            html: rahmen(b.farbe, `Termin abgesagt`, `<p style="margin:0 0 8px">Guten Tag${t.n ? " " + escH(t.n) : ""},</p><p style="margin:0 0 12px">Ihr Termin (${escH(was)}) ist abgesagt.</p><p style="margin:0"><a href="${escH(seite(c) + "?betrieb=" + b.id)}" style="color:${b.farbe}">Neuen Termin buchen</a></p>`) }) : false,
+        ]);
+      }
+      return c.json({ ok: true });
+    }
     catch (e: any) { console.error("[termin-absagen]", e?.message || e); return c.json({ ok: false, fehler: TEXT.fehler }, 502); }
   });
 }
