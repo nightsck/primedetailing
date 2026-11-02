@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Anmelden · KI-Vertrieb</title>
+<style>:root{--paper:#F4F2EE;--sheet:#FFF;--ink:#1B1D1F;--muted:#6B6F73;--line:#D9D5CE;--signal:#F2C200;--bad:#A8322A}
+@media (prefers-color-scheme:dark){:root{--paper:#151617;--sheet:#1E2022;--ink:#ECEAE6;--muted:#8E9196;--line:#33363A;--bad:#F08A80}}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.b{max-width:440px;margin:64px auto;background:var(--sheet);border:1px solid var(--line);border-top:3px solid var(--signal);border-radius:4px;padding:24px;margin-left:16px;margin-right:16px}
+@media (min-width:480px){.b{margin-left:auto;margin-right:auto}}
+h1{font-size:22px;margin:0 0 8px}button,a.k{font:inherit;background:var(--ink);color:var(--paper);border:0;border-radius:4px;padding:10px 16px;cursor:pointer;text-decoration:none;display:inline-block}
+p{color:var(--muted)}.f{color:var(--bad)}</style></head>
+<body><div class="b"><h1>Anmelden</h1><p id="t">Einen Moment …</p><button id="k" type="button" hidden>Jetzt anmelden</button></div>
+<script>
+"use strict";
+const t = location.hash.slice(1), info = document.getElementById("t"), k = document.getElementById("k");
+history.replaceState(null, "", location.pathname);
+if (!/^[0-9a-f]{64}$/.test(t)) { info.innerHTML = 'Der Link ist unvollständig. <a href="/crm">Neuen Link anfordern</a>'; }
+else { info.textContent = "Klicken Sie auf den Knopf, um sich anzumelden."; k.hidden = false; }
+k.addEventListener("click", async () => {
+  k.disabled = true;
+  try {
+    const r = await fetch("/api/crm/anmelden", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t }) });
+    const j = await r.json();
+    if (j.ok) { location.replace("/crm#/heute"); return; }
+    info.className = "f"; info.innerHTML = (j.fehler || "Das hat nicht geklappt.").replace(/[<>&]/g, "") + ' <a href="/crm">Neuen Link anfordern</a>'; k.hidden = true;
+  } catch (e) { info.className = "f"; info.textContent = "Keine Verbindung. Bitte noch einmal versuchen."; k.disabled = false; }
+});
+</script></body></html>

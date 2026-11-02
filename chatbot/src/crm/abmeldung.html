@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Abmelden</title>
+<style>:root{--paper:#F4F2EE;--sheet:#FFF;--ink:#1B1D1F;--muted:#6B6F73;--line:#D9D5CE}
+@media (prefers-color-scheme:dark){:root{--paper:#151617;--sheet:#1E2022;--ink:#ECEAE6;--muted:#8E9196;--line:#33363A}}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.b{max-width:480px;margin:64px 16px;background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:24px}
+@media (min-width:520px){.b{margin:64px auto}}
+h1{font-size:22px;margin:0 0 8px}p{color:var(--muted)}button{font:inherit;background:var(--ink);color:var(--paper);border:0;border-radius:4px;padding:10px 16px;cursor:pointer}</style></head>
+<body><div class="b"><h1>Keine Nachrichten mehr erhalten</h1><p id="t">Mit einem Klick tragen wir Sie aus. Danach erhalten Sie von uns keine E-Mails und keine Anrufe mehr.</p>
+<button id="k" type="button">Jetzt abmelden</button></div>
+<script>
+"use strict";
+const t = new URLSearchParams(location.search).get("t") || "", info = document.getElementById("t"), k = document.getElementById("k");
+k.addEventListener("click", async () => {
+  k.disabled = true;
+  try {
+    const r = await fetch("/api/crm/abmeldung", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t }) });
+    const j = await r.json();
+    info.textContent = j.ok ? "Erledigt. Sie sind abgemeldet und werden nicht mehr kontaktiert." : (j.fehler || "Das hat nicht geklappt.") + " Schreiben Sie uns einfach kurz, dann tragen wir Sie von Hand aus.";
+    k.hidden = true;
+  } catch (e) { info.textContent = "Keine Verbindung. Bitte noch einmal versuchen."; k.disabled = false; }
+});
+</script></body></html>
