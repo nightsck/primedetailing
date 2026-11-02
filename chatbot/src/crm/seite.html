@@ -180,7 +180,7 @@ const ANSICHTEN = {
         <div class="zeile">${marke(f.status)} ${scoreHtml(f.score)} ${f.gesperrt ? `<span class="marke bad">gesperrt seit ${datum(f.gesperrt_datum)}</span>` : ""}</div></div>
       ${f.gesperrt ? `<p class="hinweis fehler">Gesperrt: ${esc(f.gesperrt_grund || "")}. Keine Anrufe und keine Mails.</p>` : ""}
       ${f.score_grund ? `<div class="hinweis"><b>Warum anrufen:</b> ${esc(f.score_grund)}${f.einstieg ? `<br><b>Einstieg:</b> „${esc(f.einstieg)}“` : ""}
-        ${inf.telefonzeiten || inf.online_buchung !== undefined ? `<br><span class="leise">${[inf.telefonzeiten ? "Telefonzeiten: " + esc(inf.telefonzeiten) : "", inf.online_buchung !== undefined ? "Online-Buchung: " + (inf.online_buchung ? "ja" : "nein") : "", inf.chat !== undefined ? "Chat: " + (inf.chat ? "ja" : "nein") : "", inf.methode === "regeln" ? "bewertet nach Regeln (ohne KI)" : ""].filter(Boolean).join(" · ")}</span>` : ""}</div>` : ""}
+        ${inf.telefonzeiten || inf.online_buchung !== undefined ? `<br><span class="leise">${[inf.telefonzeiten ? "Telefonzeiten: " + esc(inf.telefonzeiten) : "", inf.online_buchung !== undefined ? "Online-Buchung: " + (inf.online_buchung ? "ja" : "nein") : "", inf.chat !== undefined ? "Chat: " + (inf.chat ? "ja" : "nein") : "", inf.methode === "regeln" ? "bewertet nach Regeln (ohne KI" + (inf.ki_fehler ? ": " + esc(inf.ki_fehler) : "") + ")" : ""].filter(Boolean).join(" · ")}</span>` : ""}</div>` : ""}
       <div class="raster"><div class="stapel">
         <form id="anruf" class="blatt stapel ${f.gesperrt ? "versteckt" : ""}"><h2>Anruf erfassen</h2>
           <div class="radios">${erg.map(([k, t]) => `<label><input type="radio" name="ergebnis" value="${k}" required> ${t}</label>`).join("")}</div>

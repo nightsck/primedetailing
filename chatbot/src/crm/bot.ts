@@ -143,11 +143,12 @@ Antworte NUR mit einem JSON-Objekt ohne weiteren Text:
 {"score": 0-100, "begruendung": "2-3 sachliche Sätze, warum ein Anruf sinnvoll ist oder nicht (dient als dokumentierter Sachbezug)", "einstieg": "ein freundlicher Einstiegssatz für das Telefonat in Sie-Form", "inhaber": "Name des Inhabers/Geschäftsführers laut Impressum oder leer", "telefon": "Telefonnummer laut Website oder leer", "email": "allgemeine E-Mail laut Impressum oder leer", "telefonzeiten": "kurz oder leer", "online_buchung": true/false, "chat": true/false, "mitarbeitende": "Schätzung oder leer"}`;
 
 export function kiJson(text: string): any | null {
-  const m = text.match(/\{[\s\S]*\}/);
+  const m = text.replace(/```(?:json)?/gi, "").match(/\{[\s\S]*\}/);
   if (!m) return null;
   try { return JSON.parse(m[0]); } catch { return null; }
 }
-export async function kiBewertung(f: Fetch, schluessel: string, modell: string, t: Treffer | any, w: { start: string; impressum: string } | null): Promise<Bewertung | null> {
+/** Wirft einen Fehler mit Grund, wenn die KI nicht bewerten konnte. */
+export async function kiBewertung(f: Fetch, schluessel: string, modell: string, t: Treffer | any, w: { start: string; impressum: string } | null): Promise<Bewertung> {
   const daten = [
     `Name: ${t.name}`, `Branche: ${t.branche || "unbekannt"}`, `Ort: ${[t.plz, t.ort].filter(Boolean).join(" ") || "unbekannt"}`,
     `Telefon: ${t.telefon || "unbekannt"}`, `Website: ${t.website || "keine"}`,
@@ -156,12 +157,15 @@ export async function kiBewertung(f: Fetch, schluessel: string, modell: string, 
   ].filter(Boolean).join("\n");
   const r = await f("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": schluessel, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: modell, max_tokens: 600, system: SYSTEM, messages: [{ role: "user", content: daten }] }), signal: AbortSignal.timeout(25_000),
+    body: JSON.stringify({ model: modell, max_tokens: 1200, system: SYSTEM, messages: [{ role: "user", content: daten }] }), signal: AbortSignal.timeout(30_000),
   });
-  if (!r.ok) throw new Error(`KI antwortet mit ${r.status}`);
+  if (!r.ok) throw new Error(`KI antwortet mit ${r.status}: ${(await r.text().catch(() => "")).slice(0, 160)}`);
   const j: any = await r.json();
-  const o = kiJson((j.content || []).map((c: any) => c.text || "").join(""));
-  if (!o || typeof o.score !== "number") return null;
+  const text = (j.content || []).map((c: any) => c.text || "").join("");
+  const o = kiJson(text);
+  const punkte = Number(o?.score);
+  if (!o || !Number.isFinite(punkte)) throw new Error(`KI-Antwort unlesbar (${j.stop_reason || "?"}): ${text.slice(0, 120)}`);
+  o.score = punkte;
   const s = (x: unknown, n = 300) => (typeof x === "string" ? x.trim().slice(0, n) : "");
   return {
     score: Math.max(0, Math.min(100, Math.round(o.score))), begruendung: s(o.begruendung, 1200), einstieg: s(o.einstieg, 400),

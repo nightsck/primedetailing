@@ -312,3 +312,18 @@ test("Von Hand bewerten: auch angelegte Firmen, Status springt auf Anruf-Impuls"
   await app.anfrage("POST", `/api/crm/firma/${id}/bewerten`, { env, header: h, body: {} });
   assert.equal(kern.firma(id)!.status, "termin", "Neubewertung ändert keinen späteren Status");
 });
+
+test("KI-Antwort: Punkte als Text, JSON im Codeblock, unlesbare Antwort → Regeln mit Grund", async () => {
+  assert.equal(B.kiJson('```json\n{"score": "64"}\n```').score, "64");
+  const ok = netz({ ki: { score: "64", begruendung: "Mittel" } });
+  const b = await B.kiBewertung(ok.f, "sk", "m", { name: "X" }, null);
+  assert.equal(b.score, 64);
+  const kaputt = { ...ok, f: (async () => Response.json({ content: [{ text: "Tut mir leid" }], stop_reason: "end_turn" })) as any };
+  await assert.rejects(B.kiBewertung(kaputt.f, "sk", "m", { name: "X" }, null), /unlesbar \(end_turn\): Tut mir leid/);
+  const kern = crmKern(testSql());
+  const { id } = kern.firmaAnlegen({ name: "Grund GmbH" }, "Tom");
+  await R.bewerteFirma({ env: ENV(kern) }, kern.firma(id), ok.f);
+  assert.match(kern.firma(id)!.infos.ki_fehler, /kein KI-Schlüssel/);
+  await R.bewerteFirma({ env: ENV(kern, { ANTHROPIC_API_KEY: "sk" }) }, kern.firma(id), kaputt.f);
+  assert.match(kern.firma(id)!.infos.ki_fehler, /unlesbar/);
+});
