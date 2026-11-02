@@ -33,6 +33,22 @@ npm start                     # http://localhost:8787
 - [ ] AV-Vertrag mit Anthropic (in der Console unter Legal/DPA) und Cloudflare (im Dashboard) akzeptieren
 - [ ] Optional, zusätzlich zu den eingebauten Limits: In Cloudflare unter **Security → WAF → Rate limiting rules** eine Regel: max. 20 Anfragen pro 10 Sekunden pro IP auf `/api/*` (blockt grobe Angriffe, bevor der Worker überhaupt läuft)
 
+## Termin-Bot mit Google Kalender verbinden (optional)
+Ohne Kalender läuft `/demo/termin/` im Vorführmodus: Zeiten nach Öffnungszeiten, Buchungen nur im Browser. Mit Kalender zeigt der Bot echte freie Zeiten und trägt Termine direkt ein. Dauer ca. 15 Minuten, kostenlos.
+
+1. **console.cloud.google.com** → oben neues Projekt anlegen, z. B. `termin-bot`.
+2. **APIs & Dienste → Bibliothek** → „Google Calendar API“ suchen → **Aktivieren**.
+3. **IAM & Verwaltung → Dienstkonten → Dienstkonto erstellen**, Name `termin-bot`, Rollen braucht es keine. Danach das Dienstkonto öffnen → **Schlüssel → Schlüssel hinzufügen → Neuen Schlüssel erstellen → JSON**. Eine Datei wird heruntergeladen.
+4. **calendar.google.com** → links bei „Weitere Kalender“ auf **+ → Neuen Kalender erstellen**, z. B. „Termine Demo“. Dann **Einstellungen und Freigabe** dieses Kalenders:
+   - **Für bestimmte Personen freigeben** → die E-Mail des Dienstkontos eintragen (endet auf `iam.gserviceaccount.com`, steht auch in der JSON-Datei bei `client_email`) → Berechtigung **„Änderungen an Terminen vornehmen“**.
+   - Weiter unten bei **Kalender integrieren** die **Kalender-ID** kopieren (endet auf `@group.calendar.google.com`).
+5. Cloudflare → Workers & Pages → `primedetailing-chat` → **Settings → Variables and secrets**:
+   - **Add → Secret**, Name `GOOGLE_SA_JSON`, Wert = **kompletter Inhalt** der JSON-Datei.
+   - **Add → Text**, Name `TERMIN_KALENDER`, Wert = Kalender-ID. → **Deploy**.
+6. Test im Browser: `https://primedetailing-chat.tom-schindler999.workers.dev/api/demo/termin/zeiten?betrieb=fahrzeug&termin=aussen` muss `"kalender":true` zeigen.
+
+Danach die JSON-Datei löschen oder sicher ablegen, **nie ins Repo**. Optional je Beispielbetrieb ein eigener Kalender: `TERMIN_KALENDER_FAHRZEUG`, `TERMIN_KALENDER_MALER`, `TERMIN_KALENDER_ELEKTRO`. Termine aus der Vorführung tragen „[Demo]“ im Titel; `TERMIN_DEMO = "0"` schaltet das für echte Kunden ab. Buchungen zählen zum Formular-Limit (max. 10 pro Besucher und Tag), die Notbremse `KILL_SWITCH` stoppt auch den Termin-Bot.
+
 ## Schutz vor Spam und Kosten (eingebaut)
 | Schutz | Wert | Wo ändern |
 |---|---|---|

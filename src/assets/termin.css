@@ -1,0 +1,48 @@
+/* Vorführseite /demo/termin/: Termin-Bot. Baut auf demo.css und bewerben.css auf. */
+
+.tm-wide { max-width: 100% !important; width: 100%; }
+.tm-pick { gap: 10px; }
+.tm-busy { opacity: .6; }
+.tm-week { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+.tm-nav { width: 34px; height: 34px; border: 1px solid var(--mf-line); border-radius: var(--r-mf); background: #FFFFFF; color: var(--mf-ink); font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.tm-nav:hover:not(:disabled) { border-color: var(--mf-brand); color: var(--mf-brand); }
+.tm-nav:disabled { opacity: .35; cursor: default; }
+
+.tm-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.tm-day { border: 1px solid var(--mf-line); border-radius: var(--r-mf); background: #FFFFFF; color: var(--mf-ink); padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.tm-day b { font-size: 14px; font-variant-numeric: tabular-nums; }
+.tm-day .tm-wd { font-size: 12px; color: var(--mf-muted); }
+.tm-day small { font-size: 11px; color: var(--mf-brand); font-weight: 600; white-space: nowrap; }
+.tm-day[data-leer] small { color: var(--mf-muted); font-weight: 500; }
+.tm-day[data-leer] b { color: var(--mf-muted); }
+.tm-day:hover { border-color: var(--mf-brand); }
+.tm-day[aria-pressed="true"] { background: var(--mf-brand); border-color: var(--mf-brand); color: #FFFFFF; }
+.tm-day[aria-pressed="true"] .tm-wd, .tm-day[aria-pressed="true"] small, .tm-day[aria-pressed="true"] b { color: #FFFFFF; }
+
+.tm-dayname { font-size: 14px; font-weight: 600; min-height: 1.2em; }
+.tm-group { display: flex; flex-direction: column; gap: 6px; }
+.tm-group + .tm-group { margin-top: 4px; }
+.tm-dim { opacity: .5; }
+.tm-gt { font-size: 12.5px; color: var(--mf-muted); font-weight: 600; }
+.tm-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.tm-slot { border: 1px solid var(--mf-brand); color: var(--mf-brand); background: #FFFFFF; border-radius: var(--r-mf); padding: 8px 4px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tm-slot:hover { background: var(--mf-brand-2); }
+.tm-slots .tm-slot:only-child { grid-column: 1 / -1; justify-self: start; padding: 8px 14px; }
+.tm-leer, .tm-load { font-size: 14px; color: var(--mf-muted); padding: 6px 0; }
+
+.tm-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }
+.card label small { font-weight: 400; color: var(--mf-muted); }
+
+.tm-done { gap: 10px; }
+.tm-ok { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.tm-ok svg { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--mf-brand); stroke: #FFFFFF; stroke-width: 2.4; fill: none; padding: 3px; }
+.tm-abgesagt { opacity: .7; }
+.tm-abgesagt b { text-decoration: line-through; }
+.tm-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; }
+.tm-done .chips { margin-top: 2px; }
+
+@media (max-width: 400px) {
+  .tm-day { padding: 5px 0; }
+  .tm-day small { font-size: 10px; }
+  .tm-day b { font-size: 13px; }
+}

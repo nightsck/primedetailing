@@ -19,6 +19,8 @@ WEB3FORMS_KEY = "c7958793-0cd7-4107-9c71-becdc1ee3948"
 # Geheimnisse (einmalig setzen):
 #   npx wrangler secret put ANTHROPIC_API_KEY
 #   npx wrangler secret put SESSION_SECRET      (beliebige lange Zufallszeichenkette)
+#   npx wrangler secret put GOOGLE_SA_JSON      (optional: Termin-Bot mit Google Kalender, siehe CLOUDFLARE.md)
+# Dazu die Kalender-ID als Variable TERMIN_KALENDER im Dashboard (bleibt dank keep_vars erhalten).
 
 # Zähler für die Spam-Limits (Minute/Stunde/Tag pro Besucher + Tagesbudget).
 # Läuft im kostenlosen Workers-Tarif.

@@ -1,0 +1,73 @@
+---
+permalink: /demo/termin/index.html
+eleventyExcludeFromCollections: true
+noindex: true
+---
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Termin buchen mit KI · Vorführung</title>
+<meta name="description" content="Vorführung: Kunden buchen ihren Termin selbst, mit echten freien Zeiten aus dem Kalender des Betriebs.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1B1D1F">
+<link rel="icon" href="data:,">
+<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-tight.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="/assets/betriebe.js">
+<link rel="stylesheet" href="/assets/demo.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/bewerben.css?v={{ build.version }}">
+<link rel="stylesheet" href="/assets/termin.css?v={{ build.version }}">
+</head>
+<body class="bw-page" data-api="{{ site.chatbot_url }}">
+<header class="top bw-top">
+  <div class="top-in bw-top-in">
+    <p class="mark">Auftragsfänger <span>Vorführung · Termin-Bot</span></p>
+    <div class="bw-switch" role="group" aria-label="Beispielbetrieb wählen">
+      <span class="bw-switch-label">Beispielbetrieb</span>
+      <button type="button" class="bw-b" data-betrieb="fahrzeug" aria-pressed="true">Fahrzeugpflege</button>
+      <button type="button" class="bw-b" data-betrieb="maler" aria-pressed="false">Maler</button>
+      <button type="button" class="bw-b" data-betrieb="elektro" aria-pressed="false">Elektro</button>
+    </div>
+    <a class="bw-back" href="/demo/#termine">So sieht es der Betrieb</a>
+  </div>
+</header>
+
+<main class="bw-main">
+  <section class="bw-app" id="tmApp" aria-label="Termin buchen">
+    <div class="bw-head">
+      <div class="bw-logo" id="tmLogo" aria-hidden="true">M</div>
+      <div class="bw-title"><b id="tmName">Muster Fahrzeugpflege</b><span>Termin buchen · Assistent mit KI</span></div>
+      <button class="chat-x" type="button" id="tmRestart" title="Von vorn anfangen" aria-label="Von vorn anfangen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+    </div>
+    <div class="bw-progress" aria-live="polite">
+      <div class="bw-bar"><span id="tmBar"></span></div>
+      <p id="tmStep">Schritt 1 von 4 · Was</p>
+    </div>
+    <div class="log bw-log" id="tmLog" aria-live="polite"></div>
+    <form class="chat-input" id="tmForm" autocomplete="off">
+      <input type="text" id="tmText" placeholder="Frage stellen, z. B. wie lange es dauert" aria-label="Nachricht" maxlength="400" enterkeyhint="send">
+      <button class="icon-btn send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="chat-foot"><span id="tmState"></span><a href="/datenschutz/" target="_blank" rel="noopener">Datenschutz</a></p>
+  </section>
+
+  <aside class="bw-side">
+    <h1>Termine bucht der Kunde selbst, auch um 22 Uhr</h1>
+    <p>So sieht der Termin-Bot auf der Website eines Betriebs aus. Er zeigt nur Zeiten, die im Kalender wirklich frei sind, und trägt den Termin direkt ein. Kein Hin und Her am Telefon.</p>
+    <ol class="steps">
+      <li><b>Terminart wählen</b>, die Dauer kennt der Bot.</li>
+      <li><b>Tag und Uhrzeit antippen</b> oder einfach schreiben, z. B. „Dienstag nachmittag“.</li>
+      <li><b>Kontakt eintragen</b>, bei Terminen vor Ort auch die Adresse. Die Fahrzeit plant der Bot ein.</li>
+      <li><b>Buchen.</b> Der Termin steht sofort im Kalender des Betriebs, der Kunde kann ihn in seinen Kalender übernehmen oder absagen.</li>
+    </ol>
+    <p class="aside">Zeiten und Buchung rechnet das Programm, nicht die KI. Die KI beantwortet nur Fragen, zum Beispiel wie lange etwas dauert.</p>
+    <p class="aside">Vorführung: Bitte keine echten Daten eingeben. Ist kein Kalender verbunden, bleiben Termine in diesem Browser.</p>
+  </aside>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/assets/termin.js?v={{ build.version }}"></script>
+</body>
+</html>
