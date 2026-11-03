@@ -447,3 +447,81 @@ test("Impuls-Mails: morgens immer (auch ohne Impulse, mit Bot-Stand), Nachtrag a
   assert.equal(r.neu, 1);
   assert.equal(r.mail, true);
 });
+
+/* ---------- GitHub Actions als Sucher ---------- */
+async function githubSchluessel(kid = "k1") {
+  const paar = await crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["sign", "verify"]);
+  const jwk: any = await crypto.subtle.exportKey("jwk", paar.publicKey);
+  const b64u = (b: Uint8Array | string) => Buffer.from(b).toString("base64url");
+  const token = async (claims: Record<string, unknown>, k = kid) => {
+    const kopf = b64u(JSON.stringify({ alg: "RS256", kid: k, typ: "JWT" }));
+    const inhalt = b64u(JSON.stringify(claims));
+    const sig = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", paar.privateKey, new TextEncoder().encode(kopf + "." + inhalt)));
+    return kopf + "." + inhalt + "." + b64u(sig);
+  };
+  const jwks = { keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }] };
+  return { token, jwks };
+}
+const jetztS = () => Math.floor(Date.now() / 1000);
+const gueltig = () => ({ iss: "https://token.actions.githubusercontent.com", aud: "primedetailing-crm", exp: jetztS() + 300, nbf: jetztS() - 5,
+  repository: "nightsck/primedetailing", ref: "refs/heads/main", workflow_ref: "nightsck/primedetailing/.github/workflows/osm-suche.yml@refs/heads/main", run_id: "42" });
+
+test("GitHub-Kennung: echt und passend ja; fremdes Repo, Branch, Workflow, abgelaufen, gefälscht nein", async () => {
+  const g = await githubSchluessel("gh-test-1");
+  const f = (async (url: string) => { assert.equal(url, "https://token.actions.githubusercontent.com/.well-known/jwks"); return Response.json(g.jwks); }) as any;
+  const c = { env: {} };
+  assert.deepEqual(await R.githubLaufPruefen(c, "Bearer " + await g.token(gueltig()), f), { ok: true, lauf: "42" });
+  const nein = async (aend: Record<string, unknown>, grund: RegExp) => {
+    const r = await R.githubLaufPruefen(c, "Bearer " + await g.token({ ...gueltig(), ...aend }), f);
+    assert.equal(r.ok, false); assert.match((r as any).grund, grund);
+  };
+  await nein({ repository: "boese/primedetailing", workflow_ref: "boese/primedetailing/.github/workflows/osm-suche.yml@refs/heads/main" }, /fremdes Repo/);
+  await nein({ ref: "refs/pull/3/merge" }, /main-Zweig/);
+  await nein({ workflow_ref: "nightsck/primedetailing/.github/workflows/anders.yml@refs/heads/main" }, /Workflow/);
+  await nein({ exp: jetztS() - 1 }, /abgelaufen/);
+  await nein({ aud: "andere" }, /Zielgruppe/);
+  const fremd = await githubSchluessel("gh-test-1");
+  assert.match(((await R.githubLaufPruefen(c, "Bearer " + await fremd.token(gueltig()), f)) as any).grund, /Signatur falsch/);
+  assert.equal((await R.githubLaufPruefen(c, undefined, f)).ok, false);
+  // neuer Schlüssel bei GitHub: wird nachgeladen
+  const neu = await githubSchluessel("gh-test-2");
+  const f2 = (async () => Response.json({ keys: [...g.jwks.keys, ...neu.jwks.keys] })) as any;
+  assert.equal((await R.githubLaufPruefen(c, "Bearer " + await neu.token(gueltig(), "gh-test-2"), f2)).ok, true);
+});
+
+test("GitHub-Suche: Aufgabe holen, Ergebnis abliefern, Gebiet weiterschalten; ohne Kennung abgelehnt", async () => {
+  const g = await githubSchluessel("gh-test-3");
+  const kern = crmKern(testSql()); const env = ENV(kern);
+  const echt = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => String(url).includes("token.actions") ? Response.json(g.jwks) : new Response("", { status: 404 })) as any;
+  try {
+    const app = miniApp(); R.crmRouten(app);
+    const h = { authorization: "Bearer " + await g.token(gueltig(), "gh-test-3") };
+    let r = await app.anfrage("POST", "/api/crm/osm/aufgabe", { env, body: {} });
+    assert.equal(r.status, 401, "ohne Kennung");
+    r = await app.anfrage("POST", "/api/crm/osm/aufgabe", { env, header: h, body: {} });
+    const a = await r.json();
+    assert.deepEqual(a.kachel, [48.7, 9.15, 48.8, 9.3]);
+    assert.match(a.abfrage, /area\["ISO3166-2"="DE-BW"\]/);
+    assert.ok(a.server.length >= 2);
+    // falsches Gebiet → 409
+    r = await app.anfrage("POST", "/api/crm/osm/ergebnis", { env, header: h, body: { kachel: [1, 2, 3, 4], elements: [] } });
+    assert.equal(r.status, 409);
+    const elements = [{ type: "node", id: 1, tags: { name: "Physio Mitte", healthcare: "physiotherapist", website: "https://physio.de" } }, { type: "node", id: 2, tags: { name: "Café Eck", amenity: "cafe", email: "a@b.de" } }];
+    r = await app.anfrage("POST", "/api/crm/osm/ergebnis", { env, header: h, body: { kachel: a.kachel, elements } });
+    const e = await r.json();
+    assert.equal(e.bericht.neu, 2);
+    assert.equal(kern.firmen({ q: "Physio" })[0].branche, "Physiotherapie");
+    assert.equal(kern.zustand("bw_fortschritt").zeiger, 1);
+    // nächste Aufgabe ist das nächste Gebiet
+    r = await app.anfrage("POST", "/api/crm/osm/aufgabe", { env, header: h, body: {} });
+    assert.notDeepEqual((await r.json()).kachel, a.kachel);
+    // Server sucht dann 3 Stunden nicht selbst
+    const n = netz({}); const b: any = await R.geplant(env, Date.now(), n.f);
+    assert.equal(b.suche, undefined);
+    // Bot aus → keine Aufgabe
+    kern.einstellungenSetzen({ bot_aktiv: false });
+    r = await app.anfrage("POST", "/api/crm/osm/aufgabe", { env, header: h, body: {} });
+    assert.equal((await r.json()).kachel, null);
+  } finally { globalThis.fetch = echt; }
+});
