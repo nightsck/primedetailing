@@ -135,7 +135,11 @@ const ANSICHTEN = {
   async heute() {
     const [s, h] = await Promise.all([api("GET", "/start"), api("GET", "/heute")]);
     const b = s.bot || {};
-    const suche = b.letzte_suche ? (b.letzte_suche.fehler ? `Letzte Suche am ${datum(b.letzte_suche.tag)}: Fehler (${esc(b.letzte_suche.fehler)})` : `Letzte Suche am ${datum(b.letzte_suche.tag)}: ${esc(ICH.branchen[b.letzte_suche.branche] || b.letzte_suche.branche)} in ${esc(b.letzte_suche.region)}, ${b.letzte_suche.neu} neue Firmen`) : "Der Bot hat noch nicht gesucht.";
+    const ls = b.letzte_suche;
+    const wo = ls ? (ls.modus === "bw" || ls.kachel ? "Baden-Württemberg" : `${esc(ICH.branchen[ls.branche] || ls.branche)} in ${esc(ls.region)}`) : "";
+    const suche = [ls ? (ls.fehler ? `Letzte Suche am ${datum(ls.tag)}: OpenStreetMap gerade nicht erreichbar, neuer Versuch in 30 Minuten` : `Letzte Suche am ${datum(ls.tag)}: ${wo}, ${ls.neu} neue Firmen`) : "Der Bot hat noch nicht gesucht.",
+      b.bw && b.bw.gesamt ? `Baden-Württemberg: ${Math.min(b.bw.zeiger, b.bw.gesamt)} von ${b.bw.gesamt} Gebieten abgesucht` : "",
+      b.ki_heute && b.ki_heute.tag === heute() ? `${b.ki_heute.n} KI-Bewertungen heute` : ""].filter(Boolean).join(" · ");
     return `<div class="stapel"><div class="zeile zwischen"><h1>Heute anrufen</h1><a class="knopf" href="#/firmen?neu=1">+ Firma anlegen</a></div>
       <div class="zahlen"><div><b class="num">${s.anrufen}</b><span>heute anrufen</span></div><div><b class="num">${s.kunden}</b><span>Kunden</span></div>
       <div><b class="num">${eur(s.monat_ct)}</b><span>monatlich aus Verträgen</span></div><div><b class="num">${eur(s.offen_ct)}</b><span>offene Zahlungen${s.ueberfaellig ? `, ${s.ueberfaellig} überfällig` : ""}</span></div></div>
@@ -269,17 +273,23 @@ const ANSICHTEN = {
     const s = await api("GET", "/start");
     return `<div class="stapel"><h1>Einstellungen</h1>
       <form id="einst" class="blatt stapel"><h2>Akquise-Bot</h2>
-        <label class="check"><input type="checkbox" name="bot_aktiv" ${e.bot_aktiv ? "checked" : ""}> <span>Bot ist aktiv (sucht morgens neue Firmen, bewertet sie, schickt werktags ab 8 Uhr Anruf-Impulse)</span></label>
+        <label class="check"><input type="checkbox" name="bot_aktiv" ${e.bot_aktiv ? "checked" : ""}> <span>Bot ist aktiv (sucht neue Firmen, bewertet sie, schickt werktags ab 8 Uhr Anruf-Impulse und ab 14 Uhr einen Nachtrag)</span></label>
+        <fieldset style="border:0;padding:0;margin:0"><legend class="leise">Wo sucht der Bot?</legend><div class="radios">
+          <label><input type="radio" name="suchmodus" value="bw" ${e.suchmodus === "bw" ? "checked" : ""}> Ganz Baden-Württemberg, alle Branchen (Firmen mit Website oder E-Mail, ohne Filialketten)</label>
+          <label><input type="radio" name="suchmodus" value="branchen" ${e.suchmodus === "branchen" ? "checked" : ""}> Nur die Zielbranchen in den Zielregionen unten</label></div></fieldset>
+        <div class="felder"><label>KI-Bewertungen pro Tag (Kostenbremse, je ca. 0,05 Cent)<input name="ki_pro_tag" type="number" min="0" max="1000" value="${e.ki_pro_tag}"></label></div>
+        <details ${e.suchmodus === "branchen" ? "open" : ""}><summary>Zielbranchen und Zielregionen (nur für „Nur die Zielbranchen“)</summary><div class="stapel" style="margin-top:12px">
         <fieldset style="border:0;padding:0;margin:0"><legend class="leise">Zielbranchen</legend><div class="radios">${Object.entries(ICH.branchen).map(([k, v]) => `<label><input type="checkbox" name="b_${k}" ${e.zielbranchen.includes(k) ? "checked" : ""}> ${esc(v)}</label>`).join("")}</div></fieldset>
         <div class="felder"><label class="breit">Zielregionen (Städte, Landkreise oder Bundesländer, eine pro Zeile)<textarea name="zielregionen">${esc(e.zielregionen.join("\n"))}</textarea></label>
-          <label>Anruf-Impuls ab Punkten<input name="schwelle" type="number" min="0" max="100" value="${e.schwelle}"></label><label>Impulse pro Tag<input name="impulse_pro_tag" type="number" min="1" max="100" value="${e.impulse_pro_tag}"></label>
-          <label>Höchstens neue Firmen pro Suche<input name="neue_pro_lauf" type="number" min="5" max="100" value="${e.neue_pro_lauf}"></label><label>Anruf-Impulse an<input name="impulse_an" type="email" value="${esc(e.impulse_an)}"></label></div>
+          <label>Höchstens neue Firmen pro Suche<input name="neue_pro_lauf" type="number" min="5" max="100" value="${e.neue_pro_lauf}"></label></div></div></details>
+        <div class="felder"><label>Anruf-Impuls ab Punkten<input name="schwelle" type="number" min="0" max="100" value="${e.schwelle}"></label><label>Impulse pro Tag<input name="impulse_pro_tag" type="number" min="1" max="100" value="${e.impulse_pro_tag}"></label>
+          <label>Anruf-Impulse an<input name="impulse_an" type="email" value="${esc(e.impulse_an)}"></label></div>
         <h2>Info-Mail (nur mit Einwilligung)</h2><div class="felder"><label class="breit">Betreff<input name="infomail_betreff" value="${esc(e.infomail_betreff)}"></label>
           <label class="breit">Text (Platzhalter {firma} und {ansprechpartner})<textarea name="infomail_text" rows="10">${esc(e.infomail_text)}</textarea></label>
           <label class="breit">Impressum (wird unter jede Info-Mail gesetzt)<textarea name="impressum" placeholder="Firmenname, Anschrift, Vertretungsberechtigte, Kontakt">${esc(e.impressum)}</textarea></label></div>
         <button class="haupt" type="submit">Speichern</button></form>
       <section class="blatt stapel"><h2>Bot jetzt laufen lassen</h2><p class="zweit">Läuft sonst alle 10 Minuten von allein. ${s.bot.wartend} Firmen warten auf Bewertung.</p>
-        <div class="zeile"><button type="button" data-bot="bewerten">Zwei Firmen bewerten</button><button type="button" data-bot="suche">Jetzt neue Firmen suchen</button><button type="button" data-bot="impulse">Anruf-Impulse jetzt schicken</button></div>
+        <div class="zeile"><button type="button" data-bot="bewerten">Firmen bewerten</button><button type="button" data-bot="suche">Jetzt neue Firmen suchen</button><button type="button" data-bot="impulse">Anruf-Impulse jetzt schicken</button></div>
         <pre id="botBericht" class="leise" style="white-space:pre-wrap;margin:0"></pre></section></div>`;
   },
 };

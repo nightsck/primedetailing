@@ -11,7 +11,7 @@
 import type { Hono } from "hono";
 import { sendeMail, gueltigeMail } from "../mail.ts";
 import { STATUS_TEXT, tagAus, type CrmKern } from "./kern.ts";
-import { BRANCHEN, sucheFirmen, websiteLesen, kiBewertung, regelBewertung } from "./bot.ts";
+import { BRANCHEN, sucheFirmen, websiteLesen, kiBewertung, regelBewertung, bwKacheln, vierteln, sucheKachel, OVERPASS, type Kachel } from "./bot.ts";
 import { CRM_SEITE, ANMELDE_SEITE, ABMELDE_SEITE } from "./seite.ts";
 
 type Kern = { [K in keyof CrmKern]: (...a: Parameters<CrmKern[K]>) => Promise<ReturnType<CrmKern[K]>> };
@@ -99,25 +99,27 @@ export async function infomailSenden(c: any, firmaId: number, durch: string): Pr
   return { ok: true };
 }
 
-function impulseMail(url: string, i: { neu: any[]; faellig: any[] }) {
+function impulseMail(url: string, i: { neu: any[]; faellig: any[] }, stand: string[] = [], art = "morgen", leer = false) {
   const zeile = (f: any, extra: string) => `<tr><td style="padding:10px 0;border-top:1px solid #E5E1DA;vertical-align:top">
     <a href="${escH(url)}/crm#/firma/${f.id}" style="color:#1B1D1F;font-weight:bold">${escH(f.name)}</a> <span style="color:#6B6F73">${escH([f.branche, f.ort].filter(Boolean).join(", "))}</span><br>
     ${f.telefon ? `<a href="tel:${escH(String(f.telefon).replace(/[^\d+]/g, ""))}" style="color:#1B1D1F">${escH(f.telefon)}</a>` : "keine Nummer"}${f.score != null ? ` · <b>${f.score}</b> Punkte` : ""}${extra}</td></tr>`;
   const neu = i.neu.map((f) => zeile(f, `${f.score_grund ? `<br><span style="color:#4A4E52">Warum: ${escH(f.score_grund)}</span>` : ""}${f.einstieg ? `<br><span style="color:#4A4E52">Einstieg: „${escH(f.einstieg)}“</span>` : ""}`)).join("");
   const fl = i.faellig.map((f) => zeile(f, ` · Wiedervorlage ${escH(f.wiedervorlage)} (${escH(STATUS_TEXT[f.status] || f.status)})`)).join("");
-  return rahmen(`Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`,
-    `${i.neu.length ? `<p style="margin:0 0 4px;font-weight:bold">Neue Anruf-Impulse</p><table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${neu}</table>` : ""}
+  return rahmen(art === "nachtrag" ? `Nachtrag: ${i.neu.length} neue Anruf-Impulse` : leer ? "Heute noch keine Anruf-Impulse" : `Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`,
+    `${leer ? `<p style="margin:0 0 12px">Heute gibt es noch niemanden anzurufen. Neue Impulse kommen als Nachtrag ab 14 Uhr.</p>` : ""}${i.neu.length ? `<p style="margin:0 0 4px;font-weight:bold">Neue Anruf-Impulse</p><table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${neu}</table>` : ""}
      ${i.faellig.length ? `<p style="margin:20px 0 4px;font-weight:bold">Wiedervorlagen</p><table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${fl}</table>` : ""}
      <p style="margin:20px 0 0"><a href="${escH(url)}/crm#/heute" style="display:inline-block;background:#1B1D1F;color:#FFFFFF;text-decoration:none;padding:10px 16px;border-radius:4px">CRM öffnen</a></p>
+     ${stand.length ? `<p style="margin:20px 0 0;padding-top:12px;border-top:1px solid #E5E1DA;color:#4A4E52;font-size:14px">${stand.map(escH).join("<br>")}</p>` : ""}
      <p style="margin:12px 0 0;color:#6B6F73;font-size:13px">Nach jedem Telefonat im CRM „Anruf erfassen“. Werbe-Mails nur nach Einwilligung.</p>`);
 }
 
 /** Website lesen und bewerten (KI, sonst Regeln); speichert das Ergebnis in der Kundenakte. */
 export async function bewerteFirma(c: any, firma: any, f: typeof fetch = fetch) {
-  const schluessel = wert(c, "ANTHROPIC_API_KEY"), modell = wert(c, "CRM_MODELL") || "claude-haiku-5-5";
+  const schluessel = wert(c, "CRM_ANTHROPIC_API_KEY") || wert(c, "ANTHROPIC_API_KEY"), modell = wert(c, "CRM_MODELL") || "claude-haiku-5-5";
   const w = await websiteLesen(f, firma.website);
   let b = null, grund = "";
   if (!schluessel) grund = "kein KI-Schlüssel (ANTHROPIC_API_KEY) gefunden";
+  else if (!w) grund = firma.website ? "Website nicht erreichbar" : "keine Website";
   else { try { b = await kiBewertung(f, schluessel, modell, firma, w); } catch (err: any) { grund = String(err?.message || err).slice(0, 300); console.error("[crm-ki]", grund); } }
   if (!b) { b = regelBewertung(firma, w); b.infos.ki_fehler = grund; }
   return crm(c).bewertungSpeichern(firma.id, b);
@@ -152,49 +154,121 @@ export async function geplant(env: any, jetzt = Date.now(), f: typeof fetch = fe
   }
   if (!e.bot_aktiv) return { ...bericht, bot: "aus" };
 
-  // 2) Neue Firmen suchen: einmal am Tag ab 6 Uhr (W1). Schlägt die Suche fehl
-  //    (OpenStreetMap überlastet), nach einer Stunde noch einmal, höchstens bis 20 Uhr.
-  const fehlversuch = Number(await k.zustand("suche_fehlversuch")) || 0;
-  if (stunde >= 6 && stunde < 20 && (await k.zustand("suche_tag")) !== heute && jetzt - fehlversuch >= 3_600_000) {
-    const s = await k.naechsteSuche();
-    if (s) {
-      try {
-        const treffer = await sucheFirmen(f, s.branche, s.region, Math.max(5, e.neue_pro_lauf));
-        let neu = 0, gesperrt = 0;
-        for (const t of treffer) {
-          if (await k.istGesperrt(t)) { gesperrt++; continue; }
-          const r = await k.firmaAnlegen({ ...t, bundesland: null }, "Bot", "bot");
-          if (r.neu) neu++;
-        }
-        await k.zustand("suche_tag", heute);
-        await k.zustand("letzte_suche", { tag: heute, ...s, treffer: treffer.length, neu, gesperrt });
-        bericht.suche = { ...s, treffer: treffer.length, neu };
-      } catch (err: any) {
-        await k.zustand("suche_fehlversuch", jetzt);
-        await k.zustand("letzte_suche", { tag: heute, ...s, fehler: String(err?.message || err).slice(0, 300) });
-        bericht.suche = { fehler: String(err?.message || err) };
-      }
-    } else await k.zustand("suche_tag", heute);
-  }
+  // 2) Neue Firmen suchen (W1)
+  bericht.suche = await suchen(c, e, jetzt, heute, stunde, f);
+  if (!bericht.suche) delete bericht.suche;
 
-  // 3) Bewerten: bei jedem Durchlauf zwei Firmen (W1 Website lesen + W2 Bewertung)
-  const offen = await k.zuBewerten(2);
-  let bewertet = 0;
-  for (const firma of offen) { await bewerteFirma(c, firma, f); bewertet++; }
-  if (bewertet) bericht.bewertet = bewertet;
+  // 3) Bewerten: bei jedem Durchlauf bis zu drei Firmen (W1 Website lesen + W2 Bewertung), mit Tagesgrenze
+  const ki = (await k.zustand("ki_zaehler")) || {};
+  let heuteBewertet = ki.tag === heute ? Number(ki.n) || 0 : 0;
+  const frei = Math.max(0, Math.min(3, e.ki_pro_tag - heuteBewertet));
+  if (frei > 0) {
+    let bewertet = 0;
+    for (const firma of await k.zuBewerten(frei)) { await bewerteFirma(c, firma, f); bewertet++; }
+    if (bewertet) { heuteBewertet += bewertet; await k.zustand("ki_zaehler", { tag: heute, n: heuteBewertet }); bericht.bewertet = bewertet; }
+  } else bericht.bewertet = "Tagesgrenze erreicht";
 
-  // 4) Anruf-Impulse: werktags ab 8 Uhr, einmal am Tag (W3)
-  if (wt >= 1 && wt <= 5 && stunde >= 8 && (await k.zustand("impulse_tag")) !== heute) {
-    await k.zustand("impulse_tag", heute);
-    const i = await k.impulseFuerHeute(heute);
-    if ((i.neu.length || i.faellig.length) && gueltigeMail(e.impulse_an)) {
-      const ok = await sendeMail(c, { an: e.impulse_an, absenderName: "KI-Vertrieb", betreff: `Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`,
-        text: [...i.neu.map((x: any) => `${x.name} (${x.score} Punkte) ${x.telefon || ""}: ${x.score_grund || ""}`), ...i.faellig.map((x: any) => `Wiedervorlage: ${x.name} ${x.telefon || ""}`), "", `${url}/crm#/heute`].join("\n"),
-        html: impulseMail(url, i) });
-      bericht.impulse = { neu: i.neu.length, faellig: i.faellig.length, mail: ok };
+  // 4) Anruf-Impulse per Mail, werktags (W3): ab 8 Uhr immer (mit Bot-Stand), ab 14 Uhr Nachtrag, wenn neue dazugekommen sind
+  if (wt >= 1 && wt <= 5) {
+    if (stunde >= 8 && (await k.zustand("impulse_tag")) !== heute) {
+      await k.zustand("impulse_tag", heute);
+      bericht.impulse = await impulseSenden(c, e, "morgen", jetzt, heute);
+    } else if (stunde >= 14 && (await k.zustand("impulse_nachtrag")) !== heute) {
+      await k.zustand("impulse_nachtrag", heute);
+      bericht.impulse = await impulseSenden(c, e, "nachtrag", jetzt, heute);
     }
   }
   return bericht;
+}
+
+/** Eine Suche, wenn gerade sinnvoll. Gibt einen kurzen Bericht zurück oder null. */
+async function suchen(c: any, e: any, jetzt: number, heute: string, stunde: number, f: typeof fetch) {
+  const k = crm(c);
+  if (stunde < 6 || stunde >= 22) return null;
+  // Nach einem Fehlschlag (OpenStreetMap überlastet) 30 Minuten Pause
+  if (jetzt - (Number(await k.zustand("suche_fehlversuch")) || 0) < 30 * 60_000) return null;
+  const startServer = Math.floor(jetzt / 600_000) % OVERPASS.length;
+
+  if (e.suchmodus === "bw") {
+    // Nur nachlegen, wenn nicht schon genug Firmen auf ihre Bewertung warten
+    if ((await k.wartend()) >= 60) return null;
+    const extra: Kachel[] = (await k.zustand("bw_extra")) || [];
+    const fs = (await k.zustand("bw_fortschritt")) || { zeiger: 0, gesamt: 0, runde: 1 };
+    const alle = bwKacheln();
+    let kachel: Kachel | undefined = extra[0];
+    let ausExtra = !!kachel;
+    if (!kachel) {
+      if (fs.zeiger >= alle.length) {
+        // Einmal durch: nach 30 Tagen von vorn (neue Firmen, geänderte Daten)
+        if (fs.fertig && jetzt - fs.fertig < 30 * 86_400_000) return null;
+        fs.zeiger = 0; fs.runde = (fs.runde || 1) + 1; delete fs.fertig;
+      }
+      kachel = alle[fs.zeiger];
+    }
+    try {
+      const { treffer, voll } = await sucheKachel(f, kachel, 200, startServer);
+      const r = await k.firmenUebernehmen(treffer);
+      if (ausExtra) extra.shift(); else fs.zeiger++;
+      if (voll) extra.unshift(...vierteln(kachel));
+      if (fs.zeiger >= alle.length && !extra.length) fs.fertig = jetzt;
+      await k.zustand("bw_extra", extra.slice(0, 200));
+      await k.zustand("bw_fortschritt", { ...fs, gesamt: alle.length, offen_extra: extra.length });
+      const b = { tag: heute, modus: "bw", kachel, treffer: treffer.length, ...r, voll };
+      await k.zustand("letzte_suche", b);
+      return b;
+    } catch (err: any) {
+      await k.zustand("suche_fehlversuch", jetzt);
+      const b = { tag: heute, modus: "bw", kachel, fehler: String(err?.message || err).slice(0, 300) };
+      await k.zustand("letzte_suche", b);
+      return b;
+    }
+  }
+
+  // Modus "branchen": einmal am Tag die nächste Kombination aus Branche und Region
+  if ((await k.zustand("suche_tag")) === heute) return null;
+  const s = await k.naechsteSuche();
+  if (!s) { await k.zustand("suche_tag", heute); return null; }
+  try {
+    const treffer = await sucheFirmen(f, s.branche, s.region, Math.max(5, e.neue_pro_lauf));
+    const r = await k.firmenUebernehmen(treffer);
+    await k.zustand("suche_tag", heute);
+    const b = { tag: heute, modus: "branchen", ...s, treffer: treffer.length, ...r };
+    await k.zustand("letzte_suche", b);
+    return b;
+  } catch (err: any) {
+    await k.zustand("suche_fehlversuch", jetzt);
+    const b = { tag: heute, modus: "branchen", ...s, fehler: String(err?.message || err).slice(0, 300) };
+    await k.zustand("letzte_suche", b);
+    return b;
+  }
+}
+
+/** Mail mit Anruf-Impulsen. "morgen" geht immer raus (mit Bot-Stand), "nachtrag" nur bei neuen Impulsen. */
+export async function impulseSenden(c: any, e: any, art: "morgen" | "nachtrag" | "jetzt", jetzt = Date.now(), heute = tagAus(jetzt)) {
+  if (!gueltigeMail(e.impulse_an)) return { mail: false, grund: "keine gültige Empfänger-Adresse" };
+  const k = crm(c);
+  const i = await k.impulseFuerHeute(heute);
+  if (art === "nachtrag") i.faellig = [];
+  if (art === "nachtrag" && !i.neu.length) return { neu: 0, mail: false };
+  const stat = await k.botStatistik(jetzt - 86_400_000);
+  const url = wert(c, "CRM_URL") || STANDARD_URL;
+  const letzte = await k.zustand("letzte_suche");
+  const fs = await k.zustand("bw_fortschritt");
+  const standText = [
+    `Letzte 24 Stunden: ${stat.gefunden} Firmen gefunden, ${stat.bewertet} bewertet, ${stat.impulse} davon Anruf-Impulse. ${stat.wartend} warten auf Bewertung, ${stat.firmen} Firmen im CRM.`,
+    fs?.gesamt ? `Baden-Württemberg: ${Math.min(fs.zeiger, fs.gesamt)} von ${fs.gesamt} Gebieten abgesucht${fs.runde > 1 ? ` (Runde ${fs.runde})` : ""}.` : "",
+    letzte?.fehler ? `Letzte Suche fehlgeschlagen (OpenStreetMap): ${letzte.fehler}. Der Bot versucht es alle 30 Minuten wieder.` : "",
+  ].filter(Boolean);
+  const leer = !i.neu.length && !i.faellig.length;
+  const betreff = art === "nachtrag" ? `Nachtrag: ${i.neu.length} neue Anruf-Impulse`
+    : leer ? "Vertriebs-Bot: heute noch keine Anruf-Impulse" : `Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`;
+  const ok = await sendeMail(c, {
+    an: e.impulse_an, absenderName: "KI-Vertrieb", betreff,
+    text: [...i.neu.map((x: any) => `${x.name} (${x.score} Punkte) ${x.telefon || ""}: ${x.score_grund || ""}`), ...i.faellig.map((x: any) => `Wiedervorlage: ${x.name} ${x.telefon || ""}`),
+      ...(leer ? ["Heute gibt es noch niemanden anzurufen. Neue Impulse kommen als Nachtrag ab 14 Uhr."] : []), "", ...standText, "", `${url}/crm#/heute`].join("\n"),
+    html: impulseMail(url, i, standText, art, leer),
+  });
+  return { neu: i.neu.length, faellig: i.faellig.length, mail: ok };
 }
 
 /* ---------- Web-Adressen ---------- */
@@ -305,8 +379,8 @@ export function crmRouten(app: Hono) {
   app.post("/api/crm/bot/jetzt", geschuetzt(async (c) => {
     const b: any = await json(c);
     const k = crm(c);
+    if (b.impulse) return c.json({ ok: true, bericht: await impulseSenden(c, await k.einstellungen(), "jetzt") });
     if (b.suche) { await k.zustand("suche_tag", ""); await k.zustand("suche_fehlversuch", 0); }
-    if (b.impulse) await k.zustand("impulse_tag", "");
     return c.json({ ok: true, bericht: await geplant(c.env) });
   }));
 }
