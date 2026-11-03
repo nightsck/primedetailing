@@ -11,7 +11,7 @@
 import type { Hono } from "hono";
 import { sendeMail, gueltigeMail } from "../mail.ts";
 import { STATUS_TEXT, tagAus, type CrmKern } from "./kern.ts";
-import { BRANCHEN, sucheFirmen, websiteLesen, kiBewertung, regelBewertung, bwKacheln, vierteln, sucheKachel, OVERPASS, type Kachel } from "./bot.ts";
+import { BRANCHEN, sucheFirmen, websiteLesen, kiBewertung, regelBewertung, bwKacheln, vierteln, sucheKachel, bwAbfrage, bwTreffer, OVERPASS, type Kachel } from "./bot.ts";
 import { CRM_SEITE, ANMELDE_SEITE, ABMELDE_SEITE } from "./seite.ts";
 
 type Kern = { [K in keyof CrmKern]: (...a: Parameters<CrmKern[K]>) => Promise<ReturnType<CrmKern[K]>> };
@@ -190,37 +190,16 @@ async function suchen(c: any, e: any, jetzt: number, heute: string, stunde: numb
   const startServer = Math.floor(jetzt / 600_000) % OVERPASS.length;
 
   if (e.suchmodus === "bw") {
-    // Nur nachlegen, wenn nicht schon genug Firmen auf ihre Bewertung warten
-    if ((await k.wartend()) >= 60) return null;
-    const extra: Kachel[] = (await k.zustand("bw_extra")) || [];
-    const fs = (await k.zustand("bw_fortschritt")) || { zeiger: 0, gesamt: 0, runde: 1 };
-    const alle = bwKacheln();
-    let kachel: Kachel | undefined = extra[0];
-    let ausExtra = !!kachel;
-    if (!kachel) {
-      if (fs.zeiger >= alle.length) {
-        // Einmal durch: nach 30 Tagen von vorn (neue Firmen, geänderte Daten)
-        if (fs.fertig && jetzt - fs.fertig < 30 * 86_400_000) return null;
-        fs.zeiger = 0; fs.runde = (fs.runde || 1) + 1; delete fs.fertig;
-      }
-      kachel = alle[fs.zeiger];
-    }
+    // Liefert GitHub die Treffer (siehe .github/workflows/osm-suche.yml), sucht der Server nicht selbst:
+    // overpass-api.de nimmt keine Anfragen von Cloudflare an, die Ersatz-Server sind oft überlastet.
+    if (jetzt - (Number(await k.zustand("osm_import_zuletzt")) || 0) < 3 * 3_600_000) return null;
+    const auftrag = await naechsteKachel(k, jetzt);
+    if (!auftrag) return null;
     try {
-      const { treffer, voll } = await sucheKachel(f, kachel, 200, startServer);
-      const r = await k.firmenUebernehmen(treffer);
-      if (ausExtra) extra.shift(); else fs.zeiger++;
-      if (voll) extra.unshift(...vierteln(kachel));
-      if (fs.zeiger >= alle.length && !extra.length) fs.fertig = jetzt;
-      await k.zustand("bw_extra", extra.slice(0, 200));
-      await k.zustand("bw_fortschritt", { ...fs, gesamt: alle.length, offen_extra: extra.length });
-      const b = { tag: heute, modus: "bw", kachel, treffer: treffer.length, ...r, voll };
-      await k.zustand("letzte_suche", b);
-      return b;
+      const { treffer, voll } = await sucheKachel(f, auftrag.kachel, 200, startServer);
+      return await kachelAbschliessen(k, auftrag, treffer, voll, jetzt);
     } catch (err: any) {
-      await k.zustand("suche_fehlversuch", jetzt);
-      const b = { tag: heute, modus: "bw", kachel, fehler: String(err?.message || err).slice(0, 300) };
-      await k.zustand("letzte_suche", b);
-      return b;
+      return await kachelFehlgeschlagen(k, auftrag.kachel, String(err?.message || err), jetzt);
     }
   }
 
@@ -241,6 +220,79 @@ async function suchen(c: any, e: any, jetzt: number, heute: string, stunde: numb
     await k.zustand("letzte_suche", b);
     return b;
   }
+}
+
+/* ---------- Gebiete in Baden-Württemberg der Reihe nach ---------- */
+type Auftrag = { kachel: Kachel; ausExtra: boolean; extra: Kachel[]; fs: any; gesamt: number };
+/** Nächstes Gebiet, wenn gerade gesucht werden soll (weniger als 60 Firmen warten auf Bewertung). */
+export async function naechsteKachel(k: Kern, jetzt: number): Promise<Auftrag | null> {
+  if ((await k.wartend()) >= 60) return null;
+  const extra: Kachel[] = (await k.zustand("bw_extra")) || [];
+  const fs = (await k.zustand("bw_fortschritt")) || { zeiger: 0, gesamt: 0, runde: 1 };
+  const alle = bwKacheln();
+  if (extra.length) return { kachel: extra[0], ausExtra: true, extra, fs, gesamt: alle.length };
+  if (fs.zeiger >= alle.length) {
+    // Einmal durch: nach 30 Tagen von vorn (neue Firmen, geänderte Daten)
+    if (fs.fertig && jetzt - fs.fertig < 30 * 86_400_000) return null;
+    fs.zeiger = 0; fs.runde = (fs.runde || 1) + 1; delete fs.fertig;
+  }
+  return { kachel: alle[fs.zeiger], ausExtra: false, extra, fs, gesamt: alle.length };
+}
+const gleich = (a: unknown, b: unknown) => Array.isArray(a) && Array.isArray(b) && a.length === 4 && a.every((x, i) => Number(x) === Number(b[i]));
+export async function kachelAbschliessen(k: Kern, a: Auftrag, treffer: any[], voll: boolean, jetzt: number) {
+  const r = await k.firmenUebernehmen(treffer);
+  if (a.ausExtra) a.extra.shift(); else a.fs.zeiger++;
+  if (voll) a.extra.unshift(...vierteln(a.kachel));
+  if (a.fs.zeiger >= a.gesamt && !a.extra.length) a.fs.fertig = jetzt;
+  await k.zustand("bw_extra", a.extra.slice(0, 400));
+  await k.zustand("bw_fortschritt", { ...a.fs, gesamt: a.gesamt, offen_extra: a.extra.length });
+  await k.zustand("suche_fehlversuch", 0);
+  const b = { tag: tagAus(jetzt), modus: "bw", kachel: a.kachel, treffer: treffer.length, ...r, voll };
+  await k.zustand("letzte_suche", b);
+  return b;
+}
+async function kachelFehlgeschlagen(k: Kern, kachel: Kachel, fehler: string, jetzt: number) {
+  await k.zustand("suche_fehlversuch", jetzt);
+  const b = { tag: tagAus(jetzt), modus: "bw", kachel, fehler: fehler.slice(0, 300) };
+  await k.zustand("letzte_suche", b);
+  return b;
+}
+
+/* ---------- GitHub Actions als Sucher (ohne Passwort: OIDC-Kennung von GitHub) ---------- */
+const GH_ISS = "https://token.actions.githubusercontent.com";
+export const GH_AUD = "primedetailing-crm";
+let jwksCache: { bis: number; keys: any[] } | null = null;
+const b64urlBytes = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (ch) => ch.charCodeAt(0));
+/** Prüft die Kennung eines GitHub-Actions-Laufs: echt signiert, aus diesem Repo, vom main-Zweig, aus dem Such-Workflow. */
+export async function githubLaufPruefen(c: any, kopf: string | undefined, f: typeof fetch = fetch, jetzt = Date.now()): Promise<{ ok: true; lauf: string } | { ok: false; grund: string }> {
+  const t = String(kopf || "").replace(/^Bearer\s+/i, "");
+  const teile = t.split(".");
+  if (teile.length !== 3) return { ok: false, grund: "keine Kennung" };
+  let kopfJ: any, inhalt: any;
+  try { kopfJ = JSON.parse(new TextDecoder().decode(b64urlBytes(teile[0]))); inhalt = JSON.parse(new TextDecoder().decode(b64urlBytes(teile[1]))); } catch { return { ok: false, grund: "unlesbar" }; }
+  if (kopfJ.alg !== "RS256") return { ok: false, grund: "falscher Algorithmus" };
+  const holen = async () => {
+    const r = await f(GH_ISS + "/.well-known/jwks", { signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) return false;
+    jwksCache = { bis: jetzt + 3_600_000, keys: ((await r.json()) as any).keys || [] };
+    return true;
+  };
+  if ((!jwksCache || jwksCache.bis < jetzt) && !(await holen())) return { ok: false, grund: "Schlüssel von GitHub nicht abrufbar" };
+  let jwk = jwksCache!.keys.find((x: any) => x.kid === kopfJ.kid);
+  if (!jwk && (await holen())) jwk = jwksCache!.keys.find((x: any) => x.kid === kopfJ.kid); // GitHub hat neue Schlüssel
+  if (!jwk) return { ok: false, grund: "unbekannter Schlüssel" };
+  const key = await crypto.subtle.importKey("jwk", { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: "RS256", ext: true }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const echt = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, b64urlBytes(teile[2]), enc.encode(teile[0] + "." + teile[1]));
+  if (!echt) return { ok: false, grund: "Signatur falsch" };
+  const repo = wert(c, "CRM_GITHUB_REPO") || "nightsck/primedetailing";
+  const jetztS = jetzt / 1000;
+  if (inhalt.iss !== GH_ISS) return { ok: false, grund: "falscher Aussteller" };
+  if (inhalt.aud !== GH_AUD) return { ok: false, grund: "falsche Zielgruppe" };
+  if (!(inhalt.exp > jetztS) || inhalt.nbf > jetztS + 60) return { ok: false, grund: "abgelaufen" };
+  if (inhalt.repository !== repo) return { ok: false, grund: "fremdes Repo" };
+  if (inhalt.ref !== "refs/heads/main") return { ok: false, grund: "nicht vom main-Zweig" };
+  if (!String(inhalt.workflow_ref || "").startsWith(`${repo}/.github/workflows/osm-suche.yml@`)) return { ok: false, grund: "falscher Workflow" };
+  return { ok: true, lauf: String(inhalt.run_id || "") };
 }
 
 /** Mail mit Anruf-Impulsen. "morgen" geht immer raus (mit Bot-Stand), "nachtrag" nur bei neuen Impulsen. */
@@ -323,6 +375,34 @@ export function crmRouten(app: Hono) {
     if (f && !f.gesperrt) await k.sperren(fid, "Abmeldung über den Link in der Mail", "Abmeldelink");
     return c.json({ ok: true });
   });
+
+  // ----- GitHub Actions: nächstes Gebiet holen, Treffer abliefern -----
+  const vonGithub = (h: (c: any) => Promise<Response>) => async (c: any) => {
+    const p = await githubLaufPruefen(c, c.req.header("authorization"));
+    if (!p.ok) { console.warn("[osm-import] abgelehnt:", p.grund); return c.json({ ok: false, fehler: p.grund }, 401); }
+    return h(c);
+  };
+  app.post("/api/crm/osm/aufgabe", vonGithub(async (c) => {
+    if (wert(c, "KILL_SWITCH") === "1") return c.json({ ok: true, kachel: null, grund: "Notbremse aktiv" });
+    const k = crm(c), e = await k.einstellungen();
+    if (!e.bot_aktiv) return c.json({ ok: true, kachel: null, grund: "Bot ist ausgeschaltet" });
+    if (e.suchmodus !== "bw") return c.json({ ok: true, kachel: null, grund: "Suchmodus ist nicht Baden-Württemberg" });
+    const a = await naechsteKachel(k, Date.now());
+    if (!a) return c.json({ ok: true, kachel: null, grund: "genug Firmen in der Warteschlange oder Runde fertig" });
+    return c.json({ ok: true, kachel: a.kachel, abfrage: bwAbfrage(a.kachel, 200), max: 200, server: OVERPASS });
+  }));
+  app.post("/api/crm/osm/ergebnis", vonGithub(async (c) => {
+    if (Number(c.req.header("content-length") || 0) > 3_000_000) return c.json({ ok: false, fehler: "zu groß" }, 413);
+    const b: any = await json(c);
+    const k = crm(c), jetzt = Date.now();
+    const a = await naechsteKachel(k, jetzt);
+    if (!a || !gleich(a.kachel, b.kachel)) return c.json({ ok: false, fehler: "Gebiet passt nicht (schon erledigt?)" }, 409);
+    if (b.fehler) return c.json({ ok: true, bericht: await kachelFehlgeschlagen(k, a.kachel, "GitHub: " + String(b.fehler), jetzt) });
+    const elemente = Array.isArray(b.elements) ? b.elements.slice(0, 500) : null;
+    if (!elemente) return c.json({ ok: false, fehler: "keine Treffer-Liste" }, 400);
+    await k.zustand("osm_import_zuletzt", jetzt);
+    return c.json({ ok: true, bericht: await kachelAbschliessen(k, a, bwTreffer({ elements: elemente }), elemente.length >= 200, jetzt) });
+  }));
 
   // ----- geschützt -----
   app.get("/api/crm/ich", geschuetzt(async (c, n) => c.json({ ok: true, ...n, absender: !!wert(c, "VERTRIEB_ABSENDER"), branchen: Object.fromEntries(Object.entries(BRANCHEN).map(([k, v]) => [k, v.name])), status: STATUS_TEXT })));

@@ -1,0 +1,32 @@
+# Akquise-Bot des Vertriebs-CRM: neue Firmen in Baden-Württemberg über OpenStreetMap suchen.
+# Läuft hier und nicht bei Cloudflare, weil overpass-api.de keine Anfragen von Cloudflare annimmt.
+# Kein Passwort nötig: Das CRM prüft die Kennung (OIDC), die GitHub jedem Lauf mitgibt.
+# Wie viel gesucht wird, entscheidet das CRM (nur wenn weniger als 60 Firmen auf Bewertung warten).
+name: CRM – Firmen suchen
+
+on:
+  schedule:
+    # alle 20 Minuten zwischen etwa 6 und 22 Uhr deutscher Zeit
+    - cron: "7,27,47 4-20 * * *"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: osm-suche
+  cancel-in-progress: false
+
+jobs:
+  suchen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: chatbot/scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node chatbot/scripts/osm-suche.mjs
