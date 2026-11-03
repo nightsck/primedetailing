@@ -21,7 +21,7 @@ export const STANDARD_EINSTELLUNGEN = {
   /** "bw" = ganz Baden-Württemberg, alle Firmen mit Website oder E-Mail; "branchen" = nur Zielbranchen in Zielregionen */
   suchmodus: "bw",
   /** Höchstens so viele KI-Bewertungen pro Tag (Kostenbremse, ca. 0,05 Cent pro Bewertung) */
-  ki_pro_tag: 150,
+  ki_pro_tag: 40,
   zielbranchen: ["autowerkstatt", "fahrzeugpflege"],
   zielregionen: ["Stuttgart", "Karlsruhe", "Mannheim", "Freiburg im Breisgau", "Heilbronn", "Ulm"],
   schwelle: 70,
