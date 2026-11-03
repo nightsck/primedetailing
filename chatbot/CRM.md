@@ -20,11 +20,20 @@ Kosten: 0 € (Cloudflare-Gratistarif). Nur die KI-Bewertung läuft über den An
 | **Einstellungen** | Zielbranchen, Zielregionen, Schwelle, Empfänger der Anruf-Impulse, Info-Mail-Vorlage, Impressum, Bot von Hand starten |
 
 ## Der Akquise-Bot (läuft alle 10 Minuten von selbst)
-- **ab 6 Uhr, einmal am Tag:** sucht Firmen für die nächste Kombination aus Branche und Region (reihum) über **OpenStreetMap** (kostenlos), höchstens 40 pro Suche. Dubletten (Website, Telefon, Name+PLZ) und gesperrte Firmen werden übersprungen.
-- **bei jedem Durchlauf:** liest bei zwei Firmen Website und Impressum und bewertet sie mit der KI (0–100 Punkte, Begründung als Sachbezug, Einstiegssatz, Inhaber). Ohne KI-Schlüssel oder bei KI-Fehler nach festen Regeln. Ab der Schwelle (Standard 70) → Status „Anruf-Impuls“.
-- **werktags ab 8 Uhr, einmal am Tag:** Mail „Heute anrufen“ an den Empfänger aus den Einstellungen (Standard `kifuermeinenbetrieb@gmail.com`). Dieselbe Firma kommt frühestens nach einer Woche wieder.
-- **ab 7 Uhr, einmal am Tag:** Monatsposten anlegen, Mail bei Zahlungen > 7 Tage überfällig, aufräumen (nie kontaktierte Leads unter der Schwelle nach 6 Monaten löschen; gesperrte bleiben als Sperrliste).
-- Jede Bot-Aktion steht in der Kontakthistorie („durch: Bot“). Notbremse `KILL_SWITCH = 1` stoppt auch den Bot; „Bot ist aktiv“ in den Einstellungen schaltet nur den Bot aus.
+**Suche (Standard: ganz Baden-Württemberg, alle Branchen).** Das Land ist in 460 Gebiete von rund 11 × 11 km geteilt, Stuttgart zuerst. Zwischen 6 und 22 Uhr fragt der Bot bei jedem Durchlauf ein Gebiet bei **OpenStreetMap** ab, aber nur, solange weniger als 60 Firmen auf ihre Bewertung warten. Gesucht werden Betriebe mit Namen **und Website oder E-Mail** (Geschäfte, Handwerk, Büros, Praxen, Gastronomie, Hotels, Fitness …), ohne Filialketten und ohne Behörden/Vereine. Liefert ein Gebiet 200 Treffer (Innenstädte), wird es geviertelt und die Viertel kommen als Nächstes dran. Nach dem letzten Gebiet beginnt der Bot 30 Tage später von vorn. Dubletten (Website, Telefon, Name+PLZ) und gesperrte Firmen werden übersprungen. Ist OpenStreetMap überlastet, versucht er es nach 30 Minuten wieder; eine Abfrage dauert normal rund 40 Sekunden.
+Alternative in den Einstellungen: „Nur die Zielbranchen in den Zielregionen“ (eine Kombination pro Tag).
+
+**Bewertung.** Bei jedem Durchlauf bis zu drei Firmen, solche mit Website zuerst: Website und Impressum lesen, KI-Bewertung (0–100 Punkte, Begründung als Sachbezug, Einstiegssatz, Inhaber, Branche). Ohne erreichbare Website oder ohne KI-Schlüssel nach festen Regeln (kostenlos). **Kostenbremse:** höchstens `KI-Bewertungen pro Tag` (Standard 150, je ca. 0,05 Cent, also höchstens rund 2–3 € im Monat). Ab der Schwelle (Standard 70) → „Anruf-Impuls“.
+
+**Mails an `Anruf-Impulse an` (Standard `kifuermeinenbetrieb@gmail.com`), werktags:**
+- **ab 8 Uhr immer** eine Mail: neue Anruf-Impulse, fällige Wiedervorlagen und der Stand des Bots (letzte 24 Stunden, Fortschritt in Baden-Württemberg, Störungen). Auch wenn es niemanden anzurufen gibt.
+- **ab 14 Uhr ein Nachtrag**, aber nur, wenn seit dem Morgen neue Anruf-Impulse dazugekommen sind.
+- Knopf „Anruf-Impulse jetzt schicken“ in den Einstellungen: sofort, an jedem Tag.
+Dieselbe Firma kommt als Impuls frühestens nach einer Woche wieder.
+
+**Täglich ab 7 Uhr:** Monatsposten anlegen, Mail bei Zahlungen > 7 Tage überfällig, aufräumen (nie kontaktierte Leads unter der Schwelle nach 6 Monaten löschen; gesperrte bleiben als Sperrliste).
+
+Jede Bot-Aktion steht in der Kontakthistorie („durch: Bot“). Notbremse `KILL_SWITCH = 1` stoppt auch den Bot; „Bot ist aktiv“ in den Einstellungen schaltet nur den Bot aus. Eigener KI-Schlüssel nur fürs CRM (damit die Kunden-Chats nie mitbetroffen sind): Secret `CRM_ANTHROPIC_API_KEY`.
 
 ## Rechtlicher Rahmen (aus dem Bauplan, technisch eingebaut)
 - **Erst anrufen, dann mailen.** Der Bot schickt nie Werbe-Mails. Eine Info-Mail geht nur, wenn bei der Firma eine **Einwilligung** mit Nachweis eingetragen und sie **nicht gesperrt** ist. Das prüft der Server bei jedem Versand.

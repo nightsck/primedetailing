@@ -196,7 +196,7 @@ test("Kundenakte: Upload und Download einer Datei, Grenze 10 MB", async () => {
 
 test("Bot-Durchlauf: Suche morgens, Bewertung mit KI, Anruf-Impulse werktags ab 8 Uhr per Mail", async () => {
   const kern = crmKern(testSql()); const env = ENV(kern, { ANTHROPIC_API_KEY: "sk-test" });
-  kern.einstellungenSetzen({ zielbranchen: ["autowerkstatt"], zielregionen: ["Stuttgart"], impulse_pro_tag: 5 });
+  kern.einstellungenSetzen({ suchmodus: "branchen", zielbranchen: ["autowerkstatt"], zielregionen: ["Stuttgart"], impulse_pro_tag: 5 });
   // gesperrte Firma darf nicht neu angelegt werden
   const alt = kern.firmaAnlegen({ name: "Gesperrt", website: "gesperrt.de" }, "Tom").id; kern.sperren(alt, "Widerspruch", "Tom");
   const n = netz({
@@ -214,7 +214,7 @@ test("Bot-Durchlauf: Suche morgens, Bewertung mit KI, Anruf-Impulse werktags ab 
   assert.equal(b.suche, undefined);
   // 6:10 Uhr: Suche + erste Bewertungen
   b = await R.geplant(env, Date.parse("2026-11-03T05:10:00Z"), n.f);
-  assert.deepEqual(b.suche, { branche: "autowerkstatt", region: "Stuttgart", treffer: 3, neu: 2 });
+  assert.deepEqual(b.suche, { tag: "2026-11-03", modus: "branchen", branche: "autowerkstatt", region: "Stuttgart", treffer: 3, neu: 2, doppelt: 0, gesperrt: 1 });
   assert.equal(b.bewertet, 2);
   const gut = kern.firmen({ q: "KFZ Gut" })[0];
   assert.equal(gut.score, 88);
@@ -249,7 +249,7 @@ test("Bot-Durchlauf: Suche morgens, Bewertung mit KI, Anruf-Impulse werktags ab 
 
 test("Bot ohne KI-Schlüssel bewertet nach Regeln; KI-Fehler fällt auf Regeln zurück", async () => {
   const kern = crmKern(testSql());
-  kern.einstellungenSetzen({ zielbranchen: ["maler"], zielregionen: ["Ulm"] });
+  kern.einstellungenSetzen({ suchmodus: "branchen", zielbranchen: ["maler"], zielregionen: ["Ulm"] });
   const n = netz({ overpass: { elements: [{ type: "node", id: 9, tags: { name: "Maler Ulm", phone: "0731 1" } }] } });
   await R.geplant(ENV(kern), Date.parse("2026-11-03T05:10:00Z"), n.f);
   const f = kern.firmen({ q: "Maler Ulm" })[0];
@@ -284,17 +284,17 @@ test("OpenStreetMap: fällt ein Server aus, wird der nächste gefragt", async ()
   await assert.rejects(B.sucheFirmen(alle.f, "maler", "Ulm"), /nicht erreichbar: overpass-api\.de 521/);
 });
 
-test("Suche fehlgeschlagen: nach einer Stunde neuer Versuch, nicht erst am nächsten Tag", async () => {
+test("Suche fehlgeschlagen: nach 30 Minuten neuer Versuch, nicht erst am nächsten Tag", async () => {
   const kern = crmKern(testSql()); const env = ENV(kern);
-  kern.einstellungenSetzen({ zielbranchen: ["maler"], zielregionen: ["Ulm"] });
+  kern.einstellungenSetzen({ suchmodus: "branchen", zielbranchen: ["maler"], zielregionen: ["Ulm"] });
   const aus = netz({ overpassAus: B.OVERPASS.map((u) => new URL(u).hostname) });
   let b: any = await R.geplant(env, Date.parse("2026-11-03T05:10:00Z"), aus.f);
   assert.match(b.suche.fehler, /nicht erreichbar/);
   const an = netz({ overpass: { elements: [{ type: "node", id: 7, tags: { name: "Maler Später" } }] } });
-  b = await R.geplant(env, Date.parse("2026-11-03T05:40:00Z"), an.f);
-  assert.equal(b.suche, undefined, "nicht schon nach 30 Minuten");
-  b = await R.geplant(env, Date.parse("2026-11-03T06:20:00Z"), an.f);
-  assert.equal(b.suche.neu, 1, "nach einer Stunde geklappt");
+  b = await R.geplant(env, Date.parse("2026-11-03T05:30:00Z"), an.f);
+  assert.equal(b.suche, undefined, "nicht schon nach 20 Minuten");
+  b = await R.geplant(env, Date.parse("2026-11-03T05:45:00Z"), an.f);
+  assert.equal(b.suche.neu, 1, "nach 35 Minuten geklappt");
   b = await R.geplant(env, Date.parse("2026-11-03T07:30:00Z"), an.f);
   assert.equal(b.suche, undefined, "danach für heute erledigt");
 });
@@ -318,10 +318,13 @@ test("KI-Antwort: Punkte als Text, JSON im Codeblock, unlesbare Antwort → Rege
   const ok = netz({ ki: { score: "64", begruendung: "Mittel" } });
   const b = await B.kiBewertung(ok.f, "sk", "m", { name: "X" }, null);
   assert.equal(b.score, 64);
-  const kaputt = { ...ok, f: (async () => Response.json({ content: [{ text: "Tut mir leid" }], stop_reason: "end_turn" })) as any };
+  const kaputt = { ...ok, f: (async (url: string) => String(url).includes("grund.de") ? new Response("<p>Grund GmbH</p>", { headers: { "content-type": "text/html" } }) : Response.json({ content: [{ text: "Tut mir leid" }], stop_reason: "end_turn" })) as any };
   await assert.rejects(B.kiBewertung(kaputt.f, "sk", "m", { name: "X" }, null), /unlesbar \(end_turn\): Tut mir leid/);
   const kern = crmKern(testSql());
-  const { id } = kern.firmaAnlegen({ name: "Grund GmbH" }, "Tom");
+  const { id } = kern.firmaAnlegen({ name: "Grund GmbH", website: "https://grund.de" }, "Tom");
+  const ohneWeb = kern.firmaAnlegen({ name: "Ohne Web GmbH" }, "Tom").id;
+  await R.bewerteFirma({ env: ENV(kern, { ANTHROPIC_API_KEY: "sk" }) }, kern.firma(ohneWeb), kaputt.f);
+  assert.equal(kern.firma(ohneWeb)!.infos.ki_fehler, "keine Website", "ohne Website keine KI-Kosten");
   await R.bewerteFirma({ env: ENV(kern) }, kern.firma(id), ok.f);
   assert.match(kern.firma(id)!.infos.ki_fehler, /kein KI-Schlüssel/);
   await R.bewerteFirma({ env: ENV(kern, { ANTHROPIC_API_KEY: "sk" }) }, kern.firma(id), kaputt.f);
@@ -332,4 +335,115 @@ test("KI-Antwort: erstes vollständiges Objekt, auch mit Text danach oder abgesc
   assert.equal(B.kiJson('{"score": 70, "begruendung": "a } b \\" c"}\nNoch eine Erklärung {abgeschn').score, 70);
   assert.equal(B.kiJson('Vorweg {kaputt} und dann {"score": 12}').score, 12);
   assert.equal(B.kiJson('{"score": 40, "begruendung": "abgeschnitt'), null);
+});
+
+/* ---------- Ganz Baden-Württemberg ---------- */
+test("BW-Kacheln: 460 Gebiete, Stuttgart zuerst, Viertel decken die Kachel ab, Abfrage ohne Ketten", () => {
+  const k = B.bwKacheln();
+  assert.equal(k.length, 460);
+  assert.deepEqual(k[0], [48.7, 9.15, 48.8, 9.3]);
+  assert.equal(new Set(k.map((x) => x.join())).size, 460, "keine doppelt");
+  const v = B.vierteln([48.7, 9.15, 48.8, 9.3]);
+  assert.deepEqual(v[0], [48.7, 9.15, 48.75, 9.225]);
+  assert.deepEqual(v[3], [48.75, 9.225, 48.8, 9.3]);
+  const q = B.bwAbfrage(k[0], 200);
+  assert.match(q, /\[timeout:90\]\[bbox:48\.7,9\.15,48\.8,9\.3\]/);
+  assert.match(q, /area\["ISO3166-2"="DE-BW"\]/);
+  assert.match(q, /\[!"brand"\]/);
+  assert.match(q, /website\|contact:website\|url\|email/);
+  assert.match(q, /out center tags 200;/);
+  assert.equal(B.brancheAusTags({ craft: "roofer", shop: "x" }), "Dachdecker");
+  assert.equal(B.brancheAusTags({ shop: "toys" }), "Geschäft (toys)");
+});
+
+function bwNetz(proKachel: (bbox: string) => any[], extra: Partial<Parameters<typeof netz>[0]> = {}) {
+  const basis = netz({ ki: { score: 80, begruendung: "Gut", einstieg: "Hallo", branche: "Physiotherapie" }, ...extra });
+  const abfragen: string[] = [];
+  const f = (async (url: string, o: any = {}) => {
+    if (B.OVERPASS.includes(String(url))) {
+      const q = decodeURIComponent(String(o.body).slice(5));
+      abfragen.push(q);
+      const bbox = q.match(/\[bbox:([^\]]+)\]/)![1];
+      return Response.json({ elements: proKachel(bbox) });
+    }
+    return basis.f(url, o);
+  }) as any;
+  return { ...basis, f, abfragen };
+}
+
+test("BW-Suche: jede Runde eine Kachel, solange wenig wartet; volle Kachel wird geviertelt", async () => {
+  const kern = crmKern(testSql()); const env = ENV(kern, { ANTHROPIC_API_KEY: "sk" });
+  let id = 0;
+  const voll = (bbox: string) => Array.from({ length: bbox === "48.7,9.15,48.8,9.3" ? 200 : 3 }, () => ({ type: "node", id: ++id, tags: { name: "Firma " + id, "healthcare": "physiotherapist", website: `https://f${id}.de`, phone: "0711 " + id } }));
+  const n = bwNetz(voll);
+  let b: any = await R.geplant(env, Date.parse("2026-11-03T05:10:00Z"), n.f);
+  assert.equal(b.suche.treffer, 200);
+  assert.equal(b.suche.neu, 200);
+  assert.equal(b.suche.voll, true);
+  assert.equal(kern.firmen({ q: "Firma 1" }).length > 0, true);
+  assert.equal(kern.firma(1)!.branche === "Physiotherapie", true);
+  // viele warten → keine neue Suche, nur Bewertung
+  b = await R.geplant(env, Date.parse("2026-11-03T05:20:00Z"), n.f);
+  assert.equal(b.suche, undefined);
+  assert.equal(b.bewertet, 3);
+  // Warteschlange leeren → nächste Suche nimmt zuerst ein Viertel der vollen Kachel
+  for (const f of kern.zuBewerten(10)) kern.firmaLoeschen(f.id);
+  while (kern.wartend() > 0) for (const f of kern.zuBewerten(10)) kern.firmaLoeschen(f.id);
+  b = await R.geplant(env, Date.parse("2026-11-03T05:30:00Z"), n.f);
+  assert.deepEqual(b.suche.kachel, [48.7, 9.15, 48.75, 9.225]);
+  const fs = kern.zustand("bw_fortschritt");
+  assert.equal(fs.zeiger, 1);
+  assert.equal(fs.gesamt, 460);
+  assert.equal(fs.offen_extra, 3);
+  // nachts keine Suche
+  for (const f of kern.zuBewerten(10)) kern.firmaLoeschen(f.id);
+  b = await R.geplant(env, Date.parse("2026-11-03T22:10:00Z"), n.f);
+  assert.equal(b.suche, undefined);
+});
+
+test("KI-Tagesgrenze: höchstens so viele Bewertungen wie eingestellt", async () => {
+  const kern = crmKern(testSql()); const env = ENV(kern, { ANTHROPIC_API_KEY: "sk" });
+  kern.einstellungenSetzen({ ki_pro_tag: 4 });
+  let id = 0;
+  const n = bwNetz(() => Array.from({ length: 20 }, () => ({ type: "node", id: ++id, tags: { name: "Laden " + id, shop: "bakery", website: `https://l${id}.de` } })));
+  let b: any = await R.geplant(env, Date.parse("2026-11-03T05:10:00Z"), n.f);
+  assert.equal(b.bewertet, 3);
+  b = await R.geplant(env, Date.parse("2026-11-03T05:20:00Z"), n.f);
+  assert.equal(b.bewertet, 1);
+  b = await R.geplant(env, Date.parse("2026-11-03T05:30:00Z"), n.f);
+  assert.equal(b.bewertet, "Tagesgrenze erreicht");
+  b = await R.geplant(env, Date.parse("2026-11-04T05:10:00Z"), n.f);
+  assert.equal(b.bewertet, 3, "am nächsten Tag geht es weiter");
+});
+
+test("Impuls-Mails: morgens immer (auch ohne Impulse, mit Bot-Stand), Nachtrag ab 14 Uhr nur mit neuen Impulsen, Knopf jederzeit", async () => {
+  const kern = crmKern(testSql()); const env = ENV(kern);
+  kern.einstellungenSetzen({ bot_aktiv: true, suchmodus: "branchen", zielbranchen: [], zielregionen: [] });
+  const n = netz({}); globalThis.fetch = n.f;
+  // Dienstag 8:10: keine Impulse → trotzdem Mail mit Stand
+  await R.geplant(env, Date.parse("2026-11-03T07:10:00Z"), n.f);
+  let m = n.mails().at(-1);
+  assert.match(m.subject, /heute noch keine Anruf-Impulse/);
+  assert.match(m.textContent, /Letzte 24 Stunden: 0 Firmen gefunden/);
+  // tagsüber kommen zwei Impulse dazu
+  for (const name of ["Später A", "Später B"]) { const { id } = kern.firmaAnlegen({ name, telefon: "0711 " + name.length + name.charCodeAt(7) }, "Bot", "bot"); kern.bewertungSpeichern(id, { score: 90, begruendung: "gut" }); }
+  const vorher = n.mails().length;
+  await R.geplant(env, Date.parse("2026-11-03T11:10:00Z"), n.f);
+  assert.equal(n.mails().length, vorher, "um 12 Uhr noch kein Nachtrag");
+  await R.geplant(env, Date.parse("2026-11-03T13:10:00Z"), n.f);
+  m = n.mails().at(-1);
+  assert.match(m.subject, /Nachtrag: 2 neue Anruf-Impulse/);
+  assert.match(m.htmlContent, /Später A/);
+  await R.geplant(env, Date.parse("2026-11-03T15:10:00Z"), n.f);
+  assert.equal(n.mails().length, vorher + 1, "Nachtrag nur einmal");
+  // Nachtrag ohne neue Impulse: keine Mail
+  await R.geplant(env, Date.parse("2026-11-04T07:10:00Z"), n.f);
+  const morgen = n.mails().length;
+  await R.geplant(env, Date.parse("2026-11-04T13:10:00Z"), n.f);
+  assert.equal(n.mails().length, morgen);
+  // Knopf "jetzt": auch am Samstag
+  const { id } = kern.firmaAnlegen({ name: "Samstag GmbH", telefon: "0711 777" }, "Bot", "bot"); kern.bewertungSpeichern(id, { score: 95, begruendung: "x" });
+  const r = await R.impulseSenden({ env }, kern.einstellungen(), "jetzt", Date.parse("2026-11-07T09:00:00Z"));
+  assert.equal(r.neu, 1);
+  assert.equal(r.mail, true);
 });

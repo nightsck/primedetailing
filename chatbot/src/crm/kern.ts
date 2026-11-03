@@ -18,6 +18,10 @@ export const KANAELE = ["anruf", "email", "termin", "brief", "recherche", "notiz
 
 export const STANDARD_EINSTELLUNGEN = {
   bot_aktiv: true,
+  /** "bw" = ganz Baden-Württemberg, alle Firmen mit Website oder E-Mail; "branchen" = nur Zielbranchen in Zielregionen */
+  suchmodus: "bw",
+  /** Höchstens so viele KI-Bewertungen pro Tag (Kostenbremse, ca. 0,05 Cent pro Bewertung) */
+  ki_pro_tag: 150,
   zielbranchen: ["autowerkstatt", "fahrzeugpflege"],
   zielregionen: ["Stuttgart", "Karlsruhe", "Mannheim", "Freiburg im Breisgau", "Heilbronn", "Ulm"],
   schwelle: 70,
@@ -103,6 +107,7 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
       else if (typeof s[k] === "number") { w = Number(v); if (!Number.isFinite(w)) continue; w = Math.max(0, Math.min(1000, Math.round(w))); }
       else if (typeof s[k] === "boolean") w = v === true || v === "true" || v === 1 || v === "1";
       else w = String(v ?? "").slice(0, 5000);
+      if (k === "suchmodus" && w !== "bw" && w !== "branchen") continue;
       q("INSERT INTO einstellung (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, JSON.stringify(w));
     }
     return einstellungen();
@@ -385,9 +390,32 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
     const id = doppelt(d);
     return !!(id && eins("SELECT gesperrt FROM firma WHERE id = ?", id)?.gesperrt);
   }
-  const zuBewerten = (n = 2) => q("SELECT * FROM firma WHERE status = 'neu' AND bewertet_am IS NULL AND gesperrt = 0 AND quelle = 'bot' ORDER BY id LIMIT ?", Math.max(1, Math.min(10, n))).map(firmaZeile);
-  function bewertungSpeichern(id: number, r: { score: number; begruendung: string; einstieg?: string; infos?: any; telefon?: string; email?: string; inhaber?: string }) {
-    const f = eins("SELECT id, status, telefon, email FROM firma WHERE id = ?", id);
+  /** Wartende Firmen, solche mit Website zuerst (die kann die KI am besten einschätzen). */
+  const zuBewerten = (n = 2) => q("SELECT * FROM firma WHERE status = 'neu' AND bewertet_am IS NULL AND gesperrt = 0 AND quelle = 'bot' ORDER BY (website IS NULL), id LIMIT ?", Math.max(1, Math.min(10, n))).map(firmaZeile);
+  const wartend = () => Number(eins("SELECT COUNT(*) AS n FROM firma WHERE status = 'neu' AND bewertet_am IS NULL AND gesperrt = 0 AND quelle = 'bot'").n);
+  /** Treffer einer Suche in einem Schritt übernehmen: Sperrliste und Dubletten prüfen, Neue anlegen. */
+  function firmenUebernehmen(treffer: any[]) {
+    let neu = 0, doppelt = 0, gesperrt = 0;
+    for (const t of (Array.isArray(treffer) ? treffer : []).slice(0, 500)) {
+      if (!t?.name) continue;
+      if (istGesperrt(t)) { gesperrt++; continue; }
+      try { const r = firmaAnlegen(t, "Bot", "bot"); if (r.neu) neu++; else doppelt++; } catch { /* unbrauchbarer Treffer */ }
+    }
+    return { neu, doppelt, gesperrt };
+  }
+  /** Was der Bot seit einem Zeitpunkt geschafft hat (für die Morgen-Mail). */
+  function botStatistik(seit: number) {
+    const z = (s: string, ...p: unknown[]) => Number(eins(s, ...p).n);
+    return {
+      gefunden: z("SELECT COUNT(*) AS n FROM firma WHERE quelle = 'bot' AND erstellt >= ?", seit),
+      bewertet: z("SELECT COUNT(*) AS n FROM firma WHERE bewertet_am >= ?", seit),
+      impulse: z("SELECT COUNT(*) AS n FROM firma WHERE status = 'anruf_impuls' AND bewertet_am >= ?", seit),
+      wartend: wartend(),
+      firmen: z("SELECT COUNT(*) AS n FROM firma"),
+    };
+  }
+  function bewertungSpeichern(id: number, r: { score: number; begruendung: string; einstieg?: string; infos?: any; telefon?: string; email?: string; inhaber?: string; branche?: string }) {
+    const f = eins("SELECT id, status, telefon, email, branche FROM firma WHERE id = ?", id);
     if (!f) return null;
     const schwelle = einstellungen().schwelle;
     const score = Math.max(0, Math.min(100, Math.round(Number(r.score) || 0)));
@@ -395,11 +423,14 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
     const tel = f.telefon || txt(r.telefon, 60);
     q(`UPDATE firma SET score = ?, score_grund = ?, einstieg = ?, infos = ?, status = ?, bewertet_am = ?, telefon = ?, telefon_norm = ?, email = COALESCE(email, ?), geaendert = ? WHERE id = ?`,
       score, txt(r.begruendung, 1500), txt(r.einstieg, 500), r.infos ? JSON.stringify(r.infos).slice(0, 4000) : null, status, uhr(), tel, nurZiffern(tel) || null, txt(r.email, 200), uhr(), id);
+    // Branche aus der Bewertung übernehmen, wenn bisher nur die grobe Kategorie aus OpenStreetMap drinsteht
+    if (r.branche && (!f.branche || /\(|=/.test(f.branche))) q("UPDATE firma SET branche = ? WHERE id = ?", txt(r.branche, 100), id);
     if (r.inhaber && !eins("SELECT id FROM ansprechpartner WHERE firma_id = ?", id)) ansprechpartner(id, { name: r.inhaber, rolle: "Inhaber (laut Website)" });
     kontakt(id, { kanal: "recherche", durch: "Bot", ergebnis: `Bewertet: ${score} Punkte${status === "anruf_impuls" ? ", Anruf-Impuls" : ""}`, notiz: txt(r.begruendung, 1500) });
     return { score, status };
   }
-  /** Beste Anruf-Impulse für heute plus fällige Wiedervorlagen (W3). Markiert sie als gemeldet. */
+  /** Beste Anruf-Impulse für heute plus fällige Wiedervorlagen (W3). Markiert sie als gemeldet.
+   *  Ein zweiter Aufruf am selben Tag liefert nur Impulse, die seitdem neu dazugekommen sind. */
   function impulseFuerHeute(heute = tagAus(uhr())) {
     const n = einstellungen().impulse_pro_tag;
     const vorher = plusTage(heute, -7);
@@ -454,7 +485,7 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
       offen_ct: z("SELECT COALESCE(SUM(betrag_ct), 0) AS n FROM zahlung WHERE bezahlt = 0"),
       ueberfaellig: z("SELECT COUNT(*) AS n FROM zahlung WHERE bezahlt = 0 AND faellig < ?", heute),
       monat_ct: z("SELECT COALESCE(SUM(monat_ct), 0) AS n FROM vertrag WHERE status = 'aktiv' OR (status = 'gekuendigt' AND ende >= ?)", heute),
-      bot: { letzte_suche: zustand("letzte_suche"), letzte_impulse: zustand("impulse_tag"), neu_heute: z("SELECT COUNT(*) AS n FROM firma WHERE quelle = 'bot' AND erstellt >= ?", Date.parse(heute + "T00:00:00Z") - 2 * 3600_000), wartend: z("SELECT COUNT(*) AS n FROM firma WHERE status = 'neu' AND bewertet_am IS NULL AND quelle = 'bot'") },
+      bot: { letzte_suche: zustand("letzte_suche"), letzte_impulse: zustand("impulse_tag"), suchmodus: einstellungen().suchmodus, bw: zustand("bw_fortschritt"), ki_heute: zustand("ki_zaehler"), neu_heute: z("SELECT COUNT(*) AS n FROM firma WHERE quelle = 'bot' AND erstellt >= ?", Date.parse(heute + "T00:00:00Z") - 2 * 3600_000), wartend: z("SELECT COUNT(*) AS n FROM firma WHERE status = 'neu' AND bewertet_am IS NULL AND quelle = 'bot'") },
     };
   }
 
@@ -464,7 +495,7 @@ export function crmKern(sql: Sql, uhr: () => number = () => Date.now()) {
     ansprechpartner, ansprechpartnerLoeschen, kontakt, anrufErfassen, sperren, entsperren, einwilligungSetzen, infomailErlaubt, infomailVermerken,
     dokumentAblegen, dokument, dokumentLoeschen,
     produkte, produktSpeichern, vertragAnlegen, vertragAendern, monatsposten, vertraege, zahlungen, zahlungBezahlt, ueberfaelligMelden,
-    naechsteSuche, istGesperrt, zuBewerten, bewertungSpeichern, impulseFuerHeute, aufraeumen,
+    naechsteSuche, istGesperrt, zuBewerten, wartend, firmenUebernehmen, botStatistik, bewertungSpeichern, impulseFuerHeute, aufraeumen,
     loginMerken, loginEinloesen, sitzungAnlegen, sitzung, sitzungLoeschen, zaehle, start,
   };
 }
