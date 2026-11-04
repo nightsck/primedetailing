@@ -163,17 +163,17 @@ export function pruefeBuchung(b: any): { ok: true; d: any } | { ok: false; fehle
   return { ok: true, d: { betrieb, t, z, datum: b.datum, name, telefon, email, adresse, notiz: kurz(b.notiz, 500), details: kurz(b.details, 300) } };
 }
 
-function eintrag(d: any) {
+export function eintrag(d: any, quelle = "Termin-Bot") {
   const { betrieb, t, z } = d;
   const ort = t.ort === "kunde" ? `${d.adresse.strasse}, ${d.adresse.plz} ${d.adresse.ort}` : t.ort === "telefon" ? `Rückruf: ${d.telefon || d.email}` : `${betrieb.name}, ${betrieb.adresse}`;
   const demo = process.env.TERMIN_DEMO !== "0";
   const text = [
-    `${t.name} · gebucht über den Termin-Bot${demo ? " (Vorführung)" : ""}`,
+    `${t.name} · gebucht über den ${quelle}${demo ? " (Vorführung)" : ""}`,
     `Name: ${d.name}`, d.telefon && `Telefon: ${d.telefon}`, d.email && `E-Mail: ${d.email}`,
     t.ort === "kunde" && `Adresse: ${ort}`, d.details && `Angaben: ${d.details}`, d.notiz && `Notiz vom Kunden: ${d.notiz}`,
     t.ort === "kunde" && betrieb.fahrt ? `Fahrzeit eingeplant: ${betrieb.fahrt} Min. davor und danach` : "",
   ].filter(Boolean).join("\n");
-  return { titel: `${demo ? "[Demo] " : ""}${t.name} – ${d.name}`.slice(0, 120), text, ort, start: z.start, ende: z.ende, privat: { quelle: "termin-bot", betrieb: betrieb.id, termin: t.id } };
+  return { titel: `${demo ? "[Demo] " : ""}${t.name} – ${d.name}`.slice(0, 120), text, ort, start: z.start, ende: z.ende, privat: { quelle: quelle === "Termin-Bot" ? "termin-bot" : "telefon-bot", betrieb: betrieb.id, termin: t.id } };
 }
 
 /* ---------- Bestätigung per E-Mail ---------- */
@@ -238,7 +238,7 @@ export function terminMails(c: any, d: any, o: { id: string; token: string; ort:
   } : null;
   return { kunde, betrieb: betriebMail };
 }
-async function verschicke(c: any, mails: { kunde: Mail | null; betrieb: Mail | null }) {
+export async function verschicke(c: any, mails: { kunde: Mail | null; betrieb: Mail | null }) {
   const [k, b] = await Promise.all([mails.kunde ? sendeMail(c, mails.kunde) : false, mails.betrieb ? sendeMail(c, mails.betrieb) : false]);
   return { kunde: k, betrieb: b };
 }
