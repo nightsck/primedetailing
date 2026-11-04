@@ -8,6 +8,8 @@ const { crmKern, plusWerktage, tagAus, domainVon, cent } = await import("../src/
 let jetzt = Date.parse("2026-11-02T09:00:00Z");
 const neuerKern = () => crmKern(testSql(), () => jetzt);
 
+const ALLE = { vertrag: true, avv: true, sepa: true };
+
 test("Hilfsfunktionen: Werktage, Tag in deutscher Zeit, Domain, Cent", () => {
   assert.equal(plusWerktage("2026-11-06", 1), "2026-11-09", "Freitag + 1 Werktag = Montag");
   assert.equal(plusWerktage("2026-11-02", 5), "2026-11-09");
@@ -71,7 +73,7 @@ test("Rechenbeispiel aus dem Bauplan: 990 € Einrichtung + 199 € monatlich ab
   const k = neuerKern();
   const { id } = k.firmaAnlegen({ name: "Kunde GmbH" }, "Tom");
   jetzt = Date.parse("2026-12-01T09:00:00Z");
-  const v = k.vertragAnlegen(id, { beginn: "2026-12-01", einmal: "990", monatlich: "199", produkt: "Chat + Termin-Bot", mindestlaufzeit: 12 }, "Tom");
+  const v = k.vertragAnlegen(id, { beginn: "2026-12-01", einmal: "990", monatlich: "199", produkt: "Chat + Termin-Bot", mindestlaufzeit: 12, unterlagen: ALLE }, "Tom");
   assert.equal(v.nummer, "V-2026-001");
   let z = k.zahlungen({ firma_id: id });
   const einr = z.find((x: any) => x.art === "einrichtung");
@@ -100,7 +102,7 @@ test("Kündigung: Monatsposten nur bis zum Vertragsende", () => {
   const k = neuerKern();
   const { id } = k.firmaAnlegen({ name: "Kurz GmbH" }, "Tom");
   jetzt = Date.parse("2027-01-10T09:00:00Z");
-  const v = k.vertragAnlegen(id, { beginn: "2027-01-01", monatlich: "100" }, "Tom");
+  const v = k.vertragAnlegen(id, { beginn: "2027-01-01", monatlich: "100", unterlagen: ALLE }, "Tom");
   assert.throws(() => k.vertragAendern(v.id, { status: "gekuendigt" }, "Tom"), /Vertragsende/);
   k.vertragAendern(v.id, { status: "gekuendigt", ende: "2027-03-31" }, "Tom");
   jetzt = Date.parse("2027-08-01T09:00:00Z");
@@ -177,4 +179,105 @@ test("Einstellungen: Standardwerte, Listen aus Text, Zahlen begrenzt, unbekannte
   assert.equal(e.schwelle, 1000);
   assert.equal(e.bot_aktiv, false);
   assert.equal((e as any).hack, undefined);
+});
+
+/* ---------- Anpassungen 11/2026 (Liste von Giosuè) ---------- */
+test("Produkt mit Laufzeiten → Angebot übernimmt Gebühren, Nachfassen und Ablauf-Hinweis, Annahme → Vertrag mit Frist", () => {
+  jetzt = Date.parse("2026-11-02T09:00:00Z");
+  const k = neuerKern();
+  const pid = k.produktSpeichern({ name: "Chat-Bot", laufzeiten: [{ monate: 0, frist_monate: 1, einmal: "490", monatlich: "249" }, { monate: 12, frist_monate: 3, einmal: "290", monatlich: "199" }] });
+  assert.throws(() => k.produktSpeichern({ name: "X", laufzeiten: [{ monate: 12 }, { monate: 12 }] }), /nur einmal/);
+  const lz = k.produkte()[0].laufzeiten;
+  assert.deepEqual(lz.map((l: any) => [l.name, l.einmal_ct, l.monat_ct, l.kuendigungsfrist]), [["Monatlich kündbar", 49000, 24900, "1 Monat zum Monatsende"], ["12 Monate", 29000, 19900, "3 Monate zum Laufzeitende"]]);
+  const { id } = k.firmaAnlegen({ name: "Kunde A", telefon: "0711 1" }, "Giosuè");
+  const a = k.angebotAnlegen(id, { produkt_id: pid, laufzeit_id: lz[1].id }, "Giosuè");
+  assert.equal(a.nummer, "A-2026-001");
+  assert.equal(k.firma(id)!.status, "angebot");
+  const auf = k.aufgaben({ firma_id: id });
+  assert.deepEqual(auf.map((x: any) => [x.art, x.faellig]), [["nachfassen", "2026-11-05"], ["nachfassen", "2026-11-16"], ["ablauf", "2026-11-29"]]);
+  assert.throws(() => k.angebotEntscheiden(a.id, { status: "abgelehnt" }, "Tom"), /Verlustgrund/);
+  const r = k.angebotEntscheiden(a.id, { status: "angenommen", beginn: "2026-12-01", unterlagen: { vertrag: true } }, "Tom");
+  assert.equal(r.vertrag.status, "unterlagen", "ohne AVV und SEPA noch nicht aktiv");
+  const v = k.firma(id)!.vertraege[0];
+  assert.equal(v.mindestlaufzeit, 12); assert.equal(v.frist_monate, 3); assert.equal(v.einmal_ct, 29000); assert.equal(v.kuendigungsfrist, "3 Monate zum Laufzeitende");
+  assert.equal(k.zahlungen({ firma_id: id }).length, 0, "keine Zahlungen vor Vollständigkeit");
+  assert.equal(k.aufgaben({ firma_id: id }).filter((x: any) => x.art === "nachfassen").length, 0, "Nachfassen erledigt");
+  k.unterlageSetzen(v.id, "avv", true, "Tom");
+  assert.equal(k.unterlageSetzen(v.id, "sepa", true, "Tom").status, "aktiv");
+  assert.equal(k.firma(id)!.status, "kunde");
+  assert.ok(k.zahlungen({ firma_id: id }).some((z: any) => z.art === "einrichtung" && z.betrag_ct === 29000));
+  // Einrichtung (Übergabe an Tom)
+  const ein = k.aufgaben({ firma_id: id }).find((x: any) => x.art === "einrichtung");
+  assert.equal(ein.zustaendig, "Tom");
+  for (const s of ["einrichtung", "test", "golive"]) k.onboardingSetzen(v.id, s, true, "Tom");
+  assert.equal(k.firma(id)!.vertraege[0].onboarding_stand, "Live");
+  assert.equal(k.aufgaben({ firma_id: id }).length, 0, "Einrichtungs-Aufgabe erledigt");
+});
+
+test("Fristen-Wächter: Erinnerung vor dem letzten Kündigungstag, nur einmal; Kündigung → Rückgewinnung", () => {
+  jetzt = Date.parse("2026-11-02T09:00:00Z");
+  const k = neuerKern();
+  const { id } = k.firmaAnlegen({ name: "Langläufer" }, "Tom");
+  const v = k.vertragAnlegen(id, { beginn: "2026-01-01", produkt: "Bot", monatlich: "100", mindestlaufzeit: 12, frist_monate: 3, unterlagen: ALLE }, "Tom");
+  assert.deepEqual(k.firma(id)!.vertraege[0].fristen, { mindest_ende: "2026-12-31", laufzeit_ende: "2027-12-31", kuendigen_bis: "2027-09-30", verlaengert: true }, "Frist 30.09.2026 ist vorbei → nächste Laufzeit");
+  assert.equal(k.fristenPruefen("2027-08-01").length, 0, "60 Tage vorher: noch nicht (Vorlauf 45)");
+  const f = k.fristenPruefen("2027-08-20");
+  assert.equal(f.length, 1);
+  assert.equal(k.fristenPruefen("2027-08-21").length, 0, "nur einmal");
+  const a = k.aufgaben({ firma_id: id }).find((x: any) => x.art === "frist");
+  assert.equal(a.wichtig, true); assert.match(a.titel, /kündbar bis 30\.09\.2027/);
+  k.vertragAendern(v.id, { status: "gekuendigt", ende: "2027-12-31", verlustgrund: "zu_teuer" }, "Tom");
+  const rg = k.aufgaben({ firma_id: id }).find((x: any) => x.art === "rueckgewinnung");
+  assert.ok(rg && rg.wichtig);
+  assert.equal(k.firma(id)!.verlustgrund, "zu_teuer");
+});
+
+test("Wiedervorlage: verschieben mit Grund, an Tom übergeben, Überfälliges bleibt sichtbar, Anruf erledigt sie", () => {
+  jetzt = Date.parse("2026-11-02T09:00:00Z");
+  const k = neuerKern();
+  const { id } = k.firmaAnlegen({ name: "Wieder GmbH", telefon: "0711 5" }, "Giosuè");
+  k.anrufErfassen(id, { ergebnis: "rueckruf", entscheider: "nein", bedarf: "hoch", zeitrahmen: "sofort" }, "Giosuè");
+  let a = k.aufgaben({ firma_id: id })[0];
+  assert.equal(a.faellig, "2026-11-03");
+  assert.equal(k.firma(id)!.bedarf, "hoch");
+  a = k.aufgabeVerschieben(a.id, { faellig: "2026-11-05", grund: "Chef krank", zustaendig: "Tom" }, "Giosuè");
+  assert.equal(a.zustaendig, "Tom"); assert.equal(a.verschoben, 1);
+  assert.match(k.firma(id)!.kontakte[0].ergebnis, /übergeben an Tom/);
+  // nicht erledigt → am nächsten Tag überfällig, aber weiter im Cockpit
+  jetzt = Date.parse("2026-11-06T09:00:00Z");
+  const c = k.cockpit({ zustaendig: "Tom" });
+  assert.equal(c.ueberfaellig.length, 1);
+  assert.equal(k.cockpit({ zustaendig: "Giosuè" }).ueberfaellig.length, 0, "Giosuès Ansicht ohne Toms Aufgabe");
+  assert.equal(k.heuteAnrufen().length, 1);
+  k.anrufErfassen(id, { ergebnis: "termin" }, "Tom");
+  assert.equal(k.aufgaben({ firma_id: id }).length, 0);
+  assert.throws(() => k.anrufErfassen(id, { ergebnis: "kein_interesse" }, "Tom"), /Verlustgrund/);
+});
+
+test("Wichtig: Firmen, Aufgaben stehen oben; Dubletten; Leitfaden je Branche; Wochenbericht", () => {
+  jetzt = Date.parse("2026-11-02T09:00:00Z");
+  const k = neuerKern();
+  const a = k.firmaAnlegen({ name: "Alpha Bau GmbH", ort: "Ulm", plz: "89073", telefon: "0731 12345", branche: "Autowerkstatt" }, "Tom").id;
+  const b = k.firmaAnlegen({ name: "Beta", telefon: "0731 2" }, "Tom").id;
+  k.wichtigSetzen("firma", a, true);
+  assert.equal(k.firmen()[0].id, a);
+  k.aufgabeAnlegen(b, { faellig: "2026-11-02" }, "Tom"); const w = k.aufgabeAnlegen(b, { faellig: "2026-11-02", titel: "wichtig" }, "Tom");
+  k.wichtigSetzen("aufgabe", w, true);
+  assert.equal(k.aufgaben()[0].id, w);
+  // Dubletten
+  assert.equal(k.dubletten({ name: "Alpha Bau" })[0].id, a);
+  assert.equal(k.dubletten({ name: "Gamma", telefon: "+49 731 12345" })[0].sicher, true);
+  assert.equal(k.dubletten({ name: "Ganz anders" }).length, 0);
+  // Leitfaden
+  assert.equal(k.leitfadenFuer("Autowerkstatt").name, "Allgemein");
+  k.leitfadenSpeichern({ name: "Kfz", stichworte: "werkstatt, autohaus", einstieg: "Hallo Werkstatt" });
+  assert.equal(k.leitfadenFuer("Autowerkstatt").name, "Kfz");
+  assert.equal(k.firma(a)!.leitfaden.einstieg, "Hallo Werkstatt");
+  // Wochenbericht
+  k.anrufErfassen(a, { ergebnis: "termin" }, "Tom");
+  k.anrufErfassen(b, { ergebnis: "nicht_erreicht" }, "Giosuè");
+  k.vertragAnlegen(a, { beginn: "2026-11-01", monatlich: "199", unterlagen: ALLE }, "Tom");
+  const wb = k.wochenbericht("2026-11-02");
+  assert.deepEqual([wb.anrufe, wb.erreicht, wb.termine, wb.abschluesse, wb.mrr_ct], [2, 1, 1, 1, 19900]);
+  assert.equal(k.wochenberichte(3).length, 3);
 });

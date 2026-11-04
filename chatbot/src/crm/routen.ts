@@ -10,7 +10,7 @@
 // Daten liegen im Durable Object CRM (SQLite), getrennt von allen Kunden-Bots.
 import type { Hono } from "hono";
 import { sendeMail, gueltigeMail } from "../mail.ts";
-import { STATUS_TEXT, tagAus, type CrmKern } from "./kern.ts";
+import { STATUS_TEXT, QUALI, VERLUSTGRUENDE, AUFGABEN_ARTEN, UNTERLAGEN, ONBOARDING, tagAus, montagVon, plusTage, type CrmKern } from "./kern.ts";
 import { BRANCHEN, sucheFirmen, websiteLesen, kiBewertung, regelBewertung, bwKacheln, vierteln, sucheKachel, bwAbfrage, bwTreffer, OVERPASS, type Kachel } from "./bot.ts";
 import { CRM_SEITE, ANMELDE_SEITE, ABMELDE_SEITE } from "./seite.ts";
 
@@ -51,6 +51,7 @@ function nameVon(c: any, email: string) {
 const keks = (c: any, name: string) => (c.req.header("cookie") || "").split(";").map((s: string) => s.trim().split("=")).find(([k]: string[]) => k === name)?.[1] || "";
 const basis = (c: any) => wert(c, "CRM_URL") || (c.req ? new URL(c.req.url).origin : STANDARD_URL);
 const escH = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
+const deTag = (t: string) => String(t || "").split("-").reverse().join(".");
 const eur = (ct: number) => (ct / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 const rahmen = (kopf: string, inhalt: string) => `<!doctype html><html lang="de"><body style="margin:0;background:#F4F2EE;font-family:Arial,Helvetica,sans-serif;color:#1B1D1F">
 <div style="max-width:640px;margin:0 auto;padding:24px 16px"><div style="background:#FFFFFF;border:1px solid #D9D5CE;border-radius:4px">
@@ -79,6 +80,35 @@ function geschuetzt(h: Handler) {
 const json = async (c: any) => { try { return await c.req.json(); } catch { return {}; } };
 const id = (c: any) => { const n = Number(c.req.param("id")); if (!Number.isInteger(n) || n < 1) throw new Error("Ungültige ID."); return n; };
 
+/* ---------- Click-to-Call mit sipgate (Punkt 10) ---------- */
+/** Deutsche Nummer ins internationale Format: 0711 123 → +49711123 */
+export function e164(nr: unknown): string | null {
+  let s = String(nr ?? "").replace(/[^\d+]/g, "");
+  if (s.startsWith("00")) s = "+" + s.slice(2);
+  else if (s.startsWith("0")) s = "+49" + s.slice(1);
+  else if (s && !s.startsWith("+")) s = "+49" + s;
+  return /^\+\d{6,15}$/.test(s) ? s : null;
+}
+/** Gerät (z. B. e0 = Web-Phone/App) für die angemeldete Person: SIPGATE_GERAETE="mail=e0,mail2=e5", sonst SIPGATE_GERAET. */
+function sipgateGeraet(c: any, email: string) {
+  for (const p of wert(c, "SIPGATE_GERAETE").split(",")) { const [m, g] = p.split("="); if (m?.trim().toLowerCase() === email && g?.trim()) return g.trim(); }
+  return wert(c, "SIPGATE_GERAET");
+}
+export const sipgateBereit = (c: any) => !!(wert(c, "SIPGATE_TOKEN_ID") && wert(c, "SIPGATE_TOKEN") && (wert(c, "SIPGATE_GERAET") || wert(c, "SIPGATE_GERAETE")));
+/** sipgate klingelt zuerst bei uns (App/Telefon), dann wird die Firma angerufen. */
+export async function sipgateAnruf(c: any, email: string, nummer: string, f: typeof fetch = fetch): Promise<{ ok: boolean; fehler?: string }> {
+  const geraet = sipgateGeraet(c, email);
+  if (!geraet) return { ok: false, fehler: "Für diese Anmeldung ist kein sipgate-Gerät eingetragen (SIPGATE_GERAETE)." };
+  const body: Record<string, string> = { deviceId: geraet, caller: geraet, callee: nummer };
+  if (wert(c, "SIPGATE_ABSENDER")) body.callerId = wert(c, "SIPGATE_ABSENDER");
+  try {
+    const r = await f("https://api.sipgate.com/v2/sessions/calls", { method: "POST", signal: AbortSignal.timeout(10_000),
+      headers: { Authorization: "Basic " + btoa(`${wert(c, "SIPGATE_TOKEN_ID")}:${wert(c, "SIPGATE_TOKEN")}`), "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
+    if (r.ok) return { ok: true };
+    return { ok: false, fehler: r.status === 401 || r.status === 403 ? "sipgate lehnt den Zugang ab (Token prüfen, Recht sessions:calls:write)." : r.status === 402 ? "sipgate: Guthaben oder Tarif reicht nicht." : `sipgate antwortet mit Fehler ${r.status}.` };
+  } catch (e: any) { return { ok: false, fehler: "sipgate nicht erreichbar: " + String(e?.message || e).slice(0, 100) }; }
+}
+
 /* ---------- Mails ---------- */
 export async function infomailSenden(c: any, firmaId: number, durch: string): Promise<{ ok: boolean; fehler?: string }> {
   const absender = wert(c, "VERTRIEB_ABSENDER");
@@ -104,7 +134,7 @@ function impulseMail(url: string, i: { neu: any[]; faellig: any[] }, stand: stri
     <a href="${escH(url)}/crm#/firma/${f.id}" style="color:#1B1D1F;font-weight:bold">${escH(f.name)}</a> <span style="color:#6B6F73">${escH([f.branche, f.ort].filter(Boolean).join(", "))}</span><br>
     ${f.telefon ? `<a href="tel:${escH(String(f.telefon).replace(/[^\d+]/g, ""))}" style="color:#1B1D1F">${escH(f.telefon)}</a>` : "keine Nummer"}${f.score != null ? ` · <b>${f.score}</b> Punkte` : ""}${extra}</td></tr>`;
   const neu = i.neu.map((f) => zeile(f, `${f.score_grund ? `<br><span style="color:#4A4E52">Warum: ${escH(f.score_grund)}</span>` : ""}${f.einstieg ? `<br><span style="color:#4A4E52">Einstieg: „${escH(f.einstieg)}“</span>` : ""}`)).join("");
-  const fl = i.faellig.map((f) => zeile(f, ` · Wiedervorlage ${escH(f.wiedervorlage)} (${escH(STATUS_TEXT[f.status] || f.status)})`)).join("");
+  const fl = i.faellig.map((f) => zeile(f, `${f.wichtig ? " · <b>wichtig</b>" : ""}<br><span style="color:#4A4E52">${escH(f.titel || "Wiedervorlage")}${f.wiedervorlage < tagAus(Date.now()) ? ` (seit ${escH(deTag(f.wiedervorlage))} offen)` : ""}${f.zustaendig ? ` · für ${escH(f.zustaendig)}` : ""}${f.grund ? ` · ${escH(f.grund)}` : ""}</span>`)).join("");
   return rahmen(art === "nachtrag" ? `Nachtrag: ${i.neu.length} neue Anruf-Impulse` : leer ? "Heute noch keine Anruf-Impulse" : `Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`,
     `${leer ? `<p style="margin:0 0 12px">Heute gibt es noch niemanden anzurufen. Neue Impulse kommen als Nachtrag ab 14 Uhr.</p>` : ""}${i.neu.length ? `<p style="margin:0 0 4px;font-weight:bold">Neue Anruf-Impulse</p><table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${neu}</table>` : ""}
      ${i.faellig.length ? `<p style="margin:20px 0 4px;font-weight:bold">Wiedervorlagen</p><table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${fl}</table>` : ""}
@@ -151,6 +181,20 @@ export async function geplant(env: any, jetzt = Date.now(), f: typeof fetch = fe
           <p style="margin:16px 0 0"><a href="${url}/crm#/zahlungen" style="color:#1B1D1F">Offene Zahlungen ansehen</a></p>`) });
     }
     bericht.geloescht = await k.aufraeumen(jetzt);
+    // Fristen-Wächter: Verträge, deren letzter Kündigungstag bald kommt (Punkt 4)
+    const fr = await k.fristenPruefen(heute);
+    bericht.fristen = fr.length;
+    if (fr.length && gueltigeMail(e.impulse_an)) {
+      await sendeMail(c, { an: e.impulse_an, absenderName: "KI-Vertrieb", betreff: `Vertragsfrist: ${fr.length} ${fr.length === 1 ? "Vertrag" : "Verträge"} bald kündbar`,
+        text: fr.map((v: any) => `${v.firma} (${v.nummer}): kündbar bis ${deTag(v.kuendigen_bis)}, Laufzeit endet ${deTag(v.laufzeit_ende)}`).join("\n") + `\n\nJetzt anrufen und Verlängerung sichern: ${url}/crm#/heute`,
+        html: rahmen("Fristen-Wächter: Kunden bald kündbar", `<ul style="padding-left:18px;margin:0">${fr.map((v: any) => `<li><a href="${url}/crm#/firma/${v.firma_id}" style="color:#1B1D1F"><b>${escH(v.firma)}</b></a> (${escH(v.nummer)}): kündbar bis <b>${escH(deTag(v.kuendigen_bis))}</b>, Laufzeit endet ${escH(deTag(v.laufzeit_ende))}</li>`).join("")}</ul>
+          <p style="margin:16px 0 0">Die Anrufe stehen als wichtige Aufgabe im Tagescockpit.</p>`) });
+    }
+  }
+  // Wochenbericht: montags ab 8 Uhr, einmal pro Woche (Punkt 11)
+  if (e.wochenbericht && wt === 1 && stunde >= 8 && (await k.zustand("wochenbericht")) !== heute) {
+    await k.zustand("wochenbericht", heute);
+    bericht.wochenbericht = await wochenberichtSenden(c, e, heute);
   }
   if (!e.bot_aktiv) return { ...bericht, bot: "aus" };
 
@@ -179,6 +223,33 @@ export async function geplant(env: any, jetzt = Date.now(), f: typeof fetch = fe
     }
   }
   return bericht;
+}
+
+/** Wochenbericht der Vorwoche per Mail. */
+export async function wochenberichtSenden(c: any, e: any, heute = tagAus(Date.now())) {
+  if (!gueltigeMail(e.impulse_an)) return { mail: false };
+  const k = crm(c);
+  const w = await k.wochenbericht(plusTage(montagVon(heute), -7));
+  const vor = await k.wochenbericht(plusTage(montagVon(heute), -14));
+  const url = wert(c, "CRM_URL") || STANDARD_URL;
+  const diff = (a: number, b: number) => (a === b ? "" : ` (${a > b ? "+" : ""}${a - b})`);
+  const zeilen: [string, string][] = [
+    ["Anrufe", `${w.anrufe}${diff(w.anrufe, vor.anrufe)}, davon erreicht ${w.erreicht}`],
+    ["Termine", `${w.termine}${diff(w.termine, vor.termine)}`],
+    ["Angebote", `${w.angebote}${diff(w.angebote, vor.angebote)}`],
+    ["Abschlüsse", `${w.abschluesse}${diff(w.abschluesse, vor.abschluesse)}${w.neu_mrr_ct ? `, + ${eur(w.neu_mrr_ct)} monatlich` : ""}`],
+    ["MRR (monatlich wiederkehrend)", `${eur(w.mrr_ct)}${w.mrr_ct !== vor.mrr_ct ? ` (${w.mrr_ct > vor.mrr_ct ? "+" : "−"} ${eur(Math.abs(w.mrr_ct - vor.mrr_ct))})` : ""}`],
+  ];
+  const verlust = Object.entries(w.verlust).sort((a: any, b: any) => b[1] - a[1]).map(([g, n]) => `${VERLUSTGRUENDE[g] || g}: ${n}`);
+  const personen = w.pro_person.map((p: any) => `${p.durch}: ${p.anrufe} Anrufe, ${p.termine} Termine`);
+  const titel = `Wochenbericht ${deTag(w.montag)} bis ${deTag(w.bis)}`;
+  const ok = await sendeMail(c, { an: e.impulse_an, absenderName: "KI-Vertrieb", betreff: titel,
+    text: [...zeilen.map(([a, b]) => `${a}: ${b}`), "", ...(personen.length ? ["Pro Person:", ...personen, ""] : []), ...(verlust.length ? ["Verlustgründe:", ...verlust, ""] : []), `${url}/crm#/bericht`].join("\n"),
+    html: rahmen(titel, `<table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">${zeilen.map(([a, b]) => `<tr><td style="padding:8px 0;border-top:1px solid #E5E1DA;color:#4A4E52">${escH(a)}</td><td style="padding:8px 0;border-top:1px solid #E5E1DA;text-align:right"><b>${escH(b)}</b></td></tr>`).join("")}</table>
+      ${personen.length ? `<p style="margin:16px 0 4px;font-weight:bold">Pro Person</p><p style="margin:0">${personen.map(escH).join("<br>")}</p>` : ""}
+      ${verlust.length ? `<p style="margin:16px 0 4px;font-weight:bold">Verlustgründe</p><p style="margin:0">${verlust.map(escH).join("<br>")}</p>` : ""}
+      <p style="margin:20px 0 0"><a href="${escH(url)}/crm#/bericht" style="display:inline-block;background:#1B1D1F;color:#FFFFFF;text-decoration:none;padding:10px 16px;border-radius:4px">Bericht im CRM</a></p>`) });
+  return { mail: ok, ...w };
 }
 
 /** Eine Suche, wenn gerade sinnvoll. Gibt einen kurzen Bericht zurück oder null. */
@@ -316,7 +387,7 @@ export async function impulseSenden(c: any, e: any, art: "morgen" | "nachtrag" |
     : leer ? "Vertriebs-Bot: heute noch keine Anruf-Impulse" : `Heute anrufen: ${i.neu.length} neue, ${i.faellig.length} Wiedervorlagen`;
   const ok = await sendeMail(c, {
     an: e.impulse_an, absenderName: "KI-Vertrieb", betreff,
-    text: [...i.neu.map((x: any) => `${x.name} (${x.score} Punkte) ${x.telefon || ""}: ${x.score_grund || ""}`), ...i.faellig.map((x: any) => `Wiedervorlage: ${x.name} ${x.telefon || ""}`),
+    text: [...i.neu.map((x: any) => `${x.name} (${x.score} Punkte) ${x.telefon || ""}: ${x.score_grund || ""}`), ...i.faellig.map((x: any) => `${x.titel || "Wiedervorlage"}: ${x.name} ${x.telefon || ""}${x.zustaendig ? ` (für ${x.zustaendig})` : ""}`),
       ...(leer ? ["Heute gibt es noch niemanden anzurufen. Neue Impulse kommen als Nachtrag ab 14 Uhr."] : []), "", ...standText, "", `${url}/crm#/heute`].join("\n"),
     html: impulseMail(url, i, standText, art, leer),
   });
@@ -405,14 +476,24 @@ export function crmRouten(app: Hono) {
   }));
 
   // ----- geschützt -----
-  app.get("/api/crm/ich", geschuetzt(async (c, n) => c.json({ ok: true, ...n, absender: !!wert(c, "VERTRIEB_ABSENDER"), branchen: Object.fromEntries(Object.entries(BRANCHEN).map(([k, v]) => [k, v.name])), status: STATUS_TEXT })));
+  app.get("/api/crm/ich", geschuetzt(async (c, n) => {
+    const e = await crm(c).einstellungen();
+    return c.json({ ok: true, ...n, absender: !!wert(c, "VERTRIEB_ABSENDER"), sipgate: sipgateBereit(c), team: e.team, technik: e.technik,
+      branchen: Object.fromEntries(Object.entries(BRANCHEN).map(([k, v]) => [k, v.name])), status: STATUS_TEXT,
+      quali: QUALI, verlustgruende: VERLUSTGRUENDE, aufgaben_arten: AUFGABEN_ARTEN, unterlagen: UNTERLAGEN, onboarding: ONBOARDING });
+  }));
+  app.get("/api/crm/cockpit", geschuetzt(async (c, n) => c.json({ ok: true, ...(await crm(c).cockpit({ zustaendig: c.req.query("meine") === "1" ? n.name : undefined })) })));
   app.get("/api/crm/start", geschuetzt(async (c) => c.json({ ok: true, ...(await crm(c).start()) })));
   app.get("/api/crm/heute", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).heuteAnrufen() })));
   app.get("/api/crm/pipeline", geschuetzt(async (c) => c.json({ ok: true, ...(await crm(c).pipeline()) })));
   app.get("/api/crm/firmen", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).firmen({ q: c.req.query("q") || "", status: c.req.query("status") || "" }) })));
   app.post("/api/crm/firmen", geschuetzt(async (c, n) => { const r = await crm(c).firmaAnlegen(await json(c), n.name); return c.json({ ok: true, ...r }); }));
   app.get("/api/crm/firma/:id", geschuetzt(async (c) => { const f = await crm(c).firma(id(c)); return f ? c.json({ ok: true, firma: f }) : c.json({ ok: false, fehler: "Nicht gefunden." }, 404); }));
-  app.put("/api/crm/firma/:id", geschuetzt(async (c) => c.json({ ok: true, firma: await crm(c).firmaAendern(id(c), await json(c)) })));
+  app.put("/api/crm/firma/:id", geschuetzt(async (c, n) => c.json({ ok: true, firma: await crm(c).firmaAendern(id(c), { ...(await json(c)), durch: n.name }) })));
+  app.get("/api/crm/dubletten", geschuetzt(async (c) => {
+    const d = Object.fromEntries(["name", "plz", "ort", "telefon", "website"].map((k) => [k, String(c.req.query(k) || "").slice(0, 200)]));
+    return c.json({ ok: true, liste: await crm(c).dubletten(d, Number(c.req.query("ausser")) || 0) });
+  }));
   app.delete("/api/crm/firma/:id", geschuetzt(async (c) => { await crm(c).firmaLoeschen(id(c)); return c.json({ ok: true }); }));
   app.post("/api/crm/firma/:id/ansprechpartner", geschuetzt(async (c) => c.json({ ok: true, id: await crm(c).ansprechpartner(id(c), await json(c)) })));
   app.delete("/api/crm/ansprechpartner/:id", geschuetzt(async (c) => { await crm(c).ansprechpartnerLoeschen(id(c)); return c.json({ ok: true }); }));
@@ -453,6 +534,42 @@ export function crmRouten(app: Hono) {
   app.put("/api/crm/vertrag/:id", geschuetzt(async (c, n) => c.json({ ok: true, vertrag: await crm(c).vertragAendern(id(c), await json(c), n.name) })));
   app.get("/api/crm/zahlungen", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).zahlungen({ offen: c.req.query("offen") === "1" }) })));
   app.post("/api/crm/zahlung/:id", geschuetzt(async (c) => { const b: any = await json(c); await crm(c).zahlungBezahlt(id(c), !!b.bezahlt, b.datum, b.rechnungsnummer); return c.json({ ok: true }); }));
+  // ----- Aufgaben und Wiedervorlagen -----
+  app.get("/api/crm/aufgaben", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).aufgaben({ offen: true }) })));
+  app.post("/api/crm/firma/:id/aufgabe", geschuetzt(async (c, n) => c.json({ ok: true, id: await crm(c).aufgabeAnlegen(id(c), await json(c), n.name) })));
+  app.post("/api/crm/aufgabe/:id/erledigt", geschuetzt(async (c, n) => { const b: any = await json(c); return c.json({ ok: true, aufgabe: await crm(c).aufgabeErledigen(id(c), n.name, b.erledigt !== false) }); }));
+  app.post("/api/crm/aufgabe/:id/verschieben", geschuetzt(async (c, n) => c.json({ ok: true, aufgabe: await crm(c).aufgabeVerschieben(id(c), await json(c), n.name) })));
+  app.post("/api/crm/wichtig", geschuetzt(async (c) => { const b: any = await json(c); const i = Number(b.id); if (!Number.isInteger(i) || i < 1) throw new Error("Ungültige ID."); return c.json(await crm(c).wichtigSetzen(String(b.art), i, !!b.ja)); }));
+  // ----- Angebote -----
+  app.get("/api/crm/angebote", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).angebote({ offen: c.req.query("offen") === "1" }) })));
+  app.post("/api/crm/firma/:id/angebot", geschuetzt(async (c, n) => c.json({ ok: true, ...(await crm(c).angebotAnlegen(id(c), await json(c), n.name)) })));
+  app.post("/api/crm/angebot/:id/entscheiden", geschuetzt(async (c, n) => c.json({ ok: true, ...(await crm(c).angebotEntscheiden(id(c), await json(c), n.name)) })));
+  // ----- Unterlagen und Einrichtung -----
+  app.post("/api/crm/vertrag/:id/unterlage", geschuetzt(async (c, n) => { const b: any = await json(c); return c.json({ ok: true, vertrag: await crm(c).unterlageSetzen(id(c), String(b.art), !!b.ja, n.name) }); }));
+  app.post("/api/crm/vertrag/:id/onboarding", geschuetzt(async (c, n) => { const b: any = await json(c); return c.json({ ok: true, vertrag: await crm(c).onboardingSetzen(id(c), String(b.schritt), !!b.ja, n.name) }); }));
+  // ----- Wochenbericht, Leitfäden -----
+  app.get("/api/crm/bericht", geschuetzt(async (c) => c.json({ ok: true, wochen: await crm(c).wochenberichte(Number(c.req.query("wochen")) || 8) })));
+  app.get("/api/crm/leitfaeden", geschuetzt(async (c) => c.json({ ok: true, liste: await crm(c).leitfaeden() })));
+  app.post("/api/crm/leitfaeden", geschuetzt(async (c) => c.json({ ok: true, id: await crm(c).leitfadenSpeichern(await json(c)) })));
+  app.delete("/api/crm/leitfaden/:id", geschuetzt(async (c) => { await crm(c).leitfadenLoeschen(id(c)); return c.json({ ok: true }); }));
+  // ----- Click-to-Call: über sipgate oder das eigene Telefon; der Anruf steht sofort im Kontaktverlauf -----
+  app.post("/api/crm/firma/:id/anrufen", geschuetzt(async (c, n) => {
+    const b: any = await json(c);
+    const k = crm(c), f = await k.firma(id(c));
+    if (!f) throw new Error("Firma nicht gefunden.");
+    if (f.gesperrt) throw new Error("Die Firma ist gesperrt: keine Anrufe.");
+    const roh = String(b.nummer || f.telefon || "");
+    const nummer = e164(roh);
+    if (!nummer) throw new Error("Keine gültige Telefonnummer hinterlegt.");
+    if (sipgateBereit(c) && b.weg !== "telefon") {
+      const r = await sipgateAnruf(c, n.email, nummer);
+      if (!r.ok) throw new Error(r.fehler || "sipgate hat nicht geklappt.");
+      await k.kontakt(f.id, { kanal: "anruf", richtung: "aus", durch: n.name, code: "gestartet", ergebnis: `Anruf über sipgate gestartet (${roh})`, zeitpunkt: Date.now() });
+      return c.json({ ok: true, sipgate: true, nummer });
+    }
+    await k.kontakt(f.id, { kanal: "anruf", richtung: "aus", durch: n.name, code: "gestartet", ergebnis: `Anruf gestartet (${roh})`, zeitpunkt: Date.now() });
+    return c.json({ ok: true, sipgate: false, nummer });
+  }));
   app.get("/api/crm/einstellungen", geschuetzt(async (c) => c.json({ ok: true, einstellungen: await crm(c).einstellungen() })));
   app.put("/api/crm/einstellungen", geschuetzt(async (c) => c.json({ ok: true, einstellungen: await crm(c).einstellungenSetzen(await json(c)) })));
   // Bot jetzt einmal laufen lassen (sonst alle 10 Minuten automatisch)
