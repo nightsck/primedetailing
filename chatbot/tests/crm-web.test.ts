@@ -63,6 +63,8 @@ function netz(antworten: { overpass?: any; seiten?: Record<string, string>; ki?:
 const ENV = (kern: any, extra: Record<string, string> = {}) => ({ CRM_KERN: kern, MAIL_ABSENDER: "termine@primedetailing.eu", BREVO_API_KEY: "test", ...extra });
 
 /* ---------- Bausteine ---------- */
+const ALLE = { vertrag: true, avv: true, sepa: true };
+
 test("OpenStreetMap: Abfrage mit Region und Branche, Treffer lesen", () => {
   const q = B.overpassAbfrage("sanitaer", 'Stutt"gart]', 30)!;
   assert.match(q, /area\["boundary"="administrative"\]\["name"="Stuttgart"\]/, "Sonderzeichen entfernt");
@@ -262,7 +264,7 @@ test("Zahlungserinnerung: überfällige Posten per Mail, nur einmal", async () =
   const kern = crmKern(testSql(), () => Date.parse("2026-12-01T09:00:00Z"));
   const env = ENV(kern);
   const { id } = kern.firmaAnlegen({ name: "Zahler" }, "Tom");
-  kern.vertragAnlegen(id, { beginn: "2026-10-01", einmal: "500", monatlich: "100" }, "Tom");
+  kern.vertragAnlegen(id, { beginn: "2026-10-01", einmal: "500", monatlich: "100", unterlagen: ALLE }, "Tom");
   kern.einstellungenSetzen({ bot_aktiv: false });
   const n = netz({}); globalThis.fetch = n.f;
   await R.geplant(env, Date.parse("2026-12-01T07:10:00Z"), n.f);
@@ -524,4 +526,28 @@ test("GitHub-Suche: Aufgabe holen, Ergebnis abliefern, Gebiet weiterschalten; oh
     r = await app.anfrage("POST", "/api/crm/osm/aufgabe", { env, header: h, body: {} });
     assert.equal((await r.json()).kachel, null);
   } finally { globalThis.fetch = echt; }
+});
+
+test("Click-to-Call: Nummer international, sipgate-Aufruf, ohne sipgate Telefon-Link; Eintrag im Verlauf", async () => {
+  assert.equal(R.e164("0711 123456"), "+49711123456");
+  assert.equal(R.e164("abc"), null);
+  assert.equal(R.e164("0049 711 1"), "+497111");
+  const kern = crmKern(testSql()); const n = netz({});
+  const aufrufe: any[] = [];
+  globalThis.fetch = (async (url: string, o: any = {}) => { if (String(url).includes("sipgate")) { aufrufe.push({ url, o }); return new Response("", { status: 200 }); } return n.f(url, o); }) as any;
+  const app = miniApp(); R.crmRouten(app);
+  let env: any = ENV(kern);
+  const h = await anmelden(app, env, n);
+  const { id } = kern.firmaAnlegen({ name: "Ruf an", telefon: "0711 4711" }, "Tom");
+  let r = await app.anfrage("POST", `/api/crm/firma/${id}/anrufen`, { env, header: h, body: {} });
+  let j = await r.json();
+  assert.deepEqual([j.sipgate, j.nummer], [false, "+497114711"]);
+  env = ENV(kern, { SIPGATE_TOKEN_ID: "token-1", SIPGATE_TOKEN: "geheim", SIPGATE_GERAET: "e0" });
+  r = await app.anfrage("POST", `/api/crm/firma/${id}/anrufen`, { env, header: h, body: {} });
+  j = await r.json();
+  assert.equal(j.sipgate, true);
+  assert.equal(aufrufe[0].url, "https://api.sipgate.com/v2/sessions/calls");
+  assert.deepEqual(JSON.parse(aufrufe[0].o.body), { deviceId: "e0", caller: "e0", callee: "+497114711" });
+  assert.equal(kern.firma(id)!.kontakte.filter((k: any) => k.code === "gestartet").length, 2);
+  assert.equal(kern.wochenbericht("2026-11-02").anrufe, 0, "gestartete Anrufe zählen nicht doppelt");
 });
