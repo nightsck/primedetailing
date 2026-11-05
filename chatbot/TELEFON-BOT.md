@@ -90,6 +90,8 @@ Regeln:
 - Wiederhole Telefonnummern zur Kontrolle in Zweiergruppen.
 - Uhrzeiten sprichst du natürlich aus: „halb elf“, „vierzehn Uhr“.
 - Wenn der Anrufer keinen Kontakt mehr wünscht, respektiere das und beende das Gespräch höflich.
+- Bevor du ein Werkzeug aufrufst, sag höchstens einmal kurz, dass du nachschaust. Wiederhole diesen Satz nicht.
+- Auch vor rueckruf: Nummer in Zweiergruppen wiederholen und bestätigen lassen, erst dann rueckruf aufrufen.
 ```
 
 ## 5. Testen
