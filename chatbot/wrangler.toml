@@ -10,7 +10,8 @@ keep_vars = true
 # Öffentliche Einstellungen (Geheimnisse NICHT hier, sondern per `npx wrangler secret put …`)
 [vars]
 LLM_PROVIDER = "anthropic"
-ALLOWED_ORIGINS = "https://primedetailing.eu,https://www.primedetailing.eu"
+# dazu die Firmen-Website ki-für-meinen-betrieb.de (Punycode) für das Kontaktformular
+ALLOWED_ORIGINS = "https://primedetailing.eu,https://www.primedetailing.eu,https://xn--ki-fr-meinen-betrieb-sec.de,https://www.xn--ki-fr-meinen-betrieb-sec.de,https://nightsck.github.io"
 # Anfragen aus dem Chat: Web3Forms (Empfänger support@ im Web3Forms-Dashboard). Der Key ist öffentlich.
 WEB3FORMS_KEY = "c7958793-0cd7-4107-9c71-becdc1ee3948"
 # Notbremse: KILL_SWITCH = "1" pausiert den Chat sofort. Am einfachsten im
