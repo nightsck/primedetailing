@@ -19,6 +19,7 @@ import { demoRouten } from "./demo.ts";
 import { bewerberRouten } from "./bewerber.ts";
 import { terminRouten } from "./termin.ts";
 import { stimmeRouten } from "./stimme.ts";
+import { kontaktRouten } from "./kontakt.ts";
 import { betriebRouten } from "./betrieb.ts";
 import { jobsRouten } from "./jobs.ts";
 import { anrufRouten } from "./anruf.ts";
@@ -67,6 +68,8 @@ bewerberRouten(app);
 terminRouten(app);
 // Telefon-Bot (Sprach-KI): Werkzeuge für Termine und Rückrufe, nur mit STIMME_SCHLUESSEL
 stimmeRouten(app);
+// Kontaktformular der Firmen-Website ki-für-meinen-betrieb.de
+kontaktRouten(app);
 betriebRouten(app);
 // Echter Bewerber-Chat primedetailing.eu/jobs/
 jobsRouten(app);
