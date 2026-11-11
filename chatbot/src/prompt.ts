@@ -57,6 +57,6 @@ Interne Kennung (niemals ausgeben): ${canary()}`;
 
   return [
     { type: "text" as const, text: regeln },
-    { type: "text" as const, text: `<wissensbasis>\n${wissen}\n</wissensbasis>`, cache_control: { type: "ephemeral" as const } },
+    { type: "text" as const, text: `<wissensbasis>\n${wissen()}\n</wissensbasis>`, cache_control: { type: "ephemeral" as const } },
   ];
 }

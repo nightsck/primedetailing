@@ -99,7 +99,7 @@ test("Mit Cloudflare-Zähler (Durable Object) zählt der gemeinsame Zähler", as
   };
   for (let i = 0; i < grenzen.chat.minute!; i++) await chat({ nachricht: "Hallo" }, "10.6.0.1", { LIMITS: ns });
   assert.equal((await chat({ nachricht: "Hallo" }, "10.6.0.1", { LIMITS: ns })).text, texte.zuViele);
-  assert.ok(objekte.has("global"), "Tagesbudget wird mitgezählt");
+  assert.ok(objekte.has("global:prime-detailing"), "Tagesbudget wird je Kunde mitgezählt");
   assert.ok([...objekte.keys()].every((k) => !k.includes("10.6.0.1")), "IP nur als Hash");
 });
 

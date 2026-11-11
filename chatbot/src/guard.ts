@@ -1,8 +1,11 @@
 // Sicherheitsschichten im Code. Sie greifen unabhängig davon, was das Modell
 // schreibt: Ein Prompt kann ausgetrickst werden, diese Prüfungen nicht.
-import { allePakete, canary, config, texte } from "./config.ts";
+import { allePakete, canary, texte } from "./config.ts";
+import { aktuell, jeKunde, sicht } from "./kontext.ts";
 
-export const katalogBetraege: number[] = allePakete.map((p) => p.preis).filter((x): x is number => x !== null);
+const _katalog = jeKunde((l) => l.allePakete.map((p) => p.preis).filter((x): x is number => x !== null));
+/** Alle Preise aus der Preisliste des aktuellen Kunden. */
+export const katalogBetraege: number[] = sicht(_katalog, true);
 
 // Beträge wie "59,99 €", "€ 59,99", "1.299,00 EUR", "60 Euro", "59.99€"
 const BETRAG = /(?:€|eur(?:o)?\b)\s*(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)|(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)\s*(?:€|eur(?:o)?\b|,-)/gi;
@@ -39,12 +42,12 @@ const RABATT = /(rabatt|nachlass|skonto|preisnachlass|discount|günstiger machen
 
 export type Pruefung = { ok: true } | { ok: false; grund: "betrag" | "zusage" | "rabatt" | "canary"; detail: string };
 
-const ERLAUBTE_PHRASEN: RegExp[] = (config.pruefung?.erlaubtePhrasen || []).map(
-  (p: string) => new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi"));
+const erlaubtePhrasen = jeKunde((l): RegExp[] => (l.config.pruefung?.erlaubtePhrasen || []).map(
+  (p: string) => new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi")));
 
 export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
   if (text.includes(canary())) return { ok: false, grund: "canary", detail: "System-Prompt-Leak" };
-  const ohneErlaubte = ERLAUBTE_PHRASEN.reduce((t, re) => t.replace(re, " "), text);
+  const ohneErlaubte = erlaubtePhrasen().reduce((t, re) => t.replace(re, " "), text);
   for (const b of findeBetraege(text)) {
     if (!erlaubt.some((e) => Math.abs(e - b) < 0.006)) return { ok: false, grund: "betrag", detail: String(b) };
   }
@@ -58,7 +61,8 @@ export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
   return { ok: true };
 }
 
-export const ERSATZ_ANTWORT = texte.ersatz;
+/** Ersatzantwort des Standard-Kunden (für Tests). Im Betrieb: texte.ersatz */
+export const ERSATZ_ANTWORT = aktuell().texte.ersatz;
 
 /**
  * Entfernt ein fälschlich vorangestelltes „ab“, wenn im selben Satz ein Paket
@@ -90,7 +94,8 @@ export function istInjection(text: string): boolean {
   return INJECTION.some((re) => re.test(text));
 }
 
-export const INJECTION_ANTWORT = texte.injection;
+/** Antwort des Standard-Kunden (für Tests). Im Betrieb: texte.injection */
+export const INJECTION_ANTWORT = aktuell().texte.injection;
 
 // Gibt beim Streamen nur vollständige Sätze frei, damit jeder Satz geprüft
 // werden kann, bevor der Kunde ihn sieht.

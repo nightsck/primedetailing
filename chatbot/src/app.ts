@@ -11,7 +11,7 @@ import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { config, env, texte } from "./config.ts";
 import { antworte, type Msg } from "./llm.ts";
-import { istInjection, INJECTION_ANTWORT } from "./guard.ts";
+import { istInjection } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
 import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
@@ -111,8 +111,8 @@ app.post("/api/chat", async (c) => {
     verlauf.push({ role: "user", content: bild ? `${FOTO_MARKER} ${nachricht}` : nachricht });
     if (istInjection(nachricht)) {
       console.log(`[injection] ${nachricht.slice(0, 120)}`);
-      await send("text", { text: INJECTION_ANTWORT });
-      verlauf.push({ role: "assistant", content: INJECTION_ANTWORT });
+      await send("text", { text: texte.injection });
+      verlauf.push({ role: "assistant", content: texte.injection });
       return fertig();
     }
     // Einmal automatisch neu versuchen, wenn die KI kurz nicht erreichbar ist

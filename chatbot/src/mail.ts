@@ -9,6 +9,7 @@
 //
 // Schutz gegen Missbrauch: höchstens MAIL_TAGESLIMIT Mails pro Tag für den
 // ganzen Bot (Standard 100), gezählt im gemeinsamen Zähler (Durable Object).
+import { kundeImKontext } from "./kontext.ts";
 const wert = (c: any, k: string): string => String(c?.env?.[k] ?? process.env[k] ?? "").trim();
 
 export type Mail = {
@@ -28,21 +29,22 @@ export const gueltigeMail = (s: string) => /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<
 const b64 = (s: string) => { const u = new TextEncoder().encode(s); let x = ""; for (const b of u) x += String.fromCharCode(b); return btoa(x); };
 
 // Tageskontingent für alle Mails zusammen
-let lokal = { tag: "", n: 0 };
+let lokal: Record<string, { tag: string; n: number }> = {};
 async function kontingent(c: any): Promise<boolean> {
   const max = Number(wert(c, "MAIL_TAGESLIMIT")) || 100;
   const ns = c?.env?.LIMITS;
   if (ns?.idFromName) {
-    try { return !(await ns.get(ns.idFromName("mail:tag")).zaehle("anfrage", { tag: max })); }
+    try { return !(await ns.get(ns.idFromName(kundeImKontext() ? "mail:tag:" + kundeImKontext() : "mail:tag")).zaehle("anfrage", { tag: max })); }
     catch (e: any) { console.error("[mail-limit]", e?.message || e); }
   }
   const heute = new Date().toISOString().slice(0, 10);
-  if (lokal.tag !== heute) lokal = { tag: heute, n: 0 };
-  if (lokal.n >= max) return false;
-  lokal.n++; return true;
+  const k = kundeImKontext() || "";
+  if (lokal[k]?.tag !== heute) lokal[k] = { tag: heute, n: 0 };
+  if (lokal[k].n >= max) return false;
+  lokal[k].n++; return true;
 }
 /** Nur für Tests. */
-export function _resetMail() { lokal = { tag: "", n: 0 }; }
+export function _resetMail() { lokal = {}; }
 
 export async function sendeMail(c: any, m: Mail): Promise<boolean> {
   const anbieter = mailAnbieter(c);

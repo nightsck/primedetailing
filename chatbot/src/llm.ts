@@ -2,11 +2,11 @@
 // Satz, bevor er an den Kunden geht. Anbieter: Anthropic-API, AWS Bedrock (EU)
 // oder ein Demo-Modus ohne KI (für Tests und Vorführung ohne API-Key).
 import Anthropic from "@anthropic-ai/sdk";
-import { config, env, preise, allePakete } from "./config.ts";
+import { config, env, preise, allePakete, texte } from "./config.ts";
 import { systemBlocks } from "./prompt.ts";
 import { toolDefinitions, runTool, fmtEuro } from "./tools.ts";
 const norm = (s: string) => String(s || "").toLowerCase().replace(/ß/g, "ss").normalize("NFKD").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
-import { pruefeAntwort, katalogBetraege, ERSATZ_ANTWORT, SatzPuffer, findeBetraege, korrigiereAb } from "./guard.ts";
+import { pruefeAntwort, katalogBetraege, SatzPuffer, findeBetraege, korrigiereAb } from "./guard.ts";
 import { FOTO_MARKER, type Bild } from "./foto.ts";
 
 export type Msg = { role: "user" | "assistant"; content: any };
@@ -69,9 +69,9 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
 
   const blockieren = async (grund: string, detail: string) => {
     await emit({ type: "blockiert", grund, detail });
-    await emit({ type: "text", text: (gesendet ? "\n\n" : "") + ERSATZ_ANTWORT });
+    await emit({ type: "text", text: (gesendet ? "\n\n" : "") + texte.ersatz });
     await emit({ type: "ui", ui: { typ: "uebergabe", grund: "pruefung", zusammenfassung: "" } });
-    gesendet += ERSATZ_ANTWORT;
+    gesendet += texte.ersatz;
     return gesendet;
   };
 
@@ -83,7 +83,7 @@ export async function antworte(verlauf: Msg[], emit: Emit, opts: { bild?: Bild }
       max_tokens: config.llm.maxTokens,
       // kein temperature: von aktuellen Claude-Modellen nicht mehr unterstützt
       system: systemBlocks(),
-      tools: toolDefinitions,
+      tools: toolDefinitions(),
       messages,
     });
 
@@ -189,7 +189,7 @@ async function demoAntwort(verlauf: Msg[], emit: Emit, mitFoto = false): Promise
   }
 
   const p = pruefeAntwort(text, erlaubt);
-  if (!p.ok) { await emit({ type: "blockiert", grund: p.grund, detail: p.detail }); text = ERSATZ_ANTWORT; }
+  if (!p.ok) { await emit({ type: "blockiert", grund: p.grund, detail: p.detail }); text = texte.ersatz; }
   for (const satz of text.match(/[^.!?]+[.!?]*\s*/g) || [text]) {
     await emit({ type: "text", text: satz });
     await new Promise((r) => setTimeout(r, 30));
