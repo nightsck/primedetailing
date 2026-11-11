@@ -9,7 +9,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
-import { config, env, texte } from "./config.ts";
+import { config, env, texte, STANDARD_KUNDE } from "./config.ts";
+import { aktuell, mitKunde, standardKunde } from "./kontext.ts";
+import { kundenRouten, monatVoll, zaehleEreignis, neueAnfrage } from "./kunden-routen.ts";
+import { adminRouten } from "./admin/routen.ts";
 import { antworte, type Msg } from "./llm.ts";
 import { istInjection } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
@@ -62,6 +65,11 @@ app.use("/api/*", cors({
   allowMethods: ["POST", "GET"],
 }));
 
+// Die Vorführseiten zählen als eigener „Kunde“ (demo): eigene Limits und eigenes
+// Tagesbudget, damit viel Betrieb auf der Demo keinen echten Kunden ausbremst.
+const DEMO_KUNDE = { ...standardKunde(), kundeId: "demo" };
+app.use("/api/demo/*", (c, next) => mitKunde(DEMO_KUNDE, () => next()));
+
 // Vorführseite primedetailing.eu/demo (eigene, schlanke Schnittstellen)
 demoRouten(app);
 bewerberRouten(app);
@@ -78,7 +86,8 @@ anrufRouten(app);
 // Internes Vertriebs-CRM mit Akquise-Bot (nur mit Anmeldung): /crm
 crmRouten(app);
 
-app.post("/api/chat", async (c) => {
+/** Eine Chat-Nachricht beantworten (Antwort kommt als Stream). Gilt für den Kunden im aktuellen Kontext. */
+export const chatRoute = async (c: any) => {
   if (Number(c.req.header("content-length") || 0) > 2_200_000) return c.json({ ok: false }, 413);
   const body = await c.req.json().catch(() => ({}));
   const L = config.limits;
@@ -104,6 +113,9 @@ app.post("/api/chat", async (c) => {
 
     const sperre = await pruefeLimit(c, bild ? "foto" : "chat");
     if (sperre) return nurText(sperre, { typ: "uebergabe", grund: "limit" });
+    // Kostenbremse je Kunde und Monat; danach für die Auswertung mitzählen (ohne Personenbezug)
+    if (await monatVoll(c)) return nurText(texte.ausgelastet, { typ: "uebergabe", grund: "limit" });
+    zaehleEreignis(c, bild ? "foto" : "chat");
     const zeichen = verlauf.reduce((n, m) => n + String(m.content).length, 0);
     if (verlauf.length >= L.maxNachrichtenProGespraech * 2 || zeichen > (L.maxZeichenProGespraech ?? 12000))
       return nurText(texte.zuLang, { typ: "uebergabe", grund: "limit" });
@@ -152,10 +164,11 @@ app.post("/api/chat", async (c) => {
     }
     return fertig();
   });
-});
+};
+app.post("/api/chat", chatRoute);
 
 // Bestätigte Anfrage: kommt direkt vom Formular, nicht vom Modell.
-app.post("/api/anfrage", async (c) => {
+export const anfrageRoute = async (c: any) => {
   const b = await c.req.json().catch(() => ({}));
   const f = (k: string, max = 300) => String(b[k] || "").trim().slice(0, max);
   const name = f("name", 100), kontakt = f("kontakt", 120);
@@ -163,6 +176,11 @@ app.post("/api/anfrage", async (c) => {
   if (!b.einwilligung) return c.json({ ok: false, fehler: "Bitte der Datenschutzerklärung zustimmen." }, 400);
   if (await pruefeLimit(c, "anfrage")) return c.json({ ok: false, fehler: "Zu viele Anfragen. Bitte per WhatsApp oder Telefon melden." }, 429);
   const verlauf = (await pruefeToken(b.verlauf)).map((m) => `${m.role === "user" ? "Kunde" : "Bot"}: ${m.content}`).join("\n");
+  if (aktuell().kundeId !== STANDARD_KUNDE) {
+    const kunde = c.get("kunde");
+    if (!kunde) return c.json({ ok: false, fehler: "Senden fehlgeschlagen." }, 500);
+    return c.json(await neueAnfrage(c, kunde, { name, kontakt, objekt: f("fahrzeug"), leistung: f("paket"), wunschtermin: f("wunschtermin"), notiz: f("notiz", 1000), verlauf }));
+  }
   try {
     const anfrage = { name, kontakt, fahrzeug: f("fahrzeug"), paket: f("paket"), wunschtermin: f("wunschtermin"), notiz: f("notiz", 1000), verlauf };
     const r = await sendeAnfrage(anfrage);
@@ -172,15 +190,18 @@ app.post("/api/anfrage", async (c) => {
     console.error("[anfrage]", e.message);
     return c.json({ ok: false, fehler: "Senden fehlgeschlagen. Bitte per WhatsApp melden." }, 500);
   }
-});
+};
+app.post("/api/anfrage", anfrageRoute);
 
-app.get("/api/config", (c) => c.json({
+export const configRoute = (c: any) => c.json({
   betrieb: { name: config.betrieb.name, botName: config.betrieb.botName, telefon: config.betrieb.telefon, whatsapp: config.betrieb.whatsapp, email: config.betrieb.email, datenschutzUrl: config.betrieb.datenschutzUrl, buchungsUrl: config.betrieb.buchungsUrl || "" },
   ton: config.ton, design: config.design, start: config.start, rueckfragen: config.rueckfragen, formular: config.formular || {},
   foto: fotoAktiv() ? { button: config.foto.button || "📷 Foto-Check", hinweis: config.foto.hinweis || "", max: maxFotos() } : null,
   maxZeichen: config.limits.maxZeichenProNachricht,
+  poweredBy: !!config.poweredBy,
   demo: env.provider === "demo" || (env.provider === "anthropic" && !env.anthropicKey),
-}));
+});
+app.get("/api/config", configRoute);
 
 app.get("/widget.js", (c) => {
   c.header("Content-Type", "application/javascript; charset=utf-8");
@@ -189,3 +210,8 @@ app.get("/widget.js", (c) => {
 });
 app.get("/", (c) => c.html(DEMO_HTML.replaceAll("{{NAME}}", config.betrieb.name).replaceAll("{{BRANCHE}}", config.betrieb.branche)));
 app.get("/health", (c) => c.json({ ok: true, provider: env.provider, killSwitch: env.killSwitch || (c.env as any)?.KILL_SWITCH === "1" }));
+
+// Alle Bots eines Kunden unter /k/<kunde>/… (steht am Ende, weil es die Routen oben wiederverwendet)
+kundenRouten(app, { chatRoute, anfrageRoute, configRoute });
+// Admin-Panel für die Kunden-Bots (nur mit Anmeldung): /admin
+adminRouten(app, { chatRoute, configRoute });
