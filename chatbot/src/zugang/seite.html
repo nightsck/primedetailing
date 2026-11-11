@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Website-Assistent · Einstellungen</title>
+<style>
+/* Farben der Marke ki-für-meinen-betrieb.de (dunkel, kein reines Weiß als Fläche) – wie im Admin-Panel */
+:root{color-scheme:dark;--grund:#0a0817;--abschnitt:#100d24;--karte:#171232;--linie:#2a2350;--knopf:#6b47a8;--knopf-hell:#7d58bd;--akzent:#bba9f5;
+--h:#f3f0fb;--text:#cfc9e6;--neben:#9a93b8;--gruen:#58c98b;--gelb:#e8c15a;--rot:#ff8f86;--r:14px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--grund);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,h3{color:var(--h);margin:0;line-height:1.25}
+h1{font-size:20px}h2{font-size:17px}h3{font-size:15px}
+p{margin:0 0 .8em}
+a{color:var(--akzent)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px}
+header.top{background:var(--abschnitt);border-bottom:1px solid var(--linie);position:sticky;top:0;z-index:5}
+header.top .wrap{display:flex;align-items:center;gap:12px;min-height:58px}
+header.top small{display:block;color:var(--neben);font-size:13px;font-weight:400}
+.spacer{flex:1}
+.neben{color:var(--neben)}
+.klein{font-size:13.5px}
+main{padding:16px 0 120px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:11px;border:1px solid var(--linie);background:transparent;color:var(--h);cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--akzent)}
+.btn.haupt{background:var(--knopf);border-color:var(--knopf)}
+.btn.haupt:hover{background:var(--knopf-hell)}
+.btn.klein{min-height:38px;padding:0 13px;font-size:14px}
+.btn.gefahr{color:var(--rot)}
+.btn.breit{width:100%}
+.btn[disabled]{opacity:.5;cursor:default}
+.karte{background:var(--karte);border:1px solid var(--linie);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.karte>summary{list-style:none;cursor:pointer;padding:16px;display:flex;align-items:center;gap:10px}
+.karte>summary::-webkit-details-marker{display:none}
+.karte>summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--neben);border-bottom:2px solid var(--neben);transform:rotate(45deg);margin:0 4px 4px auto;flex:none;transition:transform .15s}
+.karte[open]>summary::after{transform:rotate(225deg);margin-bottom:-4px}
+.karte>summary small{display:block;color:var(--neben);font-size:13.5px;font-weight:400;margin-top:2px}
+.innen{padding:2px 16px 16px}
+label.feld{display:block;margin:0 0 14px}
+label.feld>span.l{display:block;font-weight:600;color:var(--h);margin-bottom:5px}
+label.feld small,.hilfe{display:block;color:var(--neben);font-size:13.5px;margin-top:5px}
+input[type=text],input[type=email],textarea{width:100%;background:var(--abschnitt);border:1px solid var(--linie);border-radius:10px;padding:11px 12px;min-height:46px}
+textarea{min-height:84px;resize:vertical}
+label.haken{display:flex;gap:10px;align-items:center;margin:0 0 14px;cursor:pointer;min-height:32px}
+label.haken input{width:22px;height:22px;accent-color:var(--knopf);flex:none}
+.fehler{color:var(--rot);font-size:13.5px;margin-top:5px}
+.hat-fehler input,.hat-fehler textarea{border-color:var(--rot)}
+.eintrag{border:1px solid var(--linie);border-radius:11px;padding:14px 14px 2px;margin-bottom:12px;background:var(--abschnitt)}
+.eintrag .kopf{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.eintrag .kopf b{color:var(--h);word-break:break-word}
+.zwei{display:grid;gap:0 12px}
+@media(min-width:520px){.zwei{grid-template-columns:1fr 1fr}}
+.marke{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--gelb);color:var(--gelb);border-radius:99px;padding:2px 10px;font-size:12.5px;margin:0 0 12px}
+.leiste{position:fixed;left:0;right:0;bottom:0;background:var(--abschnitt);border-top:1px solid var(--linie);padding:10px 0 calc(10px + env(safe-area-inset-bottom));z-index:6}
+.leiste .wrap{display:flex;gap:12px;align-items:center}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--karte);border:1px solid var(--akzent);color:var(--h);padding:11px 16px;border-radius:11px;z-index:20;width:max-content;max-width:92vw}
+.anmelden{max-width:440px;margin:7vh auto 0;padding:20px}
+.hinweisbox{border:1px solid var(--linie);border-radius:11px;padding:12px 14px;background:var(--abschnitt);margin-bottom:12px;font-size:14.5px}
+.hinweisbox.gelb{border-color:var(--gelb)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-top:40px">Lädt …</div></div>
+<noscript><div class="wrap" style="padding-top:40px">Für diese Seite muss JavaScript eingeschaltet sein.</div></noscript>
+<script>
+// Kunden-Zugang: Einstellungen des Website-Assistenten, die der Betrieb selbst ändern darf.
+// Eine Seite, kein Framework: S = Zustand, zeichne() baut die Ansicht, Klicks laufen über data-akt="…".
+// Alles, was angezeigt wird, läuft durch esc() – eingetragener Text wird nie als HTML ausgeführt.
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BASIS = location.pathname.replace(/\/+$/, '') + '/api';
+const S = { geladen: false, ich: null, firma: '', stand: '', d: null, codeAn: null, geaendert: false, fehler: {}, speichert: false, offen: { zeiten: true } };
+
+async function api(pfad, opt = {}) {
+  let r;
+  try {
+    r = await fetch(BASIS + pfad, Object.assign({ credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Verwalten': '1' } }, opt, opt.body ? { body: JSON.stringify(opt.body), method: opt.method || 'POST' } : {}));
+  } catch (e) { return { ok: false, status: 0, fehler: 'Keine Verbindung. Bitte Internet prüfen und noch einmal versuchen.' }; }
+  let j = {}; try { j = await r.json(); } catch (e) { /* leer */ }
+  return Object.assign({ status: r.status }, j);
+}
+let toastT;
+function toast(t, lang) { let el = $('.toast'); if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); } el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, lang ? 9000 : 4500); }
+const hol = (o, pfad) => pfad.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+function setz(o, pfad, w) { const t = pfad.split('.'); let x = o; for (let i = 0; i < t.length - 1; i++) x = x[t[i]]; x[t[t.length - 1]] = w; }
+const eur = (p, ab) => p == null ? 'auf Anfrage' : (ab ? 'ab ' : '') + Number(p).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' €';
+const preisText = p => p == null ? '' : String(p).replace('.', ',');
+function lesePreis(t) { t = String(t).trim().replace(/\s|€/g, ''); if (!t) return null; if (!/^\d{1,5}([.,]\d{1,2})?$/.test(t)) return NaN; return Number(t.replace(',', '.')); }
+
+/* ---------- Felder ---------- */
+function feld(pfad, label, x = {}) {
+  const w = hol(S.d, pfad), f = S.fehler[pfad];
+  const attr = `data-pfad="${pfad}" ${x.max ? `maxlength="${x.max}"` : ''}`;
+  if (x.art === 'haken') return `<label class="haken"><input type="checkbox" ${attr} data-art="haken" ${w ? 'checked' : ''}><span>${esc(label)}</span></label>`;
+  const ein = x.art === 'lang' ? `<textarea ${attr} rows="${x.zeilen || 3}" ${x.platz ? `placeholder="${esc(x.platz)}"` : ''}>${esc(w)}</textarea>`
+    : x.art === 'preis' ? `<input type="text" inputmode="decimal" ${attr} data-art="preis" value="${esc(preisText(w))}" placeholder="leer = auf Anfrage" autocomplete="off">`
+    : `<input type="text" ${attr} value="${esc(w)}" ${x.platz ? `placeholder="${esc(x.platz)}"` : ''} autocomplete="off">`;
+  return `<label class="feld${f ? ' hat-fehler' : ''}"><span class="l">${esc(label)}</span>${ein}${x.hilfe ? `<small>${esc(x.hilfe)}</small>` : ''}${f ? `<div class="fehler" role="alert">${esc(f)}</div>` : ''}</label>`;
+}
+function bereich(id, titel, unter, inhalt) {
+  return `<details class="karte" data-bereich="${id}" ${S.offen[id] ? 'open' : ''}><summary><div><h2>${esc(titel)}</h2><small>${esc(unter)}</small></div></summary><div class="innen">${inhalt}</div></details>`;
+}
+function liste(pfad, neuText, eintrag) {
+  const arr = hol(S.d, pfad) || [];
+  return `${arr.map((e, i) => eintrag(e, pfad + '.' + i, i)).join('') || '<p class="neben">Noch nichts eingetragen.</p>'}<p><button class="btn klein" data-akt="dazu" data-pfad="${pfad}">+ ${esc(neuText)}</button></p>`;
+}
+const kopf = (titel, pfad, i) => `<div class="kopf"><b>${esc(titel)}</b><span class="spacer"></span><button class="btn klein gefahr" data-akt="raus" data-pfad="${pfad}" data-i="${i}" aria-label="${esc(titel)} entfernen">Entfernen</button></div>`;
+
+/* ---------- Ansichten ---------- */
+function vAnmelden() {
+  return `<div class="wrap"><div class="karte anmelden"><h1 style="margin-bottom:6px">${esc(S.firma || 'Website-Assistent')}</h1><p class="neben">Einstellungen Ihres Website-Assistenten</p>
+    ${S.codeAn ? `<p>Wenn die Adresse bei uns hinterlegt ist, kommt gleich eine E-Mail mit einem 6-stelligen Code. Bitte auch im Spam-Ordner nachsehen.</p>
+      <label class="feld"><span class="l">Code aus der E-Mail</span><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"></label>
+      <p><button class="btn haupt breit" data-akt="code">Anmelden</button></p><p><button class="btn breit" data-akt="andere">Andere Adresse oder neuen Code anfordern</button></p>`
+    : `<p>Anmelden ohne Passwort: Sie bekommen einen Code per E-Mail.</p>
+      <label class="feld"><span class="l">Ihre E-Mail-Adresse</span><input type="email" id="email" autocomplete="email" inputmode="email"></label>
+      <p><button class="btn haupt breit" data-akt="anfordern">Code schicken</button></p>`}
+    <p class="fehler" id="lf" role="alert"></p>
+    <p class="neben klein" style="margin:14px 0 0">Wir fragen Sie nie nach diesem Code – weder am Telefon noch per E-Mail.</p></div></div>`;
+}
+
+function vDaten() {
+  const d = S.d, chat = d.bereiche.kundenChat, teile = [];
+  const wartet = d.leistungen.filter(l => l.wartet).length;
+  teile.push(bereich('zeiten', 'Öffnungszeiten und aktueller Hinweis', 'Das Wichtigste, wenn sich kurzfristig etwas ändert',
+    feld('oeffnungszeiten', 'Öffnungszeiten', { max: 200, platz: 'z. B. Mo–Fr 7–16 Uhr' }) +
+    feld('hinweis', 'Aktueller Hinweis', { art: 'lang', zeilen: 2, max: 300, platz: 'z. B. Betriebsferien vom 23.12. bis 6.1.', hilfe: 'Der Assistent nennt den Hinweis, wenn es zur Frage passt. Wenn er nicht mehr gilt: einfach leeren.' })));
+  if (chat) {
+    teile.push(bereich('leistungen', 'Leistungen und Preise', `${d.leistungen.length} eingetragen${wartet ? ` · ${wartet} Preis(e) warten auf Freigabe` : ''}`,
+      `<div class="hinweisbox">Der Assistent nennt nur Preise, die hier stehen. <b>Neue oder geänderte Preise prüfen wir kurz und schalten sie dann frei.</b> Alles andere ist sofort online.</div>` +
+      liste('leistungen', 'Leistung hinzufügen', (e, p, i) => `<div class="eintrag">${kopf(e.name || 'Neue Leistung', 'leistungen', i)}
+        ${e.wartet ? `<div class="marke">Preis wartet auf Freigabe · bisher: ${esc(eur(e.livePreis, e.liveAb))}</div>` : ''}
+        ${feld(p + '.name', 'Name', { max: 80 })}
+        <div class="zwei">${feld(p + '.preis', 'Preis in €', { art: 'preis' })}${feld(p + '.kategorie', 'Kategorie', { max: 60, platz: 'z. B. Innen' })}</div>
+        ${feld(p + '.ab', '„ab“-Preis (Richtpreis, kann höher werden)', { art: 'haken' })}
+        ${feld(p + '.beschreibung', 'Kurze Beschreibung', { max: 300 })}</div>`)));
+    teile.push(bereich('faq', 'Häufige Fragen', `${d.faq.length} eingetragen`,
+      `<p class="hilfe" style="margin:0 0 12px">Fragen, die Ihre Kunden oft stellen, mit Ihrer Antwort. Je mehr hier steht, desto seltener muss der Assistent an Sie verweisen.</p>` +
+      liste('faq', 'Frage hinzufügen', (e, p, i) => `<div class="eintrag">${kopf(e.frage || 'Neue Frage', 'faq', i)}${feld(p + '.frage', 'Frage', { max: 200 })}${feld(p + '.antwort', 'Antwort', { art: 'lang', zeilen: 3, max: 800 })}</div>`)));
+    teile.push(bereich('mehr', 'Bezahlung, Anfahrt, Termine', 'Was Ihre Kunden sonst noch wissen möchten',
+      feld('zahlung', 'Wie kann bezahlt werden?', { max: 200, platz: 'z. B. Bar, EC-Karte, Überweisung' }) +
+      feld('anfahrt', 'Anfahrt und Parken', { art: 'lang', zeilen: 2, max: 300 }) +
+      feld('wartezeit', 'Wie schnell gibt es einen Termin?', { max: 200, platz: 'z. B. Meist innerhalb von zwei Wochen', hilfe: 'Leer = der Assistent sagt dazu nichts.' }) +
+      feld('begruessung', 'Begrüßung im Chat', { art: 'lang', zeilen: 3, max: 400, hilfe: 'Die erste Nachricht des Assistenten. Leer = Standardtext.' })));
+  }
+  if (d.bewerber) {
+    teile.push(bereich('stellen', 'Stellen für Bewerber', `${d.bewerber.stellen.length} Stelle(n)`,
+      feld('bewerber.arbeitszeiten', 'Arbeitszeiten', { max: 200 }) +
+      feld('bewerber.bietet', 'Das bieten wir', { art: 'lang', zeilen: 3, max: 400, hilfe: 'Der Assistent antwortet Bewerbern nur mit dem, was hier steht.' }) +
+      `<h3 style="margin:6px 0 10px">Stellen</h3>` +
+      liste('bewerber.stellen', 'Stelle hinzufügen', (e, p, i) => `<div class="eintrag">${kopf(e.name || 'Neue Stelle', 'bewerber.stellen', i)}${feld(p + '.name', 'Bezeichnung', { max: 100, platz: 'z. B. Geselle (m/w/d)' })}${feld(p + '.umfang', 'Umfang', { max: 80, platz: 'z. B. Vollzeit' })}${feld(p + '.text', 'Aufgaben und was man mitbringen sollte', { art: 'lang', zeilen: 3, max: 500 })}</div>`)));
+  }
+  return `<header class="top"><div class="wrap"><div><h1>${esc(S.firma)}<small>Einstellungen Ihres Website-Assistenten</small></h1></div><span class="spacer"></span><button class="btn klein" data-akt="abmelden">Abmelden</button></div></header>
+    <main><div class="wrap">
+      ${wartet ? `<div class="hinweisbox gelb">${wartet === 1 ? 'Ein Preis wartet' : wartet + ' Preise warten'} noch auf unsere Freigabe. Bis dahin nennt der Assistent den bisherigen Preis.</div>` : ''}
+      ${teile.join('')}
+      <p class="neben klein" style="margin-top:16px">Etwas anderes soll sich ändern, zum Beispiel Farben, feste Antworten oder wer die Anfragen bekommt? Dann schreiben Sie uns kurz, das stellen wir für Sie ein.</p>
+      <p class="neben klein">Angemeldet als ${esc(S.ich)}</p>
+    </div></main>
+    <div class="leiste"><div class="wrap"><span class="neben klein" id="zustand">${S.geaendert ? 'Noch nicht gespeichert' : 'Alles gespeichert'}</span><span class="spacer"></span><button class="btn haupt" data-akt="speichern" id="speichern" ${S.geaendert && !S.speichert ? '' : 'disabled'}>${S.speichert ? 'Speichert …' : 'Speichern'}</button></div></div>`;
+}
+
+function zeichne() {
+  // Merken, welche Bereiche offen sind, damit nach dem Neuzeichnen nichts zuklappt
+  document.querySelectorAll('details[data-bereich]').forEach(el => { S.offen[el.dataset.bereich] = el.open; });
+  $('#app').innerHTML = !S.geladen ? '<div class="wrap" style="padding-top:40px">Lädt …</div>' : S.ich && S.d ? vDaten() : vAnmelden();
+  const ziel = S.ich ? null : $('#code') || $('#email'); if (ziel) ziel.focus();
+}
+function geaendert() { S.geaendert = true; const z = $('#zustand'), b = $('#speichern'); if (z) z.textContent = 'Noch nicht gespeichert'; if (b) b.disabled = false; }
+
+/* ---------- Laden und Speichern ---------- */
+function uebernimm(r) { S.ich = r.ich; S.firma = r.firma; S.stand = r.stand; S.d = r.daten; S.geaendert = false; S.fehler = {}; document.title = r.firma + ' · Einstellungen'; }
+async function lade() {
+  const r = await api('/daten');
+  S.geladen = true;
+  if (r.ok) uebernimm(r); else { S.ich = null; S.d = null; if (r.firma) S.firma = r.firma; }
+  zeichne();
+  if (!r.ok && r.status !== 401) { const lf = $('#lf'); if (lf) lf.textContent = r.status === 404 ? 'Diese Seite ist gerade nicht verfügbar.' : (typeof r.fehler === 'string' ? r.fehler : 'Das hat nicht geklappt.'); }
+}
+function pruefePreise() {
+  const f = {};
+  (S.d.leistungen || []).forEach((l, i) => { if (Number.isNaN(l.preis)) f[`leistungen.${i}.preis`] = 'Bitte nur eine Zahl eintragen, z. B. 290 oder 49,90.'; });
+  return f;
+}
+async function speichern() {
+  if (S.speichert) return;
+  const f = pruefePreise();
+  if (Object.keys(f).length) { S.fehler = f; S.offen.leistungen = true; zeichne(); toast('Bitte den Preis korrigieren (rot markiert).'); return; }
+  // Nur die Felder schicken, die der Server kennt (Anzeige-Felder wie „wartet“ bleiben hier)
+  const d = S.d, daten = { oeffnungszeiten: d.oeffnungszeiten, hinweis: d.hinweis };
+  if (d.bereiche.kundenChat) Object.assign(daten, { begruessung: d.begruessung, zahlung: d.zahlung, anfahrt: d.anfahrt, wartezeit: d.wartezeit,
+    leistungen: d.leistungen.map(l => ({ von: l.von, kategorie: l.kategorie, name: l.name, beschreibung: l.beschreibung, preis: l.preis, ab: !!l.ab })), faq: d.faq.map(x => ({ frage: x.frage, antwort: x.antwort })) });
+  if (d.bewerber) daten.bewerber = { arbeitszeiten: d.bewerber.arbeitszeiten, bietet: d.bewerber.bietet, stellen: d.bewerber.stellen.map(s => ({ von: s.von, name: s.name, umfang: s.umfang, text: s.text })) };
+  S.speichert = true; zeichne();
+  const r = await api('/daten', { method: 'PUT', body: { stand: S.stand, daten } });
+  S.speichert = false;
+  if (r.status === 401) { S.ich = null; zeichne(); $('#lf').textContent = 'Ihre Anmeldung ist abgelaufen. Bitte neu anmelden – Ihre Eingaben müssen Sie danach leider noch einmal eintragen.'; return; }
+  if (!r.ok) {
+    S.fehler = {};
+    if (Array.isArray(r.fehler)) { for (const x of r.fehler) S.fehler[x.feld] = x.text; const erster = r.fehler[0] && r.fehler[0].feld.split('.')[0]; const wo = { leistungen: 'leistungen', faq: 'faq', bewerber: 'stellen', oeffnungszeiten: 'zeiten', hinweis: 'zeiten' }[erster] || 'mehr'; S.offen[wo] = true; }
+    zeichne();
+    toast(Array.isArray(r.fehler) ? 'Bitte die rot markierten Angaben korrigieren.' : (r.fehler || 'Speichern hat nicht geklappt.'), true);
+    const rot = $('.hat-fehler'); if (rot) rot.scrollIntoView({ block: 'center' });
+    return;
+  }
+  uebernimm(r); zeichne();
+  toast(r.unveraendert ? 'Es gab nichts zu ändern.' : r.wartet ? 'Gespeichert und online. Neue Preise schalten wir nach kurzer Prüfung frei.' : 'Gespeichert. Ihre Änderungen sind online.', !!r.wartet);
+}
+
+/* ---------- Klicks und Eingaben ---------- */
+const NEU = { leistungen: () => ({ von: null, kategorie: 'Leistungen', name: '', beschreibung: '', preis: null, ab: false, wartet: false, livePreis: null, liveAb: false }), faq: () => ({ frage: '', antwort: '' }), 'bewerber.stellen': () => ({ von: null, name: '', umfang: '', text: '' }) };
+const AKT = {
+  async anfordern() { const email = $('#email').value.trim(); if (!email) return; const r = await api('/anmelden', { body: { email } }); if (!r.ok) { $('#lf').textContent = typeof r.fehler === 'string' ? r.fehler : 'Das hat nicht geklappt.'; return; } S.codeAn = email; zeichne(); },
+  async code() { const r = await api('/einloesen', { body: { email: S.codeAn, code: $('#code').value } }); if (!r.ok) { $('#lf').textContent = typeof r.fehler === 'string' ? r.fehler : 'Der Code stimmt nicht.'; return; } S.codeAn = null; await lade(); },
+  andere() { S.codeAn = null; zeichne(); },
+  async abmelden() { if (S.geaendert && !confirm('Es gibt ungespeicherte Änderungen. Trotzdem abmelden?')) return; await api('/abmelden', { body: {} }); S.ich = null; S.d = null; S.geaendert = false; zeichne(); },
+  dazu(el) { hol(S.d, el.dataset.pfad).push(NEU[el.dataset.pfad]()); S.fehler = {}; geaendert(); zeichne(); const neu = document.querySelectorAll(`[data-pfad^="${el.dataset.pfad}."]`); const letztes = [...neu].filter(x => /\.(name|frage)$/.test(x.dataset.pfad)).pop(); if (letztes) letztes.focus(); },
+  raus(el) { hol(S.d, el.dataset.pfad).splice(Number(el.dataset.i), 1); S.fehler = {}; geaendert(); zeichne(); },
+  speichern() { speichern(); },
+};
+document.addEventListener('click', e => { const el = e.target.closest('[data-akt]'); if (!el || el.disabled) return; e.preventDefault(); const f = AKT[el.dataset.akt]; if (f) f(el); });
+document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; if (e.target.id === 'email') AKT.anfordern(); if (e.target.id === 'code') AKT.code(); });
+document.addEventListener('input', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.pfad || !S.d) return;
+  setz(S.d, el.dataset.pfad, el.dataset.art === 'haken' ? el.checked : el.dataset.art === 'preis' ? lesePreis(el.value) : el.value);
+  geaendert();
+});
+window.addEventListener('beforeunload', e => { if (S.geaendert) { e.preventDefault(); e.returnValue = ''; } });
+lade();
+</script>
+</body>
+</html>

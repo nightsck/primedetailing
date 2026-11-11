@@ -36,11 +36,18 @@ test("Anmeldung: nur freigeschaltete Adressen, Code einmal gültig, Link wird er
   const ok = await ruf("/admin/api/einloesen", { body: { token } });
   assert.equal(ok.status, 200);
   const cookie = ok.headers.get("set-cookie")!;
-  assert.match(cookie, /HttpOnly/); assert.match(cookie, /Secure/); assert.match(cookie, /SameSite=Lax/); assert.match(cookie, /Path=\/admin/);
+  assert.match(cookie, /HttpOnly/); assert.match(cookie, /Secure/); assert.match(cookie, /SameSite=Strict/); assert.match(cookie, /Path=\/admin/);
   assert.equal((await ruf("/admin/api/einloesen", { body: { token } })).status, 401, "Link nur einmal");
-  // Der Code aus derselben Mail geht daneben noch (z. B. am zweiten Gerät), aber auch nur einmal
-  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code } })).status, 200);
-  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code } })).status, 401);
+  // Mit der Anmeldung ist auch der Code aus derselben Mail verbraucht
+  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code } })).status, 401, "Code nach Anmeldung per Link ungültig");
+  // Ein neuer Code macht den alten ungültig
+  await ruf("/admin/api/anmelden", { body: { email: "tom@test.de" }, kopf: { "x-forwarded-for": "4.4.4.4" } });
+  const alt = _letzterCode()!.code;
+  await ruf("/admin/api/anmelden", { body: { email: "tom@test.de" }, kopf: { "x-forwarded-for": "4.4.4.4" } });
+  const neu = _letzterCode()!.code;
+  if (alt !== neu) assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code: alt }, kopf: { "x-forwarded-for": "4.4.4.4" } })).status, 401, "alter Code gilt nicht mehr");
+  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code: neu }, kopf: { "x-forwarded-for": "4.4.4.4" } })).status, 200);
+  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code: neu }, kopf: { "x-forwarded-for": "4.4.4.4" } })).status, 401, "Code nur einmal");
   const c = cookie.split(";")[0];
   assert.equal(((await (await ruf("/admin/api/start", { cookie: c })).json()) as any).ich, "tom@test.de");
   assert.equal((await ruf("/admin/api/start", { cookie: c.slice(0, -3) + "abc" })).status, 401, "verändertes Cookie gilt nicht");

@@ -19,6 +19,8 @@ import { istInjection, festeAntwort } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
 import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
+import { grundSchutz } from "./sicherheit.ts";
+import { zugangRouten } from "./zugang/routen.ts";
 import { demoRouten } from "./demo.ts";
 import { bewerberRouten } from "./bewerber.ts";
 import { terminRouten } from "./termin.ts";
@@ -60,6 +62,9 @@ async function pruefeToken(token: unknown): Promise<Msg[]> {
 }
 
 export const app = new Hono();
+
+// Grund-Schutz für jede Antwort (nur verschlüsselt, keine geratenen Dateitypen, sparsamer Referrer) – siehe sicherheit.ts
+app.use("*", grundSchutz);
 
 app.use("/api/*", cors({
   origin: (o) => (env.allowedOrigins.length === 0 || env.allowedOrigins.includes(o) ? o : ""),
@@ -224,5 +229,7 @@ app.get("/health", (c) => c.json({ ok: true, provider: env.provider, killSwitch:
 kundenRouten(app, { chatRoute, anfrageRoute, configRoute });
 // Termin-Bot und Anfrage-Chat je Kunde (nutzt den Türsteher aus kundenRouten)
 terminAnfrageRouten(app);
+// Kunden-Zugang: Der Kunde ändert Kleinigkeiten selbst (/k/<kunde>/verwalten, nutzt denselben Türsteher)
+zugangRouten(app);
 // Admin-Panel für die Kunden-Bots (nur mit Anmeldung): /admin
 adminRouten(app, { chatRoute, configRoute });

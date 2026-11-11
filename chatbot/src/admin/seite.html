@@ -161,7 +161,9 @@ const T = {
     ${feld('id', 'Kunden-ID', 'text', { fest: true })}
     ${feld('status', 'Status', 'wahl', { optionen: optionen(S.start.status) })}
     ${feld('paket', 'Paket', 'wahl', { optionen: S.start.pakete.map(p => [p.id, p.name]) })}
-    ${feld('testBis', 'Testphase bis', 'datum')}${feld('notiz', 'Interne Notiz', 'lang')}</div></div>`,
+    ${feld('testBis', 'Testphase bis', 'datum')}${feld('notiz', 'Interne Notiz', 'lang')}</div></div>
+    <div class="karte"><h2>Kunden-Zugang</h2>${feld('zugang.aktiv', 'Der Kunde darf Kleinigkeiten selbst ändern', 'haken')}${feld('zugang.adressen', 'Wer darf sich anmelden?', 'zeilen', { zeilen: 3 })}
+      <p class="hilfe">Der Kunde ändert: Öffnungszeiten, aktueller Hinweis, Begrüßung, Leistungen, häufige Fragen, Bezahlung, Anfahrt, Stellen. Gesperrt bleibt alles andere. Jede Änderung kommt per Mail zu dir und steht im Verlauf. Den Link für den Kunden findest du nach dem Veröffentlichen unter „Einbau-Code“.</p></div>`,
   aussehen: () => `<div class="raster zwei"><div class="karte"><h2>Chat-Fenster</h2>
     ${feld('aussehen.botName', 'Name des Bots')}<div class="raster zwei">${feld('aussehen.primaerfarbe', 'Hauptfarbe', 'farbe')}${feld('aussehen.akzentfarbe', 'Zweite Farbe', 'farbe')}</div>
     ${feld('aussehen.position', 'Position', 'wahl', { optionen: [['rechts', 'Unten rechts'], ['links', 'Unten links']] })}${feld('aussehen.knopfText', 'Text auf dem Chat-Knopf')}
@@ -169,9 +171,9 @@ const T = {
     <div class="karte"><h2>Ton</h2>${feld('ton.anrede', 'Anrede', 'wahl', { optionen: [['Sie', 'Sie'], ['du', 'du']] })}${feld('ton.stil', 'Stil in Stichworten')}
     <p class="hilfe">Tipp: Nach dem Speichern im Reiter „Testen“ ansehen, wie es wirkt.</p></div></div>`,
   wissen: () => `<div class="karte">${liste('wissen.leistungen', 'Leistungen', { kategorie: 'Leistungen', name: '', preis: null, ab: false, beschreibung: '' },
-      p => `<div class="raster drei">${feld(p + '.name', 'Name')}${feld(p + '.kategorie', 'Kategorie')}${feld(p + '.preis', 'Preis in €', 'preis')}</div>${feld(p + '.ab', '„ab“-Preis (Richtpreis)', 'haken')}${feld(p + '.beschreibung', 'Beschreibung')}`, e => e.name)}</div>
+      p => `<div class="raster drei">${feld(p + '.name', 'Name')}${feld(p + '.kategorie', 'Kategorie')}${feld(p + '.preis', 'Preis in €', 'preis')}</div>${feld(p + '.ab', '„ab“-Preis (Richtpreis)', 'haken')}${feld(p + '.beschreibung', 'Beschreibung')}${(hol(S.K, p) || {}).wunsch ? '<p style="color:var(--gelb);margin:0 0 12px">Der Kunde möchte diesen Preis ändern. Freigeben oder ablehnen: Reiter „Übersicht“.</p>' : ''}`, e => e.name)}</div>
     <div class="karte">${liste('wissen.faq', 'Häufige Fragen', { frage: '', antwort: '' }, p => `${feld(p + '.frage', 'Frage')}${feld(p + '.antwort', 'Antwort', 'lang', { zeilen: 2 })}`, e => e.frage)}</div>
-    <div class="karte"><h2>Weiteres Wissen</h2><div class="raster zwei">${feld('wissen.zahlung', 'Bezahlung')}${feld('wissen.wartezeit', 'Wie schnell gibt es einen Termin?')}</div>${feld('wissen.anfahrt', 'Anfahrt und Parken')}${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}</div>
+    <div class="karte"><h2>Weiteres Wissen</h2>${feld('wissen.hinweis', 'Aktueller Hinweis')}<div class="raster zwei">${feld('wissen.zahlung', 'Bezahlung')}${feld('wissen.wartezeit', 'Wie schnell gibt es einen Termin?')}</div>${feld('wissen.anfahrt', 'Anfahrt und Parken')}${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}</div>
     <div class="karte"><h2>Was der Bot darf und was nicht</h2><p class="hilfe" style="margin-bottom:14px">Drei Stufen, von fest bis frei: <b>Feste Antworten</b> kommen Wort für Wort und ohne KI. <b>„Das sagt der Bot nie“</b> und <b>verbotene Wörter</b> sind Grenzen für alles andere. Zusätzlich prüft der Code jede Antwort auf erfundene Preise, Zusagen und Rabatte – das lässt sich nicht abschalten.</p>
       ${feld('wissen.nurWissensbasis', 'Streng: nur antworten, was hier eingetragen ist', 'haken')}
       ${liste('wissen.festeAntworten', 'Feste Antworten', { stichworte: [], antwort: '' }, p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.antwort', 'Antwort, Wort für Wort', 'lang', { zeilen: 3 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}
@@ -222,7 +224,12 @@ const T = {
   uebersicht: () => {
     const d = S.d, rot = d.check.filter(p => p.farbe === 'rot'), gelb = d.check.filter(p => p.farbe === 'gelb'), gruen = d.check.filter(p => p.farbe === 'gruen');
     const zeile = p => `<li><span class="punkt ${p.farbe}" aria-hidden="true"></span><div><b style="color:var(--h)">${esc(p.titel)}</b>${p.hilfe ? `<div class="neben">${esc(p.hilfe)} ${p.reiter ? `<a href="#" data-akt="reiter" data-r="${p.reiter}">Dort hin</a>` : ''}</div>` : ''}</div></li>`;
-    return `<div class="raster zwei"><div class="karte"><h2>Einrichtungs-Check</h2>
+    const eur = (p, ab) => p == null ? 'auf Anfrage' : (ab ? 'ab ' : '') + Number(p).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' €';
+    const wuensche = (d.preiswuensche || []).length ? `<div class="karte" style="border-color:var(--gelb);margin-bottom:14px"><h2>Der Kunde möchte ${d.preiswuensche.length === 1 ? 'einen Preis' : d.preiswuensche.length + ' Preise'} ändern</h2>
+      <p class="hilfe" style="margin-bottom:10px">Eingetragen über den Kunden-Zugang. Der Bot nennt noch die bisherigen Preise. „Übernehmen“ schaltet die neuen sofort live.</p>
+      <div class="tabelle"><table><thead><tr><th>Leistung</th><th>Bisher</th><th>Neu</th></tr></thead><tbody>${d.preiswuensche.map(w => `<tr><td><b style="color:var(--h)">${esc(w.name)}</b></td><td>${eur(w.preis, w.ab)}</td><td><b style="color:var(--h)">${eur(w.wunsch.preis, w.wunsch.ab)}</b></td></tr>`).join('')}</tbody></table></div>
+      <div class="zeile" style="margin-top:12px"><button class="btn haupt" data-akt="preiswunsch" data-ja="1">Übernehmen</button><button class="btn" data-akt="preiswunsch" data-ja="0">Ablehnen</button></div></div>` : '';
+    return `${wuensche}<div class="raster zwei"><div class="karte"><h2>Einrichtungs-Check</h2>
       <p><span class="marker"><span class="punkt ${d.ampel}"></span>${AMPEL[d.ampel]}</span></p>
       <ul class="check">${[...rot, ...gelb].map(zeile).join('') || '<li><span class="punkt gruen"></span><div>Nichts zu tun.</div></li>'}</ul>
       ${gruen.length ? `<details style="margin-top:12px"><summary>${gruen.length} Punkte in Ordnung</summary><ul class="check">${gruen.map(zeile).join('')}</ul></details>` : ''}</div>
@@ -244,6 +251,7 @@ const T = {
   einbau: () => {
     const e = S.d.einbau, code = t => `<pre class="code">${esc(t)}</pre><p><button class="btn klein" data-akt="kopieren" data-text="${esc(t)}">Kopieren</button></p>`;
     return `${S.d.live ? '' : '<div class="karte" style="border-color:var(--gelb)">Der Kunde ist noch nicht veröffentlicht. Code und Links funktionieren erst danach.</div>'}
+    <div class="karte"><h2>Kunden-Zugang</h2>${e.zugang ? `<p class="hilfe">Diesen Link bekommt der Kunde. Dort ändert er Kleinigkeiten selbst. Anmelden können sich: ${esc(e.zugang.adressen.join(', '))}</p>${code(e.zugang.link)}` : '<p class="neben">Der Kunden-Zugang ist nicht eingeschaltet (Reiter „Stammdaten“).</p>'}</div>
     <div class="karte"><h2>Kunden-Chat auf der Website</h2>${e.kundenChat ? `<p class="hilfe">${esc(e.kundenChat.wo)}</p>${code(e.kundenChat.code)}<p class="hilfe">Zum Ansehen ohne Einbau: <a href="${esc(e.seite)}" target="_blank" rel="noopener">${esc(e.seite)}</a></p>` : '<p class="neben">Der Kunden-Chat ist nicht eingeschaltet.</p>'}</div>
     <div class="karte"><h2>Bewerber-Chat</h2>${e.bewerberChat ? `<p class="hilfe">${esc(e.bewerberChat.wo)}</p><h3>Link</h3>${code(e.bewerberChat.link)}
       ${e.bewerberChat.stellen.length ? `<details><summary>Direktlinks je Stelle</summary>${e.bewerberChat.stellen.map(s => `<p style="margin:0 0 4px"><b>${esc(s.name)}</b></p>${code(s.link)}`).join('')}</details>` : ''}
@@ -380,10 +388,10 @@ async function oeffne(id, reiter) {
 function zeigeFehler(liste) {
   S.fehler = {}; for (const f of liste || []) S.fehler[f.feld] = f.text;
   const erster = (liste || [])[0];
-  if (erster) { const r = { stammdaten: 'stammdaten', id: 'stammdaten', status: 'stammdaten', paket: 'stammdaten', testBis: 'stammdaten', notiz: 'stammdaten', aussehen: 'aussehen', ton: 'aussehen', wissen: 'wissen', module: 'module', benachrichtigungen: 'mails', rechtliches: 'recht', technik: 'recht' }[erster.feld.split('.')[0]]; if (r && S.ansicht === 'kunde') S.reiter = r; }
+  if (erster) { const r = { stammdaten: 'stammdaten', id: 'stammdaten', status: 'stammdaten', paket: 'stammdaten', testBis: 'stammdaten', notiz: 'stammdaten', aussehen: 'aussehen', ton: 'aussehen', wissen: 'wissen', module: 'module', benachrichtigungen: 'mails', rechtliches: 'recht', technik: 'recht', zugang: 'stammdaten' }[erster.feld.split('.')[0]]; if (r && S.ansicht === 'kunde') S.reiter = r; }
 }
 async function speichern(leise) {
-  const r = await api('/kunden/' + S.id, { method: 'PUT', body: { kunde: S.K } });
+  const r = await api('/kunden/' + S.id, { method: 'PUT', body: { kunde: S.K, stand: S.d.geaendert } });
   if (!r.ok) { zeigeFehler(Array.isArray(r.fehler) ? r.fehler : []); zeichne(); toast(Array.isArray(r.fehler) ? `Bitte ${r.fehler.length} Angabe(n) korrigieren (rot markiert).` : (r.fehler || 'Speichern hat nicht geklappt.')); return false; }
   const reiter = S.reiter; await oeffne(S.id, reiter); if (!leise) toast('Gespeichert. Noch nicht live – dafür „Veröffentlichen“.');
   return true;
@@ -426,6 +434,14 @@ const AKT = {
     S.neu = null; await ladeStart(); await oeffne(r.id, 'uebersicht'); toast('Kunde angelegt. Jetzt Leistungen und Stellen anpassen, dann testen.');
   },
   speichern() { speichern(); },
+  async preiswunsch(el) {
+    const ja = el.dataset.ja === '1';
+    if (!confirm(ja ? 'Die neuen Preise übernehmen? Der Bot nennt sie ab sofort.' : 'Die Preisänderungen des Kunden ablehnen? Die bisherigen Preise bleiben.')) return;
+    if (S.geaendert && !(await speichern(true))) return;
+    const r = await api(`/kunden/${S.id}/preiswunsch`, { body: { annehmen: ja } });
+    if (!r.ok) { toast(r.fehler || 'Das hat nicht geklappt.'); return; }
+    await oeffne(S.id, 'uebersicht'); toast(ja ? 'Übernommen. Die neuen Preise sind live.' : 'Abgelehnt. Die bisherigen Preise bleiben.');
+  },
   async live() {
     if (S.geaendert && !(await speichern(true))) return;
     let r = await api(`/kunden/${S.id}/veroeffentlichen`, { body: {} });

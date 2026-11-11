@@ -136,6 +136,8 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       return r.email;
     },
 
+    async loginLoeschen(email) { sql(`DELETE FROM login WHERE email = ?`, email); },
+
     async aufraeumen() {
       const t = jetzt();
       const dateien = sql(`SELECT kunde, id FROM datei WHERE ablauf <= ?`, t);

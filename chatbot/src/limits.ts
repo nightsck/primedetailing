@@ -10,7 +10,9 @@
 import { env, texte } from "./config.ts";
 import { aktuell, jeKunde, sicht } from "./kontext.ts";
 
-export type Art = "chat" | "foto" | "anfrage" | "datei";
+export type Art = "chat" | "foto" | "anfrage" | "datei" | "login" | "aendern";
+/** Diese Arten rufen keine KI auf und zählen deshalb nicht zum Tagesbudget. */
+const OHNE_BUDGET: Art[] = ["anfrage", "datei", "login", "aendern"];
 type Fenster = { minute?: number; stunde?: number; tag?: number };
 export type Stand = { zeiten: Record<string, number[]>; budgetTag?: string; budget?: number };
 
@@ -23,6 +25,11 @@ const _grenzen = jeKunde((l): Record<Art, Fenster> => {
     anfrage: { minute: 2, stunde: 5, tag: 10, ...(L.anfragenFormularProIp || {}) },
     // Bewerbungsunterlagen (kein KI-Aufruf, zählt nicht zum Tagesbudget)
     datei: { minute: 10, stunde: 20, tag: 30 },
+    // Anmeldeversuche (Code anfordern, Code eintippen) im Admin-Panel und im Kunden-Zugang.
+    // Einen 6-stelligen Code kann man damit nicht durchprobieren.
+    login: { minute: 6, stunde: 15, tag: 30 },
+    // Speichern im Kunden-Zugang
+    aendern: { minute: 10, stunde: 60, tag: 200 },
   };
 });
 export const grenzen: Record<Art, Fenster> = sicht(_grenzen);
@@ -65,7 +72,7 @@ function imSpeicher(schluessel: string, art: Art) {
   speicher.set(schluessel, s);
   const grund = zaehle(s, art);
   if (grund) return grund;
-  if (art !== "anfrage" && art !== "datei") {
+  if (!OHNE_BUDGET.includes(art)) {
     const k = aktuell().kundeId;
     const b = budgets.get(k) || { zeiten: {} };
     budgets.set(k, b);
@@ -100,7 +107,7 @@ export async function pruefeLimit(c: any, art: Art): Promise<string | null> {
   if (ns?.idFromName) {
     try {
       grund = await ns.get(ns.idFromName("ip:" + schluessel)).zaehle(art, grenzen[art]);
-      if (!grund && art !== "anfrage" && art !== "datei" && !(await ns.get(ns.idFromName("global:" + kunde.kundeId)).budget(tagesbudget()))) grund = "budget";
+      if (!grund && !OHNE_BUDGET.includes(art) && !(await ns.get(ns.idFromName("global:" + kunde.kundeId)).budget(tagesbudget()))) grund = "budget";
     } catch (e: any) {
       console.error("[limits]", e?.message || e);
       grund = imSpeicher(schluessel, art); // Zähler nicht erreichbar → lokal weiterzählen

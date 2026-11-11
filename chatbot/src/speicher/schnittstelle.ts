@@ -61,6 +61,9 @@ export interface Speicher {
   /** Code oder Link prüfen. `verbrauchen` = danach ungültig machen. Gibt die E-Mail zurück oder null. */
   loginPruefen(hash: string, verbrauchen: boolean): Promise<string | null>;
 
+  /** Alle offenen Codes und Links einer Adresse ungültig machen (neuer Code angefordert oder erfolgreich angemeldet). */
+  loginLoeschen(email: string): Promise<void>;
+
   /** Löscht alles, dessen Frist abgelaufen ist. Gibt die Anzahl zurück. */
   aufraeumen(): Promise<number>;
 }
@@ -72,7 +75,7 @@ export function setzeSpeicher(s: Speicher | null) { lokal = s; }
 
 const METHODEN = ["kundenListe", "kundeLesen", "kundeSpeichern", "kundeVeroeffentlichen", "kundeLoeschen", "versionen", "versionLesen",
   "vorgangAnlegen", "vorgaenge", "vorgangStatus", "vorgangLoeschen", "dateiAblegen", "dateiHolen", "dateienBehalten",
-  "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "aufraeumen"] as const;
+  "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "loginLoeschen", "aufraeumen"] as const;
 
 /** Der Speicher für diese Anfrage. Auf Cloudflare über die Bindung KUNDEN, sonst der lokal gesetzte. */
 export function speicherVon(c: any): Speicher {

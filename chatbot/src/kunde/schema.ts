@@ -41,6 +41,8 @@ const Leistung = z.object({
   preis: z.number().min(0).max(99999).nullable().default(null).describe("Preis in Euro. Leer lassen = „auf Anfrage“. Der Bot nennt nur Preise, die hier stehen."),
   ab: z.boolean().default(false).describe("Ankreuzen, wenn es ein „ab“-Preis ist (Richtpreis)."),
   beschreibung: text(300).default(""),
+  wunsch: z.object({ preis: z.number().min(0).max(99999).nullable(), ab: z.boolean() }).nullable().default(null)
+    .describe("Preis, den der Kunde über seinen Kunden-Zugang eingetragen hat. Der Bot nennt ihn noch nicht: Er gilt erst nach der Freigabe hier im Admin-Panel."),
 });
 const FesteAntwort = z.object({
   stichworte: z.array(text(60).min(3, "Mindestens 3 Zeichen, sonst greift die Regel zu oft.")).min(1).describe("Kommt eines dieser Wörter in der Nachricht vor, greift die feste Antwort. Gezählt wird nur, wenn ein Wort damit ANFÄNGT („Gehalt“ trifft auch „Gehaltsvorstellung“). Eindeutige Wörter wählen."),
@@ -109,6 +111,7 @@ export const KundeSchema = z.object({
     leistungen: z.array(Leistung).max(80).default([]).describe("Was der Betrieb anbietet. Einzige Preisquelle des Bots."),
     faq: z.array(Frage).max(60).default([]).describe("Häufige Fragen mit der richtigen Antwort."),
     freitext: text(6000).default("").describe("Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten."),
+    hinweis: text(300).default("").describe("Aktueller Hinweis, z. B. „Betriebsferien vom 23.12. bis 6.1.“ oder „Im August nur Notdienst“. Der Bot nennt ihn, wenn es zur Frage passt. Leer = kein Hinweis."),
     zahlung: text(200).default("").describe("Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“"),
     anfahrt: text(300).default("").describe("Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet."),
     wartezeit: text(200).default("").describe("Wie schnell gibt es üblicherweise einen Termin? z. B. „Meist innerhalb von zwei Wochen.“ Leer = der Bot sagt dazu nichts."),
@@ -175,6 +178,12 @@ export const KundeSchema = z.object({
     notfall: mails.describe("Zusätzliche Empfänger bei Dringlichkeit „Notfall“."),
   }).prefault({}),
 
+  zugang: z.object({
+    aktiv: z.boolean().default(false)
+      .describe("Kunden-Zugang einschalten. Der Kunde kann dann unter …/verwalten Kleinigkeiten selbst ändern: Öffnungszeiten, aktueller Hinweis, Leistungen, häufige Fragen, Stellen. Das geht sofort live. Preise gelten erst nach der Freigabe hier im Admin-Panel. Alles andere (feste Antworten, Verbote, Module, Technik) bleibt gesperrt."),
+    adressen: mails.describe("Wer sich anmelden darf: E-Mail-Adressen des Kunden, eine pro Zeile. Leer = die Kontakt-Adresse aus den Stammdaten. Angemeldet wird mit einem Code per E-Mail, ohne Passwort."),
+  }).prefault({}),
+
   rechtliches: z.object({
     datenschutzUrl: urlOderLeer.describe("Link zur Datenschutzerklärung des Kunden. Pflicht, bevor ein Bot live geht."),
     impressumUrl: urlOderLeer,
@@ -212,7 +221,7 @@ export function pruefeKunde(eingabe: unknown): { ok: true; kunde: Kunde } | { ok
   return fehler.length ? { ok: false, fehler } : { ok: true, kunde };
 }
 
-function deutsch(i: any): string {
+export function deutsch(i: any): string {
   if (i.message && !/^(Invalid|Too|Expected|Required|Unrecognized|String|Number|Array)/.test(i.message)) return i.message;
   if (i.code === "too_big" && i.origin === "array") return `Zu viele Einträge (höchstens ${i.maximum}).`;
   if (i.code === "too_big") return i.origin === "string" ? `Zu lang (höchstens ${i.maximum} Zeichen).` : `Zu groß (höchstens ${i.maximum}).`;

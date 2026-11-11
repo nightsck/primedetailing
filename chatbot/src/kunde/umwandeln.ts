@@ -33,6 +33,7 @@ export function wissenVon(k: Kunde): string {
   if (s.einsatzgebiet) z.push(`- Einsatzgebiet: ${s.einsatzgebiet}`);
   z.push(`- Kontakt: ${[s.telefon && "Telefon " + s.telefon, "E-Mail " + s.email].filter(Boolean).join(", ")}`);
   if (s.ansprechpartner) z.push(`- Ansprechpartner: ${s.ansprechpartner}`);
+  if (k.wissen.hinweis) z.push("", "## Aktueller Hinweis (gilt im Moment, bei passenden Fragen nennen)", `- ${k.wissen.hinweis}`);
   if (k.wissen.zahlung) z.push("", "## Bezahlung", `- ${k.wissen.zahlung}`);
   if (k.wissen.anfahrt) z.push("", "## Anfahrt", `- ${k.wissen.anfahrt}`);
   if (k.wissen.wartezeit) z.push("", "## Termine", `- ${k.wissen.wartezeit}`, "- Ein Termin steht erst fest, wenn das Team ihn bestätigt hat.");

@@ -6,12 +6,14 @@
 //   POST /admin/api/kunden                   neuen Kunden anlegen (aus Branchen-Vorlage)
 //   GET/PUT/DELETE /admin/api/kunden/:id     lesen, Entwurf speichern, löschen
 //   POST …/:id/veroeffentlichen | verwerfen | wiederherstellen | testmail
+//   POST …/:id/preiswunsch                   Preise aus dem Kunden-Zugang freigeben oder ablehnen
 //   GET  …/:id/vorgaenge  …/auswertung  …/qr  …/export
 //   POST …/:id/test/chat  …/test/bewerber    Test-Chat mit dem ENTWURF (geht nicht live)
 //
 // Entwurf und Veröffentlicht: Speichern ändert nur den Entwurf. Die Bots beim
 // Kunden benutzen immer die zuletzt veröffentlichte Fassung.
 import type { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import qrcode from "qrcode-generator";
 import { speicherVon, speicherDa } from "../speicher/schnittstelle.ts";
 import { pruefeKunde, feldHilfen, PAKETE, STATUS, MODUL_NAMEN, NOCH_NICHT, type Kunde } from "../kunde/schema.ts";
@@ -31,10 +33,14 @@ import { selbsttest } from "./selbsttest.ts";
 import { ADMIN_HTML } from "../daten.generated.ts";
 import { angemeldet, schickeCode, loeseEin, ABMELDE_COOKIE } from "./anmeldung.ts";
 import { pruefeEinrichtung, ampel, serverStand } from "./check.ts";
+import { seitenKoepfe, mitNonce, zufallsToken, eigeneHerkunft } from "../sicherheit.ts";
+import { speichereLive } from "../zugang/routen.ts";
+import { entscheideWuensche } from "../zugang/aenderung.ts";
+import { zugangsAdressen } from "../zugang/anmeldung.ts";
 
-// Anmeldeversuche pro Besucher: 10 pro Minute, 20 pro Stunde, 30 pro Tag (der Zähler „datei“ hat genau diese Grenzen).
+// Anmeldeversuche pro Besucher: 6 pro Minute, 15 pro Stunde, 30 pro Tag (limits.ts).
 // Einen 6-stelligen Code kann man damit nicht durchprobieren.
-const LOGIN_LIMIT = "datei" as const;
+const LOGIN_LIMIT = "login" as const;
 
 // IDs, die nicht vergeben werden dürfen (haben eine feste Bedeutung)
 const GESPERRT = new Set(["prime-detailing", "demo", "admin", "api", "crm", "test"]);
@@ -51,6 +57,7 @@ export function einbau(k: Kunde, basis: string) {
       wo: "Link für Stellenanzeige, Instagram-Profil, Google-Unternehmensprofil und WhatsApp-Status. QR-Code für Firmenwagen, Bauzaun, Aushang.",
     } : null,
     terminBot: terminBetriebVon(k) ? { link: `${b}/termin`, knopf: `<a href="${b}/termin" target="_blank" rel="noopener">Termin online buchen</a>`, wo: "Link für Website, Google-Unternehmensprofil, Instagram, E-Mail-Signatur. QR-Code für Visitenkarte, Rechnung, Schaufenster." } : null,
+    zugang: k.zugang?.aktiv ? { link: `${b}/verwalten`, adressen: zugangsAdressen(k) } : null,
     anfrageChat: k.module.anfrageChat.aktiv ? { link: `${b}/anfrage`, knopf: `<a href="${b}/anfrage" target="_blank" rel="noopener">Anfrage stellen</a>`, wo: "Link für Website („Kontakt“), Google-Unternehmensprofil und als Ziel für die SMS des Anruf-Retters." } : null,
   };
 }
@@ -62,7 +69,9 @@ export function qrSvg(text: string): string {
 }
 
 export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }) {
-  app.get("/admin", (c) => c.html(ADMIN_HTML, 200, { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer" }));
+  // Die Seite selbst: Der Browser führt nur unser eigenes Skript aus und lädt nichts von fremden Servern (sicherheit.ts)
+  app.get("/admin", (c) => { const nonce = zufallsToken(16); return c.html(mitNonce(ADMIN_HTML, nonce), 200, seitenKoepfe(nonce, { rahmenSelbst: true })); });
+  app.use("/admin/api/*", bodyLimit({ maxSize: 1_000_000, onError: (c) => c.json({ ok: false, fehler: "Zu viele Daten auf einmal." }, 413) }));
 
   // --- Anmeldung (ohne Sitzung erreichbar) ---
   app.post("/admin/api/anmelden", async (c: any) => {
@@ -84,6 +93,8 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
   // --- Ab hier nur angemeldet. Schreibende Aufrufe brauchen zusätzlich den Kopf „X-Admin“
   //     (den kann eine fremde Website nicht mitschicken – Schutz vor untergeschobenen Klicks). ---
   app.use("/admin/api/*", async (c: any, next) => {
+    // Schreibende Aufrufe nur von unserer eigenen Seite (die Test-Vorschau läuft im Rahmen derselben Seite)
+    if (c.req.method !== "GET" && !eigeneHerkunft(c)) return c.json({ ok: false, fehler: "Ungültiger Aufruf." }, 403);
     if (/\/admin\/api\/(anmelden|einloesen|abmelden)$/.test(c.req.path)) return next();
     const wer = await angemeldet(c);
     if (!wer) return c.json({ ok: false, fehler: "Bitte anmelden." }, 401);
@@ -140,13 +151,18 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
       ok: true, kunde: z.e.entwurf, live: !!z.e.veroeffentlicht, offen: z.e.offen, geaendert: z.e.geaendert, geaendertVon: z.e.geaendertVon,
       check: z.punkte, ampel: ampel(z.punkte), versionen: await speicherVon(c).versionen(z.e.id),
       einbau: einbau(z.e.veroeffentlicht || z.e.entwurf, basisVon(c)),
+      // Preise aus dem Kunden-Zugang, die auf Freigabe warten (aus der Live-Fassung)
+      preiswuensche: (z.e.veroeffentlicht?.wissen.leistungen || []).filter((l) => l.wunsch).map((l) => ({ name: l.name, preis: l.preis, ab: l.ab, wunsch: l.wunsch })),
     });
   });
 
   app.put("/admin/api/kunden/:id", async (c: any) => {
     const id = c.req.param("id"), sp = speicherVon(c);
-    if (!(await sp.kundeLesen(id))) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
+    const vorher = await sp.kundeLesen(id);
+    if (!vorher) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
     const b: any = await c.req.json().catch(() => ({}));
+    // Hat inzwischen jemand anders gespeichert (z. B. der Kunde über seinen Zugang)? Dann nicht blind überschreiben.
+    if (typeof b.stand === "number" && b.stand !== vorher.geaendert) return c.json({ ok: false, fehler: `Inzwischen wurde dieser Kunde an anderer Stelle geändert (${vorher.geaendertVon || "unbekannt"}). Bitte die Seite neu laden und die Änderung noch einmal eintragen.` }, 409);
     const r = pruefeKunde({ ...(b.kunde || {}), id }); // die ID lässt sich nicht ändern
     if (!r.ok) return c.json({ ok: false, fehler: r.fehler }, 400);
     await sp.kundeSpeichern(r.kunde, c.get("wer"));
@@ -164,6 +180,19 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     await speicherVon(c).kundeVeroeffentlichen(z.e.id, c.get("wer"));
     vergissKunde(z.e.id);
     return c.json({ ok: true });
+  });
+
+  // Preise, die der Kunde über seinen Zugang eingetragen hat: übernehmen (gehen sofort live) oder ablehnen
+  app.post("/admin/api/kunden/:id/preiswunsch", async (c: any) => {
+    const e = await speicherVon(c).kundeLesen(c.req.param("id"));
+    if (!e?.veroeffentlicht) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht oder er ist noch nicht veröffentlicht." }, 404);
+    const b: any = await c.req.json().catch(() => ({}));
+    const r = entscheideWuensche(e.veroeffentlicht, b.annehmen === true);
+    if (!r.anzahl) return c.json({ ok: false, fehler: "Es wartet kein Preis auf Freigabe." }, 400);
+    const p = pruefeKunde({ ...r.kunde, id: e.id });
+    if (!p.ok) return c.json({ ok: false, fehler: "Die Preise konnten nicht übernommen werden.", details: p.fehler }, 400);
+    await speichereLive(c, e, p.kunde, c.get("wer"));
+    return c.json({ ok: true, anzahl: r.anzahl, angenommen: b.annehmen === true });
   });
 
   app.post("/admin/api/kunden/:id/verwerfen", async (c: any) => {

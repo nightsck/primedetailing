@@ -80,6 +80,7 @@ export const JOBS = ${JSON.stringify(jobs, null, 2)};
 export const JOBS_JS = ${JSON.stringify(r("../src/assets/jobs.js"))};
 export const JOBS_CSS = ${JSON.stringify(r("../src/assets/jobs.css"))};
 export const ADMIN_HTML = ${JSON.stringify(existsSync(url("src/admin/seite.html")) ? r("src/admin/seite.html") : "")};
+export const VERWALTEN_HTML = ${JSON.stringify(existsSync(url("src/zugang/seite.html")) ? r("src/zugang/seite.html") : "")};
 `;
 writeFileSync(url("src/daten.generated.ts"), out);
 console.log("Daten gebaut → src/daten.generated.ts");

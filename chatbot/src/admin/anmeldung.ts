@@ -8,9 +8,14 @@
 //
 // Wer rein darf: Variable ADMIN_LOGIN (kommagetrennt), sonst CRM_LOGIN.
 // Angemeldet bleibt man 14 Tage (signiertes Cookie, nur für /admin).
+//
+// Schutz (siehe sicherheit.ts): Codes liegen nur als Hash im Speicher, gelten 15 Minuten
+// und einmal. Ein neuer Code macht alle alten ungültig, eine Anmeldung ebenso. Pro Adresse
+// gehen höchstens 10 Code-Mails und 10 falsche Codes am Tag, dazu das Limit pro Besucher.
 import { env } from "../config.ts";
 import { speicherVon } from "../speicher/schnittstelle.ts";
 import { sendeMail, mailAktiv } from "../mail.ts";
+import { zufallsCode } from "../sicherheit.ts";
 
 const wert = (c: any, k: string): string => String(c?.env?.[k] ?? process.env[k] ?? "").trim();
 const enc = new TextEncoder();
@@ -18,7 +23,7 @@ const b64u = (u: Uint8Array) => btoa(String.fromCharCode(...u)).replace(/\+/g, "
 const unb64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0));
 const sha = async (s: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
-const GUELTIG_MIN = 15, SITZUNG_TAGE = 14;
+const GUELTIG_MIN = 15, SITZUNG_TAGE = 14, MAX_MAILS_TAG = 10;
 /** Unter diesem Namen zählt der Speicher falsche Codes je Adresse und Tag (kein echter Kunde). */
 const LOGIN_ZAEHLER = "_login";
 
@@ -38,9 +43,9 @@ async function key() {
 async function sitzungsCookie(email: string): Promise<string> {
   const body = b64u(enc.encode(JSON.stringify({ e: email, bis: Date.now() + SITZUNG_TAGE * 86_400_000 })));
   const sig = b64u(new Uint8Array(await crypto.subtle.sign("HMAC", await key(), enc.encode(body))));
-  return `adm=${body}.${sig}; Path=/admin; Max-Age=${SITZUNG_TAGE * 86400}; HttpOnly; Secure; SameSite=Lax`;
+  return `adm=${body}.${sig}; Path=/admin; Max-Age=${SITZUNG_TAGE * 86400}; HttpOnly; Secure; SameSite=Strict`;
 }
-export const ABMELDE_COOKIE = "adm=; Path=/admin; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
+export const ABMELDE_COOKIE = "adm=; Path=/admin; Max-Age=0; HttpOnly; Secure; SameSite=Strict";
 
 /** Wer ist angemeldet? Gibt die E-Mail zurück oder null. */
 export async function angemeldet(c: any): Promise<string | null> {
@@ -63,10 +68,14 @@ export const _letzterCode = () => letzter;
 export async function schickeCode(c: any, emailRoh: unknown): Promise<void> {
   const email = String(emailRoh || "").trim().toLowerCase();
   if (!erlaubteAdressen(c).includes(email)) return;
-  const zahl = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
-  const code = String(zahl).padStart(6, "0");
+  const sp = speicherVon(c), heute = new Date().toISOString().slice(0, 10);
+  // Niemand soll ein Postfach mit Code-Mails fluten können
+  if (((await sp.auswertung(LOGIN_ZAEHLER, 1)).find((z) => z.tag === heute && z.art === "mail:" + email)?.n || 0) >= MAX_MAILS_TAG) return;
+  await sp.zaehle(LOGIN_ZAEHLER, "mail:" + email);
+  const code = zufallsCode();
   const token = b64u(crypto.getRandomValues(new Uint8Array(24)));
-  const bis = Date.now() + GUELTIG_MIN * 60_000, sp = speicherVon(c);
+  const bis = Date.now() + GUELTIG_MIN * 60_000;
+  await sp.loginLoeschen(email); // ältere Codes und Links dieser Adresse gelten ab jetzt nicht mehr
   await sp.loginMerken(await sha(`code|${email}|${code}`), email, bis);
   await sp.loginMerken(await sha(`link|${token}`), email, bis);
   letzter = { email, code, token };
@@ -99,5 +108,6 @@ export async function loeseEin(c: any, b: { email?: unknown; code?: unknown; tok
     if (!email && erlaubteAdressen(c).includes(e)) await sp.zaehle(LOGIN_ZAEHLER, e);
   }
   if (!email || !erlaubteAdressen(c).includes(email)) return null;
+  await sp.loginLoeschen(email); // der zweite Weg (Link bzw. Code) aus derselben Mail ist damit auch verbraucht
   return sitzungsCookie(email);
 }

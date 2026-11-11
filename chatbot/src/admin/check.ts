@@ -75,6 +75,9 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
     dazu(a.sicherheitsregeln.length > 0, "gelb", "Anfrage-Chat: Sicherheitsregeln", "Es gibt keine feste Regel für Notfälle (z. B. Brandgeruch, Wasser tritt aus). Wenn im Betrieb Gefahr entstehen kann: unter „Module → Anfrage-Chat“ eintragen.", "module");
     dazu(!!k.stammdaten.telefon, "rot", "Anfrage-Chat: Telefonnummer für Notfälle", "Bei einem Notfall verweist die Seite auf die Telefonnummer. Unter „Stammdaten“ eintragen.", "stammdaten");
   }
+  // Kunden-Zugang
+  const wuensche = k.wissen.leistungen.filter((l) => l.wunsch).length;
+  if (wuensche) dazu(false, "gelb", "Preise aus dem Kunden-Zugang sind freigegeben", `Der Kunde hat ${wuensche} Preis(e) geändert. Der Bot nennt noch die alten. In der Übersicht „Übernehmen“ oder „Ablehnen“ klicken.`);
   // Veröffentlichung
   if (!stand.live) dazu(false, "gelb", "Kunde ist veröffentlicht", "Noch nicht live. Erst testen (Reiter „Testen“), dann oben auf „Veröffentlichen“.");
   else if (stand.offen) dazu(false, "gelb", "Alle Änderungen sind veröffentlicht", "Es gibt gespeicherte Änderungen, die noch nicht live sind. Oben auf „Veröffentlichen“ klicken.");
