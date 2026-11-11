@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "KI-Website-Chatbot (Prototyp Prime Detailing)",
+  "description": "KI-Bots für Betriebe: Kunden-Chat, Bewerber-Chat, Admin-Panel",
   "engines": {
     "node": ">=22.18"
   },
@@ -14,7 +14,8 @@
     "test": "node scripts/daten-bauen.mjs && node --test tests/*.test.ts",
     "evals": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/run-evals.ts",
     "worker:dev": "node scripts/daten-bauen.mjs && wrangler dev",
-    "deploy": "node scripts/daten-bauen.mjs && wrangler deploy"
+    "deploy": "node scripts/daten-bauen.mjs && wrangler deploy",
+    "doku": "node scripts/konfig-doku.ts"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.26.0",

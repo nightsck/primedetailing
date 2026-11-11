@@ -14,6 +14,8 @@ Website  ──<script>──▶  widget.js (Chat-Fenster)
                      └─ /api/anfrage  ──▶  E-Mail an support@ (optional WhatsApp)
 ```
 
+**Mehrere Kunden:** Seit dem Umbau bedient derselbe Server beliebig viele Betriebe. Neue Kunden werden im Admin-Panel unter `/admin` angelegt, ohne Code. Einstieg: [EINRICHTUNG-NEUER-KUNDE.md](EINRICHTUNG-NEUER-KUNDE.md) · [ARCHITEKTUR.md](ARCHITEKTUR.md) · [KONFIGURATION.md](KONFIGURATION.md) · [SECRETS.md](SECRETS.md) · [BETRIEB.md](BETRIEB.md). Der Rest dieser Datei beschreibt Prime Detailing (Kunde 1).
+
 **Live schalten mit Cloudflare Workers (kostenlos): siehe [CLOUDFLARE.md](CLOUDFLARE.md).**
 
 ## Schnellstart
@@ -75,7 +77,8 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 ## Tests
 
 ```bash
-npm test                  # 33 Tests ohne KI: Preise, Prüfungen, Filter, Werkzeuge, Spam-Limits, Foto-Check, Gesprächslogik
+npm test                  # alle Tests ohne KI: Preise, Prüfungen, Limits, Kunden-Trennung, Admin-Panel …
+npm run doku              # KONFIGURATION.md neu aus dem Schema erzeugen
 npm run evals             # 46 Testfragen gegen die echte KI (braucht ANTHROPIC_API_KEY)
 npm run evals -- --demo   # gleicher Ablauf im Demo-Modus
 ```

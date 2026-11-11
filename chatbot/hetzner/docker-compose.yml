@@ -1,0 +1,31 @@
+# Chat-Server + Caddy (HTTPS mit automatischem Zertifikat). Anleitung: chatbot/BETRIEB.md
+# Start im Hauptordner des Repos:  docker compose -f chatbot/hetzner/docker-compose.yml up -d --build
+services:
+  bots:
+    build:
+      context: ../..
+      dockerfile: chatbot/Dockerfile
+    restart: unless-stopped
+    env_file: .env            # Schlüssel und Einstellungen, siehe .env.beispiel und SECRETS.md
+    volumes:
+      - daten:/daten          # Kundendaten (SQLite). Dieses Volume sichern!
+    expose:
+      - "8787"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Bitte DOMAIN in .env setzen, z. B. bots.example.de}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_daten:/data
+      - caddy_config:/config
+    depends_on:
+      - bots
+volumes:
+  daten:
+  caddy_daten:
+  caddy_config:

@@ -47,6 +47,16 @@ test("Anmeldung: nur freigeschaltete Adressen, Code einmal gültig, Link wird er
   assert.equal((await ruf("/admin/api/kunden", { cookie: c, body: { kunde: NEU }, kopf: { "X-Admin": "" } })).status, 403, "Schreiben ohne X-Admin-Kopf abgelehnt");
 });
 
+test("Anmeldung: nach 10 falschen Codes hilft auch der richtige nicht mehr, der Link schon", async () => {
+  await neuerSpeicher(); _reset();
+  await ruf("/admin/api/anmelden", { body: { email: "tom@test.de" } });
+  const { code, token } = _letzterCode()!;
+  const falsch = code === "123456" ? "654321" : "123456";
+  for (let i = 0; i < 10; i++) assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code: falsch }, kopf: { "x-forwarded-for": "3.3.3." + i } })).status, 401);
+  assert.equal((await ruf("/admin/api/einloesen", { body: { email: "tom@test.de", code }, kopf: { "x-forwarded-for": "3.3.4.1" } })).status, 401, "Code gesperrt");
+  assert.equal((await ruf("/admin/api/einloesen", { body: { token }, kopf: { "x-forwarded-for": "3.3.4.2" } })).status, 200, "Link geht weiter");
+});
+
 test("Neuer Kunde aus Branchen-Vorlage: Entwurf ist nicht live, Check zeigt, was fehlt, Veröffentlichen erst danach", async () => {
   await neuerSpeicher(); _reset();
   const cookie = await anmelden();

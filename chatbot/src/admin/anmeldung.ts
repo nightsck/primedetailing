@@ -19,6 +19,8 @@ const unb64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(
 const sha = async (s: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 const GUELTIG_MIN = 15, SITZUNG_TAGE = 14;
+/** Unter diesem Namen zählt der Speicher falsche Codes je Adresse und Tag (kein echter Kunde). */
+const LOGIN_ZAEHLER = "_login";
 
 export function erlaubteAdressen(c: any): string[] {
   const roh = wert(c, "ADMIN_LOGIN") || wert(c, "CRM_LOGIN") || "kifuermeinenbetrieb@gmail.com";
@@ -87,8 +89,14 @@ export async function loeseEin(c: any, b: { email?: unknown; code?: unknown; tok
   let email: string | null = null;
   if (typeof b.token === "string" && b.token.length < 80) email = await sp.loginPruefen(await sha(`link|${b.token}`), true);
   else if (b.email && b.code) {
-    const e = String(b.email).trim().toLowerCase(), code = String(b.code).replace(/\D/g, "").slice(0, 6);
+    const e = String(b.email).trim().toLowerCase().slice(0, 120), code = String(b.code).replace(/\D/g, "").slice(0, 6);
+    // Schutz gegen Durchprobieren: Nach 10 falschen Codes an einem Tag geht für diese Adresse
+    // nur noch der Link aus der Mail (der lässt sich nicht erraten).
+    const heute = new Date().toISOString().slice(0, 10);
+    const falsch = (await sp.auswertung(LOGIN_ZAEHLER, 1)).find((z) => z.tag === heute && z.art === e)?.n || 0;
+    if (falsch >= 10) return null;
     email = await sp.loginPruefen(await sha(`code|${e}|${code}`), true);
+    if (!email && erlaubteAdressen(c).includes(e)) await sp.zaehle(LOGIN_ZAEHLER, e);
   }
   if (!email || !erlaubteAdressen(c).includes(email)) return null;
   return sitzungsCookie(email);

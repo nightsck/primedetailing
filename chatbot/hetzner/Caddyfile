@@ -1,0 +1,12 @@
+# HTTPS-Zertifikat holt Caddy selbst, sobald die Domain auf den Server zeigt.
+{$DOMAIN} {
+	encode gzip
+	# Die echte Besucher-Adresse an den Chat-Server weitergeben (für die Spam-Limits)
+	reverse_proxy bots:8787 {
+		header_up X-Forwarded-For {remote_host}
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+	}
+}
