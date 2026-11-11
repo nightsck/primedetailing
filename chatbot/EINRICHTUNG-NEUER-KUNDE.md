@@ -70,6 +70,8 @@ Reiter **Testen**. Dort läuft der Entwurf, ohne dass etwas live geht oder versc
 - **Bitte lesen (gelb):** Antwort durchlesen. Stimmt sie für diesen Betrieb?
 - Nach jeder größeren Änderung am Wissen wiederholen.
 
+Für Entwickler gibt es den Selbsttest auch im Terminal, ohne Server und Anmeldung: `npm run selbsttest` prüft die Vorlage Fahrzeugpflege, `npm run selbsttest -- alle` alle Branchen-Vorlagen (braucht `ANTHROPIC_API_KEY` in der `.env`, kostet wenige Cent pro Branche).
+
 ## So steuerst du, was der Bot sagt
 
 Von fest bis frei, alles im Reiter „Wissen“:
