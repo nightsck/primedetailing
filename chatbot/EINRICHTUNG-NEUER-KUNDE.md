@@ -26,7 +26,9 @@ Vom unterschriebenen Vertrag bis zum laufenden Bot. Ziel: unter 30 Minuten, ohne
 **Für den Kunden-Chat**
 - [ ] Leistungen, wenn möglich mit Preis oder „ab“-Preis. Ohne Preis sagt der Bot „auf Anfrage“.
 - [ ] Die fünf häufigsten Kundenfragen mit der richtigen Antwort
-- [ ] Was darf der Bot auf keinen Fall sagen oder versprechen?
+- [ ] Was darf der Bot auf keinen Fall sagen oder versprechen? Welche Wörter oder Namen (z. B. Mitbewerber) sollen nie fallen?
+- [ ] Welche Fragen müssen immer exakt gleich beantwortet werden? (werden feste Antworten: Notfall, Reklamation, Rechtliches)
+- [ ] Wie wird bezahlt? Was kostet die Anfahrt? Wie schnell gibt es üblicherweise einen Termin?
 - [ ] Wer baut die eine Zeile Code in die Website ein? (Kunde, sein Webdesigner oder wir)
 
 **Für den Termin-Bot**
@@ -62,6 +64,24 @@ Reiter **Testen**. Dort läuft der Entwurf, ohne dass etwas live geht oder versc
 - Termin-Bot: Zeigt er nur Zeiten, die im Kalender wirklich frei sind? Einen Termin „buchen“ (im Test wird nichts eingetragen).
 - Anfrage-Chat: ein Notfall-Stichwort eintippen. Der rote Hinweis muss sofort erscheinen.
 - Bewerber-Chat: eine Stelle wählen, nach Arbeitszeiten und Gehalt fragen, bis zum Abschicken durchklicken.
+
+**Selbsttest (Pflicht vor dem ersten Livegang):** Reiter „Testen“ → **Selbsttest starten**. Er stellt dem Kunden-Chat rund 15 Fangfragen (Rabatt, feste Zusage, erfundene Leistung, fremde Themen, Überreden) plus die festen Antworten und häufigen Fragen des Kunden.
+- **Fehler (rot):** beheben, bevor der Bot live geht. Meist fehlt eine Angabe unter „Wissen“ oder eine Zeile bei „Das sagt der Bot nie“.
+- **Bitte lesen (gelb):** Antwort durchlesen. Stimmt sie für diesen Betrieb?
+- Nach jeder größeren Änderung am Wissen wiederholen.
+
+## So steuerst du, was der Bot sagt
+
+Von fest bis frei, alles im Reiter „Wissen“:
+
+| Stufe | Wofür | Wie sicher |
+|---|---|---|
+| **Feste Antworten** | Alles Heikle: Notfall, Reklamation, Allergene, Provision, Rechtliches. Stichwort → Text, Wort für Wort. | Die KI wird gar nicht gefragt. Kommt immer genau so. |
+| **Prüfungen im Code** (nicht abschaltbar) | Erfundene Preise, Zusagen, Rabatte, „kostenlos“, verbotene Wörter, Umprogrammier-Versuche. | Jeder Satz wird geprüft, bevor der Besucher ihn sieht. Verstößt er, kommt die Ersatzantwort mit Verweis ans Team. |
+| **Streng: nur Wissensbasis** + **„Das sagt der Bot nie“** | Der Bot nutzt nur, was eingetragen ist, und hält sich an eure Verbote. | Das sind Anweisungen an die KI. Sie hält sich sehr zuverlässig daran, aber nicht mit Garantie. Deshalb: Selbsttest, und Heikles als feste Antwort. |
+| **Leistungen, Fragen, weiteres Wissen** | Das, was der Bot frei formuliert beantworten darf. | Je mehr hier steht, desto seltener verweist er ans Team. |
+
+Faustregel: Was auf keinen Fall falsch sein darf, wird eine **feste Antwort**. Was der Bot nie tun soll, kommt in **„Das sagt der Bot nie“**. Was er wissen soll, kommt in **Fragen** und **Wissen**.
 
 ## 4. Veröffentlichen und einbauen (ca. 5 Minuten)
 

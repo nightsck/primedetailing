@@ -26,6 +26,8 @@ import { terminBetriebVon } from "../kunde/umwandeln.ts";
 import { kalenderMitId, dienstkontoMail } from "../termin.ts";
 import { sendeMail } from "../mail.ts";
 import { pruefeLimit } from "../limits.ts";
+import { festeAntwort } from "../guard.ts";
+import { selbsttest } from "./selbsttest.ts";
 import { ADMIN_HTML } from "../daten.generated.ts";
 import { angemeldet, schickeCode, loeseEin, ABMELDE_COOKIE } from "./anmeldung.ts";
 import { pruefeEinrichtung, ampel, serverStand } from "./check.ts";
@@ -255,6 +257,12 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
     return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }), () => fn(e.entwurf));
   };
+  // Selbsttest: stellt dem Kunden-Chat mit dem Entwurf die typischen Fangfragen und prüft die Antworten
+  app.post("/admin/api/kunden/:id/selbsttest", (c: any) => mitEntwurf(c, async (k) => {
+    if (!k.module.kundenChat.aktiv) return c.json({ ok: false, fehler: "Der Selbsttest prüft den Kunden-Chat. Der ist bei diesem Kunden nicht eingeschaltet." });
+    return c.json({ ok: true, ...(await selbsttest(k)) });
+  }));
+
   // Unter …/test/ liegen dieselben Adressen wie beim echten Kunden (…/api/chat, …/api/jobs/frage),
   // damit Chat-Fenster und Bewerber-Seite unverändert als Vorschau laufen.
   const T = "/admin/api/kunden/:id/test";
@@ -273,7 +281,7 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
   app.post(`${T}/api/jobs/frage`, (c: any) => mitEntwurf(c, (k) => beantworteFrage(c, (b) => {
     const betrieb = bewerberBetriebVon(mitBewerber(k));
     return betrieb ? systemFuer(betrieb, betrieb.stellen[b.stelle] ? String(b.stelle) : "", false) : null;
-  })));
+  }, (n) => festeAntwort(n, k.module.bewerberChat.festeAntworten))));
   // Im Test werden Unterlagen und Bewerbungen angenommen, aber sofort verworfen
   app.post(`${T}/api/jobs/datei`, async (c: any) => {
     let name = "Unterlage", groesse = 0;

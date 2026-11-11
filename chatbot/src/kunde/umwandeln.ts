@@ -33,6 +33,9 @@ export function wissenVon(k: Kunde): string {
   if (s.einsatzgebiet) z.push(`- Einsatzgebiet: ${s.einsatzgebiet}`);
   z.push(`- Kontakt: ${[s.telefon && "Telefon " + s.telefon, "E-Mail " + s.email].filter(Boolean).join(", ")}`);
   if (s.ansprechpartner) z.push(`- Ansprechpartner: ${s.ansprechpartner}`);
+  if (k.wissen.zahlung) z.push("", "## Bezahlung", `- ${k.wissen.zahlung}`);
+  if (k.wissen.anfahrt) z.push("", "## Anfahrt", `- ${k.wissen.anfahrt}`);
+  if (k.wissen.wartezeit) z.push("", "## Termine", `- ${k.wissen.wartezeit}`, "- Ein Termin steht erst fest, wenn das Team ihn bestätigt hat.");
   if (k.wissen.leistungen.length) {
     z.push("", "## Leistungen (Preise nur über die Werkzeuge)");
     for (const l of k.wissen.leistungen) z.push(`- ${l.kategorie}: ${l.name}${l.beschreibung ? " – " + l.beschreibung : ""}`);
@@ -81,6 +84,7 @@ export function botConfigVon(k: Kunde): any {
     },
     pruefung: { erlaubtePhrasen: k.wissen.erlaubtePhrasen },
     nieSagen: k.wissen.nieSagen,
+    festeAntworten: k.wissen.festeAntworten, verboteneWoerter: k.wissen.verboteneWoerter, nurWissensbasis: k.wissen.nurWissensbasis,
     poweredBy: k.rechtliches.poweredBy,
   };
 }

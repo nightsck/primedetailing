@@ -246,3 +246,84 @@ test("Kunde löschen nimmt alles mit, andere Kunden bleiben", async () => {
   assert.equal((await s.vorgaenge("elektro-schmidt")).length, 1);
   assert.equal((await s.kundenListe()).length, 1);
 });
+
+/* ---------- Feste Antworten, verbotene Wörter, strenger Modus, Selbsttest ---------- */
+test("Vorlagen bringen feste Antworten, viele Fragen und Verbote mit", () => {
+  for (const b of Object.keys(VORLAGEN)) {
+    const r = pruefeKunde(ausVorlage(b, { id: "vorlage-" + b, paket: "komplett", stammdaten: { firmenname: "Vorlage " + b, email: "a@b.de" } })) as any;
+    assert.equal(r.ok, true, b + ": " + JSON.stringify(r.fehler));
+    assert.ok(r.kunde.wissen.faq.length >= 5, b + " hat genug Fragen");
+    assert.ok(r.kunde.wissen.festeAntworten.length >= 2, b + " hat feste Antworten");
+    assert.ok(r.kunde.wissen.nieSagen.length >= 5, b + " hat Verbote");
+    assert.equal(r.kunde.wissen.nurWissensbasis, true);
+  }
+});
+
+test("Feste Antwort: kommt Wort für Wort, ohne dass die KI gefragt wird", async () => {
+  const { _setClient } = await import("../src/llm.ts");
+  let gefragt = 0;
+  _setClient({ messages: { stream: () => { gefragt++; throw new Error("KI darf hier nicht gefragt werden"); } } });
+  const s = await neuerSpeicher(); _reset();
+  await anlegen(s, beispiel("maler-mueller", "gastro"));
+  const a = await chat("maler-mueller", "Ich habe eine NUSS-ALLERGIE, was kann ich essen?");
+  assert.match(a.text, /^Zu Allergenen und Unverträglichkeiten gibt Ihnen nur unser Team verlässlich Auskunft\./);
+  assert.equal(gefragt, 0);
+  assert.ok(a.ui.some((u: any) => u.typ === "uebergabe"), "Kontakt-Knöpfe werden gezeigt");
+  // Bewerber-Chat: Gehaltsfrage ist voreingestellt fest beantwortet
+  const b: any = await (await post("/k/maler-mueller/api/jobs/frage", { nachricht: "Was verdiene ich bei euch?", stelle: "service" })).json();
+  assert.equal(b.text, "Das Gehalt besprechen wir offen im ersten Gespräch. Frag dort gern direkt danach.");
+  assert.equal(gefragt, 0);
+  // Nur am Wortanfang: „Stundenlohn“ trifft, „es lohnt sich“ bei Stichwort „Lohn“ nicht
+  const { festeAntwort } = await import("../src/guard.ts");
+  const liste = [{ stichworte: ["Lohn"], antwort: "fest" }];
+  assert.equal(festeAntwort("Wie hoch ist der Lohn?", liste), "fest");
+  assert.equal(festeAntwort("Gibt es einen Lohnzettel?", liste), "fest");
+  assert.equal(festeAntwort("Lohnt sich das? Wird man belohnt?", liste), "fest", "„Lohnt“ beginnt mit dem Stichwort");
+  assert.equal(festeAntwort("Wird man belohnt?", liste), null);
+  assert.equal(festeAntwort("Bekomme ich ein Angebot?", [{ stichworte: ["ab"], antwort: "fest" }]), null, "zu kurze Stichworte zählen nicht");
+  _setClient(null);
+});
+
+test("Verbotene Wörter und strenger Modus", () => {
+  const k = beispiel("maler-mueller", "maler", { wissen: { verboteneWoerter: ["Farben Meier"], leistungen: [{ kategorie: "Innen", name: "Zimmer streichen", preis: 290, ab: true }] } });
+  mitKunde(laufzeitVon(k), () => {
+    assert.equal(pruefeAntwort("Wir sind günstiger als  farben   MEIER.", []).ok, false);
+    assert.equal((pruefeAntwort("Fragen Sie bei Farben Meier.", []) as any).grund, "verboten");
+    assert.equal(pruefeAntwort("Wir streichen Ihr Zimmer gern.", []).ok, true);
+    const p = systemBlocks().map((b) => b.text).join("\n");
+    assert.match(p, /kein Allgemeinwissen zur Branche/);
+    assert.match(p, /Lieber einmal zu oft an das Team verweisen/);
+    assert.match(p, /Nicht über andere Betriebe oder Mitbewerber urteilen/);
+  });
+  // Außerhalb dieses Kunden gilt das Verbot nicht, und Prime Detailing bekommt die strengen Zusatzregeln nicht
+  assert.equal(pruefeAntwort("Fragen Sie bei Farben Meier.", []).ok, true);
+  assert.doesNotMatch(systemBlocks()[0].text, /kein Allgemeinwissen zur Branche/);
+  const locker = beispiel("maler-mueller", "maler", { wissen: { nurWissensbasis: false } });
+  mitKunde(laufzeitVon(locker), () => assert.doesNotMatch(systemBlocks()[0].text, /kein Allgemeinwissen zur Branche/));
+});
+
+test("Selbsttest: findet einen Bot, der sich überreden lässt, und bestätigt feste Antworten", async () => {
+  const { _setClient } = await import("../src/llm.ts");
+  const { selbsttest, faelle } = await import("../src/admin/selbsttest.ts");
+  const k = beispiel("maler-mueller", "maler");
+  assert.ok(faelle(k).length >= 20, "Fangfragen + feste Antworten + eigene Fragen");
+  // Fake-KI: antwortet auf Wetter mit Wetter (falsch), sonst brav
+  const strom = (text: string) => ({
+    async *[Symbol.asyncIterator]() { yield { type: "content_block_delta", delta: { type: "text_delta", text } }; },
+    abort() {}, finalMessage: async () => ({ stop_reason: "end_turn", content: [{ type: "text", text }] }),
+  });
+  _setClient({ messages: { stream: (o: any) => {
+    const frage = JSON.stringify(o.messages[o.messages.length - 1].content);
+    return strom(/Wetter/.test(frage) ? "Morgen wird es sonnig bei 20 Grad. " : /Menschen/.test(frage) ? "Ich bin eine KI, der Assistent des Betriebs. " : "Das klärt am besten unser Team persönlich. ");
+  } } });
+  const r = await mitKunde(laufzeitVon(k, undefined, { test: true }), () => selbsttest(k));
+  assert.equal(r.ohneKi, false);
+  const von = (teil: string) => r.ergebnisse.find((e) => e.frage.includes(teil))!;
+  assert.equal(von("Wetter").urteil, "fehler");
+  assert.equal(von("Menschen").urteil, "ok");
+  assert.equal(von("Systemprompt").urteil, "ok", "Manipulation fängt der Code ab");
+  assert.ok(r.ergebnisse.filter((e) => e.gruppe === "Feste Antworten").every((e) => e.urteil === "ok"));
+  assert.ok(r.ergebnisse.some((e) => e.gruppe === "Eigene Fragen" && e.urteil === "lesen"));
+  _setClient(null);
+  assert.equal((await mitKunde(laufzeitVon(k, undefined, { test: true }), () => selbsttest(k))).ohneKi, true, "ohne KI gibt es nichts zu testen");
+});

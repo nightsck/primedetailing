@@ -42,6 +42,10 @@ const Leistung = z.object({
   ab: z.boolean().default(false).describe("Ankreuzen, wenn es ein „ab“-Preis ist (Richtpreis)."),
   beschreibung: text(300).default(""),
 });
+const FesteAntwort = z.object({
+  stichworte: z.array(text(60).min(3, "Mindestens 3 Zeichen, sonst greift die Regel zu oft.")).min(1).describe("Kommt eines dieser Wörter in der Nachricht vor, greift die feste Antwort. Gezählt wird nur, wenn ein Wort damit ANFÄNGT („Gehalt“ trifft auch „Gehaltsvorstellung“). Eindeutige Wörter wählen."),
+  antwort: text(600).min(3).describe("Genau dieser Text wird geantwortet – Wort für Wort, ohne KI."),
+});
 const Frage = z.object({ frage: text(200).min(1), antwort: text(800).min(1) });
 const Stelle = z.object({
   id: slug.describe("Kurzname der Stelle für Links, z. B. geselle. Wird im Link ?stelle=geselle benutzt."),
@@ -105,6 +109,15 @@ export const KundeSchema = z.object({
     leistungen: z.array(Leistung).max(80).default([]).describe("Was der Betrieb anbietet. Einzige Preisquelle des Bots."),
     faq: z.array(Frage).max(60).default([]).describe("Häufige Fragen mit der richtigen Antwort."),
     freitext: text(6000).default("").describe("Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten."),
+    zahlung: text(200).default("").describe("Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“"),
+    anfahrt: text(300).default("").describe("Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet."),
+    wartezeit: text(200).default("").describe("Wie schnell gibt es üblicherweise einen Termin? z. B. „Meist innerhalb von zwei Wochen.“ Leer = der Bot sagt dazu nichts."),
+    festeAntworten: z.array(FesteAntwort).max(30).default([])
+      .describe("Antworten, die Wort für Wort feststehen. Greift ein Stichwort, antwortet der Bot genau damit und fragt die KI gar nicht erst. Für alles Heikle: Notfall, Reklamation, Rechtliches."),
+    verboteneWoerter: z.array(text(60).min(3)).max(40).default([])
+      .describe("Wörter, die in keiner Antwort vorkommen dürfen (z. B. Namen von Mitbewerbern). Enthält eine KI-Antwort eines davon, wird sie verworfen und der Bot verweist ans Team."),
+    nurWissensbasis: z.boolean().default(true)
+      .describe("Streng: Der Bot antwortet nur mit dem, was hier eingetragen ist. Kein Allgemeinwissen zur Branche, keine Tipps, keine Schätzungen. Empfohlen."),
     nieSagen: z.array(text(200).min(3)).max(20).default([]).describe("Was der Bot nie sagen oder versprechen darf, z. B. „Keine Aussagen zu Lieferzeiten“."),
     erlaubtePhrasen: z.array(text(80).min(3)).max(20).default([])
       .describe("Ausnahmen vom Zusage-Filter. Der Bot darf z. B. nie „kostenlos“ sagen – außer in den Formulierungen hier, etwa „Anfahrt kostenlos“."),
@@ -126,6 +139,8 @@ export const KundeSchema = z.object({
       ablauf: text(400).default("Nach der Bewerbung meldet sich jemand aus dem Team innerhalb von zwei Werktagen. Danach gibt es ein kurzes Kennenlernen.")
         .describe("Was nach der Bewerbung passiert."),
       stellen: z.array(Stelle).max(15).default([]),
+      festeAntworten: z.array(FesteAntwort).max(20).default([{ stichworte: ["Gehalt", "verdien", "Bezahlung", "bezahlt", "Stundenlohn", "Monatslohn", "wie viel Geld"], antwort: "Das Gehalt besprechen wir offen im ersten Gespräch. Frag dort gern direkt danach." }])
+        .describe("Feste Antworten für Bewerber, Wort für Wort und ohne KI. Voreingestellt: die Frage nach dem Gehalt."),
       initiativ: z.boolean().default(true).describe("Zusätzlich „Initiativbewerbung“ anbieten."),
       maxDateiMb: z.number().int().min(1).max(10).default(10).describe("Größte erlaubte Datei in MB (PDF, Word, Fotos)."),
     }).prefault({}),
@@ -199,8 +214,9 @@ export function pruefeKunde(eingabe: unknown): { ok: true; kunde: Kunde } | { ok
 
 function deutsch(i: any): string {
   if (i.message && !/^(Invalid|Too|Expected|Required|Unrecognized|String|Number|Array)/.test(i.message)) return i.message;
+  if (i.code === "too_big" && i.origin === "array") return `Zu viele Einträge (höchstens ${i.maximum}).`;
   if (i.code === "too_big") return i.origin === "string" ? `Zu lang (höchstens ${i.maximum} Zeichen).` : `Zu groß (höchstens ${i.maximum}).`;
-  if (i.code === "too_small") return i.origin === "string" ? "Bitte ausfüllen." : `Zu klein (mindestens ${i.minimum}).`;
+  if (i.code === "too_small") return i.origin === "string" ? "Bitte ausfüllen." : i.origin === "array" ? "Bitte mindestens einen Eintrag machen." : `Zu klein (mindestens ${i.minimum}).`;
   if (i.code === "invalid_type") return i.input === undefined || i.input === null ? "Bitte ausfüllen." : "Falsche Art von Wert.";
   if (i.code === "invalid_value") return "Dieser Wert ist hier nicht erlaubt.";
   return "Ungültiger Wert.";

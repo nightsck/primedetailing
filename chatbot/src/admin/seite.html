@@ -133,7 +133,7 @@ function liste(pfad, titel, neu, felder, name) {
   const arr = hol(S.K, pfad) || [];
   return `<h3>${esc(titel)} <span class="neben">(${arr.length})</span></h3>${hilfe(pfad) ? `<p class="hilfe" style="margin-bottom:10px">${esc(hilfe(pfad))}</p>` : ''}
   ${arr.map((e, i) => `<div class="eintrag"><div class="zeile" style="margin-bottom:8px"><b style="color:var(--h)">${esc(name(e) || 'Neuer Eintrag')}</b><span class="spacer"></span><button class="btn klein gefahr" data-akt="raus" data-pfad="${pfad}" data-i="${i}">Entfernen</button></div>${felder(pfad + '.' + i)}</div>`).join('')}
-  <p><button class="btn klein" data-akt="dazu" data-pfad="${pfad}" data-neu='${esc(JSON.stringify(neu))}'>+ ${esc({ Leistungen: 'Leistung', 'Häufige Fragen': 'Frage', Stellen: 'Stelle', Terminarten: 'Terminart', Sicherheitsregeln: 'Regel' }[titel] || titel)} hinzufügen</button></p>`;
+  <p><button class="btn klein" data-akt="dazu" data-pfad="${pfad}" data-neu='${esc(JSON.stringify(neu))}'>+ ${esc({ Leistungen: 'Leistung', 'Häufige Fragen': 'Frage', Stellen: 'Stelle', Terminarten: 'Terminart', Sicherheitsregeln: 'Regel', 'Feste Antworten': 'feste Antwort' }[titel] || titel)} hinzufügen</button></p>`;
 }
 function leseFeld(el) {
   const art = el.dataset.art;
@@ -171,7 +171,11 @@ const T = {
   wissen: () => `<div class="karte">${liste('wissen.leistungen', 'Leistungen', { kategorie: 'Leistungen', name: '', preis: null, ab: false, beschreibung: '' },
       p => `<div class="raster drei">${feld(p + '.name', 'Name')}${feld(p + '.kategorie', 'Kategorie')}${feld(p + '.preis', 'Preis in €', 'preis')}</div>${feld(p + '.ab', '„ab“-Preis (Richtpreis)', 'haken')}${feld(p + '.beschreibung', 'Beschreibung')}`, e => e.name)}</div>
     <div class="karte">${liste('wissen.faq', 'Häufige Fragen', { frage: '', antwort: '' }, p => `${feld(p + '.frage', 'Frage')}${feld(p + '.antwort', 'Antwort', 'lang', { zeilen: 2 })}`, e => e.frage)}</div>
-    <div class="karte"><h2>Weiteres Wissen und Grenzen</h2>${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}${feld('wissen.nieSagen', 'Das sagt der Bot nie', 'zeilen', { zeilen: 5 })}${feld('wissen.erlaubtePhrasen', 'Erlaubte Formulierungen (Ausnahmen)', 'zeilen', { zeilen: 3 })}</div>`,
+    <div class="karte"><h2>Weiteres Wissen</h2><div class="raster zwei">${feld('wissen.zahlung', 'Bezahlung')}${feld('wissen.wartezeit', 'Wie schnell gibt es einen Termin?')}</div>${feld('wissen.anfahrt', 'Anfahrt und Parken')}${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}</div>
+    <div class="karte"><h2>Was der Bot darf und was nicht</h2><p class="hilfe" style="margin-bottom:14px">Drei Stufen, von fest bis frei: <b>Feste Antworten</b> kommen Wort für Wort und ohne KI. <b>„Das sagt der Bot nie“</b> und <b>verbotene Wörter</b> sind Grenzen für alles andere. Zusätzlich prüft der Code jede Antwort auf erfundene Preise, Zusagen und Rabatte – das lässt sich nicht abschalten.</p>
+      ${feld('wissen.nurWissensbasis', 'Streng: nur antworten, was hier eingetragen ist', 'haken')}
+      ${liste('wissen.festeAntworten', 'Feste Antworten', { stichworte: [], antwort: '' }, p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.antwort', 'Antwort, Wort für Wort', 'lang', { zeilen: 3 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}
+      ${feld('wissen.nieSagen', 'Das sagt der Bot nie', 'zeilen', { zeilen: 5 })}${feld('wissen.verboteneWoerter', 'Verbotene Wörter', 'zeilen', { zeilen: 3 })}${feld('wissen.erlaubtePhrasen', 'Erlaubte Formulierungen (Ausnahmen)', 'zeilen', { zeilen: 3 })}</div>`,
   module: () => {
     const erlaubt = (S.start.pakete.find(p => p.id === S.K.paket) || { module: [] }).module;
     const kopf = (m, text) => `<h2>${esc(S.start.modulNamen[m])} ${!erlaubt.includes(m) ? '<span class="marker">nicht im Paket</span>' : ''}</h2><p class="hilfe" style="margin-bottom:12px">${esc(text)}</p>`;
@@ -187,6 +191,7 @@ const T = {
       ${liste('module.bewerberChat.stellen', 'Stellen', { id: '', name: '', umfang: '', text: '', fragen: ['erfahrung', 'start'] },
         p => `<div class="raster zwei">${feld(p + '.name', 'Stellenbezeichnung')}${feld(p + '.id', 'Kurzname für den Link', 'text', { platz: 'z. B. geselle' })}</div>${feld(p + '.umfang', 'Umfang')}${feld(p + '.text', 'Beschreibung', 'lang', { zeilen: 2 })}
           <div class="feld"><span class="l" style="display:block;font-weight:600;color:var(--h);margin-bottom:6px">Fragen im Chat</span><div class="zeile">${FRAGEN.map(([v, t]) => `<label class="zeile" style="gap:6px"><input type="checkbox" data-mehr="${p}.fragen" value="${v}" ${(hol(S.K, p + '.fragen') || []).includes(v) ? 'checked' : ''}> ${t}</label>`).join('')}</div></div>`, e => e.name)}
+      ${liste('module.bewerberChat.festeAntworten', 'Feste Antworten', { stichworte: [], antwort: '' }, p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.antwort', 'Antwort, Wort für Wort', 'lang', { zeilen: 3 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}
       ${feld('module.bewerberChat.initiativ', 'Initiativbewerbung anbieten', 'haken')}${feld('module.bewerberChat.maxDateiMb', 'Größte Datei in MB', 'zahl')}</div>
       <div class="karte">${kopf('terminBot', 'Kunden buchen ihren Termin selbst, mit echten freien Zeiten aus dem Google-Kalender des Betriebs. Hier rechnet nur der Code, keine KI.')}
       ${feld('module.terminBot.aktiv', 'Termin-Bot einschalten', 'haken', { aus: !erlaubt.includes('terminBot') })}
@@ -234,6 +239,7 @@ const T = {
       <button class="btn klein" data-akt="vorschau" data-v="${S.vorschau}">Neu laden</button></div>
     <p class="hilfe" style="margin-bottom:12px">Zeigt den zuletzt <b>gespeicherten</b> Entwurf, auch wenn er noch nicht veröffentlicht ist. Im Test wird nichts gezählt, gespeichert oder verschickt. ${S.start.server.ki ? '' : '<b style="color:var(--gelb)">Ohne KI-Schlüssel antwortet der Chat nur mit festen Beispieltexten.</b>'}</p>
     ${S.geaendert ? '<p style="color:var(--gelb)">Es gibt ungespeicherte Änderungen. Erst speichern, dann testen.</p>' : ''}
+    ${S.vorschau === 'chat' ? `<div class="eintrag" style="padding-bottom:14px"><div class="zeile"><div><b style="color:var(--h)">Selbsttest</b><div class="hilfe">Stellt dem Kunden-Chat rund 15 Fangfragen (Rabatt, Zusage, erfundene Leistung, fremde Themen, Manipulation) plus eure festen Antworten und häufigen Fragen. Dauert etwa eine Minute und kostet wenige Cent.</div></div><span class="spacer"></span><button class="btn haupt" data-akt="selbsttest" ${S.testLaeuft ? 'disabled' : ''}>${S.testLaeuft ? 'Läuft …' : 'Selbsttest starten'}</button></div>${selbsttestHtml()}</div>` : ''}
     <iframe class="vorschau" title="Vorschau" src="/admin/api/kunden/${S.id}/test/${S.vorschau === 'chat' ? 'seite' : S.vorschau}?v=${Date.now()}"></iframe></div>`,
   einbau: () => {
     const e = S.d.einbau, code = t => `<pre class="code">${esc(t)}</pre><p><button class="btn klein" data-akt="kopieren" data-text="${esc(t)}">Kopieren</button></p>`;
@@ -279,6 +285,18 @@ const T = {
       <h2 style="margin-top:22px;color:var(--rot)">Kunden löschen</h2><p class="hilfe">Löscht Konfiguration, Anfragen, Bewerbungen, Unterlagen und Zahlen dieses Kunden. Das lässt sich nicht rückgängig machen.</p>
       <div class="zeile"><input type="text" id="loeschText" placeholder="Kunden-ID eintippen: ${S.id}" style="max-width:260px" aria-label="Kunden-ID zur Bestätigung"><button class="btn gefahr" data-akt="loeschen">Endgültig löschen</button></div></div></div>`,
 };
+
+function selbsttestHtml() {
+  const t = S.selbsttest; if (!t) return '';
+  if (!t.ok) return `<p class="fehler" style="margin-top:10px">${esc(t.fehler || 'Der Selbsttest hat nicht geklappt.')}</p>`;
+  if (t.ohneKi) return '<p style="color:var(--gelb);margin-top:10px">Ohne KI-Schlüssel am Server gibt es nichts zu testen: Der Chat antwortet dann nur mit festen Beispieltexten.</p>';
+  const n = u => t.ergebnisse.filter(e => e.urteil === u).length, F = { ok: 'gruen', fehler: 'rot', lesen: 'gelb' }, W = { ok: 'In Ordnung', fehler: 'Fehler', lesen: 'Bitte lesen' };
+  const sortiert = [...t.ergebnisse].sort((a, b) => ['fehler', 'lesen', 'ok'].indexOf(a.urteil) - ['fehler', 'lesen', 'ok'].indexOf(b.urteil));
+  return `<p style="margin:12px 0 8px"><span class="marker"><span class="punkt rot"></span>${n('fehler')} Fehler</span> <span class="marker"><span class="punkt gelb"></span>${n('lesen')} zum Gegenlesen</span> <span class="marker"><span class="punkt gruen"></span>${n('ok')} in Ordnung</span></p>
+    <div class="tabelle"><table><thead><tr><th>Ergebnis</th><th>Frage und Antwort</th></tr></thead><tbody>${sortiert.map(e => `<tr><td style="white-space:nowrap"><span class="marker"><span class="punkt ${F[e.urteil]}"></span>${W[e.urteil]}</span><div class="neben klein" style="margin-top:4px">${esc(e.gruppe)}</div></td>
+      <td><b style="color:var(--h)">${esc(e.frage)}</b><div style="margin:4px 0;white-space:pre-wrap">${esc(e.antwort) || '<span class="neben">(keine Antwort)</span>'}</div>${e.zeigt.length ? `<div class="neben klein">Zeigt dazu: ${e.zeigt.map(z => ({ uebergabe: 'Kontakt-Knöpfe', anfrage_formular: 'Anfrageformular', buttons: 'Auswahl-Knöpfe' }[z] || z)).join(', ')}</div>` : ''}<div class="neben klein">${esc(e.hinweis)}</div></td></tr>`).join('')}</tbody></table></div>
+    <p class="hilfe" style="margin-top:8px">„Fehler“ beheben: meist fehlt eine Angabe unter „Wissen“ oder eine Zeile bei „Das sagt der Bot nie“. Für Antworten, die immer gleich sein müssen: „Feste Antworten“. Danach speichern und den Test wiederholen.</p>`;
+}
 
 /* ---------- Ansichten ---------- */
 function vAnmelden() {
@@ -355,7 +373,7 @@ async function ladeStart() { const r = await api('/start'); if (r.ok) { S.ich = 
 async function oeffne(id, reiter) {
   const r = await api('/kunden/' + id);
   if (!r.ok) { toast(r.fehler || 'Kunde nicht gefunden.'); return; }
-  Object.assign(S, { ansicht: 'kunde', id, d: r, K: r.kunde, geaendert: false, fehler: {}, vorgaenge: null, auswertung: null, offen: {} });
+  Object.assign(S, { ansicht: 'kunde', id, d: r, K: r.kunde, geaendert: false, fehler: {}, vorgaenge: null, auswertung: null, offen: {} }); if (S.testFuer !== id) { S.selbsttest = null; S.testFuer = id; }
   if (reiter) S.reiter = reiter;
   zeichne();
 }
@@ -420,6 +438,7 @@ const AKT = {
   vorschau(el) { S.vorschau = el.dataset.v; zeichne(); },
   async kopieren(el) { try { await navigator.clipboard.writeText(el.dataset.text); toast('Kopiert.'); } catch (e) { toast('Kopieren geht hier nicht. Bitte den Text markieren.'); } },
   async testmail() { if (S.geaendert && !(await speichern(true))) return; const r = await api(`/kunden/${S.id}/testmail`, { body: {} }); toast(r.ok ? 'Test-Mail verschickt an: ' + r.ergebnis.filter(x => x.ok).map(x => x.an).join(', ') : 'Die Test-Mail ging nicht raus. Ist der Mailversand am Server eingerichtet?'); },
+  async selbsttest() { if (S.geaendert && !(await speichern(true))) return; S.testLaeuft = true; S.selbsttest = null; zeichne(); S.selbsttest = await api(`/kunden/${S.id}/selbsttest`, { body: {} }); S.testLaeuft = false; zeichne(); },
   async kalendertest() { if (S.geaendert && !(await speichern(true))) return; const r = await api(`/kunden/${S.id}/kalendertest`, { body: {} }); alert(r.ok ? r.text : r.fehler); },
   'vorgaenge-neu'() { S.vorgaenge = null; zeichne(); },
   auf(el) { S.offen[el.dataset.v] = !S.offen[el.dataset.v]; zeichne(); },

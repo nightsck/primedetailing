@@ -21,6 +21,7 @@ import { laufzeitVon, bewerberBetriebVon, erlaubteHerkunft, betriebsStatus } fro
 import { beantworteFrage, systemFuer } from "./bewerber.ts";
 import { dateiTyp, sichererName } from "./jobs.ts";
 import { pruefeLimit } from "./limits.ts";
+import { festeAntwort } from "./guard.ts";
 import { sendeMail, gueltigeMail } from "./mail.ts";
 import { WIDGET_JS } from "./daten.generated.ts";
 import { bewerbenSeite, kundenStartseite } from "./seiten/bewerben.ts";
@@ -161,7 +162,7 @@ export function kundenRouten(app: Hono, alt: { chatRoute: any; anfrageRoute: any
     if (!betrieb) return null;
     zaehleEreignis(c, "bewerber-frage");
     return systemFuer(betrieb, betrieb.stellen[b.stelle] ? String(b.stelle) : "", false);
-  }));
+  }, (n) => festeAntwort(n, (c.get("kunde") as Kunde).module.bewerberChat.festeAntworten)));
 
   app.post("/k/:kunde/api/jobs/datei", braucht("bewerberChat"), async (c: any) => {
     const k = c.get("kunde") as Kunde;

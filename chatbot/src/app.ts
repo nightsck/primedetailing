@@ -15,7 +15,7 @@ import { kundenRouten, monatVoll, zaehleEreignis, neueAnfrage } from "./kunden-r
 import { adminRouten } from "./admin/routen.ts";
 import { terminAnfrageRouten } from "./kunden-termin.ts";
 import { antworte, type Msg } from "./llm.ts";
-import { istInjection } from "./guard.ts";
+import { istInjection, festeAntwort } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
 import { WIDGET_JS, DEMO_HTML } from "./daten.generated.ts";
 import { pruefeLimit } from "./limits.ts";
@@ -126,6 +126,14 @@ export const chatRoute = async (c: any) => {
       console.log(`[injection] ${nachricht.slice(0, 120)}`);
       await send("text", { text: texte.injection });
       verlauf.push({ role: "assistant", content: texte.injection });
+      return fertig();
+    }
+    // Feste Antwort hinterlegt? Dann genau diese – ohne KI.
+    const fest = bild ? null : festeAntwort(nachricht);
+    if (fest) {
+      await send("text", { text: fest });
+      await send("ui", { typ: "uebergabe", grund: "feste_antwort" });
+      verlauf.push({ role: "assistant", content: fest });
       return fertig();
     }
     // Einmal automatisch neu versuchen, wenn die KI kurz nicht erreichbar ist

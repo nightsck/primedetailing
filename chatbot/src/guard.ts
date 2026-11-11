@@ -40,7 +40,7 @@ const ZUSAGE = [
 ];
 const RABATT = /(rabatt|nachlass|skonto|preisnachlass|discount|günstiger machen|sonderpreis)/i;
 
-export type Pruefung = { ok: true } | { ok: false; grund: "betrag" | "zusage" | "rabatt" | "canary"; detail: string };
+export type Pruefung = { ok: true } | { ok: false; grund: "betrag" | "zusage" | "rabatt" | "canary" | "verboten"; detail: string };
 
 const erlaubtePhrasen = jeKunde((l): RegExp[] => (l.config.pruefung?.erlaubtePhrasen || []).map(
   (p: string) => new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi")));
@@ -58,7 +58,33 @@ export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
   for (const satz of text.split(/(?<=[.!?\n])/)) {
     if (RABATT.test(satz) && /\d+\s?%/.test(satz)) return { ok: false, grund: "rabatt", detail: satz.trim() };
   }
+  // Wörter, die dieser Kunde in keiner Antwort sehen will
+  const klein = normText(text);
+  for (const w of verbotene()) if (klein.includes(w)) return { ok: false, grund: "verboten", detail: w };
   return { ok: true };
+}
+
+/** Einheitliche Schreibweise für den Wortvergleich: klein, ß → ss, Leerraum zusammengefasst. */
+export const normText = (s: string) => String(s || "").toLowerCase().replace(/ß/g, "ss").replace(/\s+/g, " ");
+const verbotene = jeKunde((l): string[] => (l.config.verboteneWoerter || []).map(normText).filter((w: string) => w.length >= 3));
+
+/**
+ * Feste Antworten: Kommt in der Nachricht ein hinterlegtes Stichwort vor, steht die
+ * Antwort Wort für Wort fest und die KI wird nicht gefragt. `liste` = eigene Liste
+ * (z. B. Bewerber-Chat), sonst die des Kunden-Chats.
+ */
+export function festeAntwort(nachricht: string, liste?: { stichworte: string[]; antwort: string }[]): string | null {
+  const t = normText(nachricht);
+  for (const f of liste || aktuell().config.festeAntworten || []) {
+    if (f.antwort && f.stichworte.some((w: string) => w.trim().length >= 3 && amWortanfang(t, normText(w.trim())))) return f.antwort;
+  }
+  return null;
+}
+
+/** Steht `wort` im Text und beginnt dort ein Wort? („Lohn“ trifft „Lohn“ und „Lohnzettel“, aber nicht „Stundenlohn“ oder „belohnt“.) */
+function amWortanfang(text: string, wort: string): boolean {
+  for (let i = text.indexOf(wort); i >= 0; i = text.indexOf(wort, i + 1)) if (i === 0 || !/[a-zäöü0-9]/.test(text[i - 1])) return true;
+  return false;
 }
 
 /** Ersatzantwort des Standard-Kunden (für Tests). Im Betrieb: texte.ersatz */

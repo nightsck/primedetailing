@@ -127,6 +127,53 @@ export const VORLAGEN: Record<string, Vorlage> = {
   } },
 };
 
+// ---------- Mehr Wissen und feste Antworten je Branche ----------
+// Wird in ausVorlage zu den Werten oben dazugenommen (Fragen und Verbote werden angehängt).
+const A = (stichworte: string[], antwort: string) => ({ stichworte, antwort });
+const REKLAMATION = A(["Reklamation", "Beschwerde", "unzufrieden", "Geld zurück", "Anwalt", "Schadensersatz"],
+  "Das tut uns leid. Damit sich sofort jemand persönlich darum kümmert, melden Sie sich bitte direkt beim Team – die Kontaktdaten finden Sie unten. Ich als KI-Assistent kann dazu nichts zusagen.");
+const DATEN = A(["Daten löschen", "Auskunft über meine Daten", "DSGVO"],
+  "Fragen zu Ihren Daten beantwortet der Betrieb direkt. Bitte schreiben Sie an die Kontakt-Adresse unten; die Datenschutzerklärung ist im Chat verlinkt.");
+const IMMER_NIE = ["Nicht über andere Betriebe oder Mitbewerber urteilen und keine Preise vergleichen.", "Keine Aussagen zu Gewährleistung, Haftung oder Vertragsfragen – dafür ans Team verweisen.", "Keine persönlichen Daten erfragen; Name und Kontakt trägt der Kunde selbst ins Formular ein."];
+
+const MEHR: Record<string, { faq?: any[]; feste?: any[]; nie?: string[]; zahlung?: string; wartezeit?: string }> = {
+  handwerk: { zahlung: "Auf Rechnung nach Abschluss der Arbeit, per Überweisung.",
+    faq: [F("Machen Sie auch kleine Aufträge?", "Ja, auch kleine Aufträge. Schildern Sie kurz, worum es geht, dann meldet sich das Team."), F("Bekomme ich einen Kostenvoranschlag?", "Ja. Nach einer Besichtigung erstellt das Team ein schriftliches Angebot."), F("Arbeiten Sie auch für Firmen und Vermieter?", "Ja, für Privat- und Gewerbekunden.")],
+    feste: [A(["Notdienst", "Notfall", "sofort jemand"], "Bei einem Notfall rufen Sie uns bitte direkt an – die Nummer steht unten. Über den Chat kann ich niemanden losschicken."), REKLAMATION, DATEN] },
+  maler: { zahlung: "Auf Rechnung nach Abschluss der Arbeit, per Überweisung.",
+    faq: [F("Welche Farben verwenden Sie?", "Hochwertige Markenfarben. Welche genau passt, bespricht das Team bei der Besichtigung."), F("Streichen Sie auch nur einzelne Räume?", "Ja, auch einzelne Räume oder nur die Decke."), F("Muss ich während der Arbeit zu Hause sein?", "Nein. Schlüsselübergabe und Ablauf stimmen wir vorher ab."), F("Bekomme ich ein Angebot vorab?", "Ja, nach der Besichtigung bekommen Sie ein schriftliches Angebot.")],
+    feste: [A(["gesundheitsschädlich", "giftig", "Asbest"], "Zu Gesundheitsfragen kann ich als KI-Assistent nichts sagen. Bitte lassen Sie die Stelle unverändert und melden Sie sich direkt beim Team, das schaut es sich vor Ort an."), REKLAMATION, DATEN],
+    nie: ["Keine Aussage, ob Schimmel gesundheitsschädlich ist oder woher er kommt."] },
+  elektro: { zahlung: "Auf Rechnung nach Abschluss der Arbeit, per Überweisung.",
+    faq: [F("Machen Sie auch Kleinreparaturen?", "Ja, zum Beispiel defekte Steckdosen, Schalter oder Lampenanschlüsse."), F("Gibt es Förderung für eine Wallbox?", "Förderprogramme ändern sich häufig. Das Team sagt Ihnen beim Wallbox-Check, was aktuell gilt."), F("Was ist ein E-Check?", "Eine Prüfung der elektrischen Anlage mit Protokoll. Das Team erklärt Ihnen gern den Ablauf."), F("Bekomme ich ein Angebot vorab?", "Ja, nach der Besichtigung bekommen Sie ein schriftliches Angebot.")],
+    feste: [A(["selber anschließen", "selbst anschließen", "selber reparieren", "selbst reparieren", "wie klemme ich", "welches Kabel"], "Arbeiten an elektrischen Anlagen sind gefährlich und gehören in die Hand einer Elektrofachkraft. Dazu gebe ich keine Anleitung. Das Team hilft Ihnen gern – unten finden Sie den Kontakt."),
+      A(["Notdienst", "Notfall"], "Bei Gefahr (Brandgeruch, Funken, Rauch) schalten Sie bitte die Sicherung aus und rufen Sie bei Feuer die 112. Für alles Dringende rufen Sie uns bitte direkt an – die Nummer steht unten."), REKLAMATION, DATEN] },
+  fahrzeugpflege: { zahlung: "Bar, EC-Karte oder Überweisung.",
+    faq: [F("Muss das Auto vorher leer sein?", "Ja, bitte persönliche Gegenstände und Kindersitze vorher herausnehmen."), F("Machen Sie auch Leasingrückgaben?", "Ja. Das Team schaut sich das Fahrzeug an und sagt, was sinnvoll ist."), F("Wie lange hält eine Versiegelung?", "Das hängt von Produkt und Pflege ab. Das Team berät Sie dazu persönlich."), F("Kann ich auf das Auto warten?", "Bei kurzen Arbeiten ja. Bei längeren bringen Sie das Auto morgens und holen es später ab.")],
+    feste: [A(["Lackschaden", "beschädigt"], "Das tut uns leid. Bitte melden Sie sich mit Fotos direkt beim Team, damit es sich das sofort ansehen kann. Ich als KI-Assistent kann dazu nichts beurteilen oder zusagen."), REKLAMATION, DATEN] },
+  autohaus: { zahlung: "Bar, EC-Karte oder Überweisung. Zur Finanzierung berät das Verkaufsteam persönlich.",
+    faq: [F("Kann ich mein Auto auch ohne Termin bringen?", "Mit Termin geht es am schnellsten. Ohne Termin nur, wenn die Werkstatt gerade Luft hat."), F("Lagern Sie Reifen ein?", "Ja, Einlagerung ist möglich. Details klärt das Serviceteam."), F("Machen Sie Fahrzeuge aller Marken?", "Das klärt das Serviceteam gern persönlich mit Ihnen."), F("Gibt es einen Hol- und Bringservice?", "Nach Absprache. Bitte bei der Terminanfrage angeben.")],
+    feste: [A(["Finanzierung", "Leasingrate", "Zinsen", "Kredit", "Ratenzahlung"], "Zu Finanzierung und Leasing berät Sie unser Verkaufsteam persönlich und verbindlich. Als KI-Assistent nenne ich dazu keine Zahlen. Unten finden Sie den Kontakt."),
+      A(["Unfall", "Panne", "liegen geblieben", "abschleppen"], "Sichern Sie bitte zuerst die Unfall- oder Pannenstelle und rufen Sie bei Verletzten die 112. Für Abschleppen und Hilfe rufen Sie uns bitte direkt an – die Nummer steht unten."), REKLAMATION, DATEN] },
+  gastro: { zahlung: "Bar und mit Karte.",
+    faq: [F("Kann ich mit einer großen Gruppe kommen?", "Ja. Bitte schicken Sie eine Anfrage mit Datum und Personenzahl, das Team meldet sich."), F("Gibt es Parkplätze?", "Das beantwortet Ihnen das Team gern."), F("Kann ich Gutscheine kaufen?", "Ja, Gutscheine gibt es direkt im Restaurant."), F("Haben Sie Kinderstühle?", "Bitte geben Sie das bei der Reservierung an, dann richtet das Team alles her.")],
+    feste: [A(["Allergie", "Allergen", "allergisch", "Unverträglichkeit", "glutenfrei", "laktosefrei", "Nüsse", "Zöliakie"], "Zu Allergenen und Unverträglichkeiten gibt Ihnen nur unser Team verlässlich Auskunft. Bitte fragen Sie vor der Bestellung direkt nach – als KI-Assistent darf ich dazu keine Auskunft geben."),
+      A(["lebensmittelvergiftung", "schlecht geworden", "krank nach"], "Das tut uns sehr leid. Bitte melden Sie sich direkt beim Team, damit es sich persönlich darum kümmert. Bei Beschwerden wenden Sie sich bitte an einen Arzt."), REKLAMATION, DATEN] },
+  friseur: { zahlung: "Bar und mit Karte.",
+    faq: [F("Schneidet ihr auch Kinder?", "Ja, gern."), F("Was mache ich, wenn ich den Termin nicht schaffe?", "Sag bitte so früh wie möglich Bescheid, dann finden wir einen neuen."), F("Macht ihr Hochzeitsfrisuren?", "Ja. Schick am besten eine Anfrage mit dem Datum, das Team meldet sich."), F("Verkauft ihr Pflegeprodukte?", "Ja, im Salon. Das Team berät dich gern.")],
+    feste: [A(["Kopfhaut", "Haarausfall", "allergisch", "Allergie", "Ausschlag"], "Dazu kann ich als KI-Assistent nichts sagen. Sprich das bitte direkt im Salon an; bei Beschwerden hilft dir ein Hautarzt weiter."), REKLAMATION, DATEN] },
+  arztpraxis: { zahlung: "",
+    faq: [F("Nehmen Sie neue Patienten auf?", "Das beantwortet Ihnen das Praxisteam gern am Telefon."), F("Brauche ich eine Überweisung?", "Das hängt vom Anliegen ab. Bitte fragen Sie beim Praxisteam nach."), F("Was muss ich zum Termin mitbringen?", "Bitte bringen Sie Ihre Versichertenkarte mit, bei Bedarf Überweisung und Vorbefunde."), F("Wie sage ich einen Termin ab?", "Bitte so früh wie möglich telefonisch beim Praxisteam.")],
+    feste: [A(["Notfall", "starke Schmerzen", "hohes Fieber", "Blutung", "Atemnot", "bewusstlos", "Suizid", "umbringen", "Brustschmerz"], "In einem Notfall rufen Sie bitte sofort die 112. Außerhalb der Sprechzeiten erreichen Sie den ärztlichen Bereitschaftsdienst unter 116 117. Als KI-Assistent kann ich keine medizinische Einschätzung geben – bitte rufen Sie in der Praxis an."),
+      A(["Medikament", "Dosierung", "Nebenwirkung", "Diagnose", "Befund", "Laborwert", "Symptom", "Krankschreibung"], "Dazu darf und kann ich als KI-Assistent nichts sagen. Bitte besprechen Sie das direkt mit der Praxis – telefonisch oder in der Sprechstunde."), DATEN],
+    nie: ["Niemals Gesundheitsdaten im Chat erfragen oder wiederholen.", "Keine Aussage dazu, ob ein Arztbesuch nötig ist oder warten kann."] },
+  makler: { zahlung: "",
+    faq: [F("In welcher Region sind Sie tätig?", "Das steht unter Einsatzgebiet; im Zweifel fragen Sie bitte kurz beim Team nach."), F("Wie läuft ein Verkauf ab?", "Erstgespräch, Wertermittlung, Vermarktung, Besichtigungen, Notartermin. Die Einzelheiten erklärt das Team persönlich."), F("Kann ich mich als Suchkunde vormerken lassen?", "Ja. Schicken Sie eine Anfrage mit Ihren Wünschen, das Team meldet sich."), F("Bieten Sie auch Vermietung an?", "Ja, das Team betreut auch Vermietungen.")],
+    feste: [A(["Provision", "Courtage", "Maklergebühr", "Maklerkosten"], "Zur Provision informiert Sie unser Team persönlich und transparent im Erstgespräch. Als KI-Assistent nenne ich dazu keine Zahlen."),
+      A(["was ist mein Haus wert", "Wert meiner", "Marktwert", "Quadratmeterpreis", "Preisentwicklung"], "Den Wert einer Immobilie kann nur unser Team nach einer Besichtigung seriös einschätzen. Als KI-Assistent nenne ich dazu keine Zahlen. Gern bereite ich eine Anfrage für eine Wertermittlung vor."),
+      A(["Mietrecht", "Kündigung", "Eigenbedarf", "Steuer", "Grunderwerbsteuer", "Vertrag prüfen"], "Das ist eine Rechts- oder Steuerfrage. Dazu darf ich nichts sagen; bitte wenden Sie sich an einen Anwalt oder Steuerberater. Für alles rund um Ihre Immobilie hilft unser Team gern."), REKLAMATION, DATEN] },
+};
+
 function mische(ziel: any, quelle: any): any {
   for (const [k, v] of Object.entries(quelle || {})) {
     if (v && typeof v === "object" && !Array.isArray(v)) ziel[k] = mische(ziel[k] && typeof ziel[k] === "object" ? ziel[k] : {}, v);
@@ -140,5 +187,11 @@ export function ausVorlage(branche: string, eigene: Teil<Kunde>): any {
   const v = VORLAGEN[branche] || VORLAGEN.handwerk;
   const basis = mische({}, v.werte);
   basis.stammdaten = { ...(basis.stammdaten || {}), branche: VORLAGEN[branche] ? branche : "handwerk" };
+  // Mehr Wissen, feste Antworten und Verbote der Branche dazunehmen
+  const m = MEHR[basis.stammdaten.branche] || {}, w = (basis.wissen ||= {});
+  w.faq = [...(w.faq || []), ...(m.faq || [])];
+  w.festeAntworten = JSON.parse(JSON.stringify(m.feste || [REKLAMATION, DATEN]));
+  w.nieSagen = [...(w.nieSagen || []), ...(m.nie || []), ...IMMER_NIE];
+  if (m.zahlung) w.zahlung = m.zahlung;
   return mische(basis, eigene);
 }

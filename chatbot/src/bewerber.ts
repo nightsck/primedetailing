@@ -105,7 +105,7 @@ export function pruefeBewerberAntwort(text: string): boolean {
 }
 
 /** Beantwortet eine freie Frage eines Bewerbers. `system` baut den Prompt aus dem Request. */
-export async function beantworteFrage(c: any, system: (b: any) => string | null) {
+export async function beantworteFrage(c: any, system: (b: any) => string | null, fest?: (nachricht: string) => string | null) {
   if (Number(c.req.header("content-length") || 0) > 20_000) return c.json({ ok: false, text: TEXT.fehler }, 413);
   const b: any = await c.req.json().catch(() => ({}));
   const nachricht = kurz(b.nachricht, 400);
@@ -115,6 +115,9 @@ export async function beantworteFrage(c: any, system: (b: any) => string | null)
   if (istInjection(nachricht)) return c.json({ ok: true, text: TEXT.injection });
   const prompt = system(b);
   if (!prompt) return c.json({ ok: false, text: TEXT.fehler }, 404);
+  // Feste Antwort hinterlegt (z. B. zum Gehalt)? Dann genau diese – ohne KI.
+  const festgelegt = fest?.(nachricht);
+  if (festgelegt) return c.json({ ok: true, text: festgelegt });
 
   const verlauf: Msg[] = (Array.isArray(b.verlauf) ? b.verlauf : [])
     .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string")

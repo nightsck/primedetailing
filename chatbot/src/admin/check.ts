@@ -47,6 +47,8 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
     dazu(k.wissen.leistungen.length > 0, "rot", "Kunden-Chat: Leistungen sind eingetragen", "Unter „Wissen“ mindestens eine Leistung eintragen, sonst weiß der Bot nicht, was der Betrieb anbietet.", "wissen");
     dazu(k.wissen.leistungen.some((l) => l.preis !== null), "gelb", "Kunden-Chat: Preise sind eingetragen", "Es steht bei keiner Leistung ein Preis. Der Bot sagt dann überall „auf Anfrage“. Wenn das gewollt ist: so lassen.", "wissen");
     dazu(k.wissen.faq.length >= 3, "gelb", "Kunden-Chat: mindestens 3 häufige Fragen", "Je mehr echte Fragen mit Antwort unter „Wissen“ stehen, desto seltener muss der Bot an das Team verweisen.", "wissen");
+    dazu(k.wissen.nurWissensbasis, "gelb", "Kunden-Chat: strenger Modus ist an", "„Streng: nur antworten, was hier eingetragen ist“ ist ausgeschaltet. Der Bot darf dann auch allgemeines Wissen zur Branche nutzen und kann sich irren.", "wissen");
+    dazu(!!k.wissen.zahlung, "gelb", "Kunden-Chat: Bezahlung ist eingetragen", "Häufige Frage. Unter „Wissen → Weiteres Wissen“ eintragen, sonst verweist der Bot ans Team.", "wissen");
     dazu(!!k.stammdaten.oeffnungszeiten, "gelb", "Kunden-Chat: Öffnungszeiten sind eingetragen", "Eine der häufigsten Fragen. Unter „Stammdaten“ eintragen.", "stammdaten");
   }
   // Bewerber-Chat

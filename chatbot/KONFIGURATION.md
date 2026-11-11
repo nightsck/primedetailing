@@ -70,6 +70,14 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `wissen.leistungen[].ab` | Ankreuzen, wenn es ein „ab“-Preis ist (Richtpreis). |
 | `wissen.faq` | Häufige Fragen mit der richtigen Antwort. |
 | `wissen.freitext` | Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten. |
+| `wissen.zahlung` | Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“ |
+| `wissen.anfahrt` | Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet. |
+| `wissen.wartezeit` | Wie schnell gibt es üblicherweise einen Termin? z. B. „Meist innerhalb von zwei Wochen.“ Leer = der Bot sagt dazu nichts. |
+| `wissen.festeAntworten` | Antworten, die Wort für Wort feststehen. Greift ein Stichwort, antwortet der Bot genau damit und fragt die KI gar nicht erst. Für alles Heikle: Notfall, Reklamation, Rechtliches. |
+| `wissen.festeAntworten[].stichworte` | Kommt eines dieser Wörter in der Nachricht vor, greift die feste Antwort. Gezählt wird nur, wenn ein Wort damit ANFÄNGT („Gehalt“ trifft auch „Gehaltsvorstellung“). Eindeutige Wörter wählen. |
+| `wissen.festeAntworten[].antwort` | Genau dieser Text wird geantwortet – Wort für Wort, ohne KI. |
+| `wissen.verboteneWoerter` | Wörter, die in keiner Antwort vorkommen dürfen (z. B. Namen von Mitbewerbern). Enthält eine KI-Antwort eines davon, wird sie verworfen und der Bot verweist ans Team. |
+| `wissen.nurWissensbasis` | Streng: Der Bot antwortet nur mit dem, was hier eingetragen ist. Kein Allgemeinwissen zur Branche, keine Tipps, keine Schätzungen. Empfohlen. |
 | `wissen.nieSagen` | Was der Bot nie sagen oder versprechen darf, z. B. „Keine Aussagen zu Lieferzeiten“. |
 | `wissen.erlaubtePhrasen` | Ausnahmen vom Zusage-Filter. Der Bot darf z. B. nie „kostenlos“ sagen – außer in den Formulierungen hier, etwa „Anfahrt kostenlos“. |
 
@@ -93,6 +101,9 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `module.bewerberChat.stellen[].umfang` | z. B. Vollzeit, Minijob, 3 Jahre Ausbildung. |
 | `module.bewerberChat.stellen[].text` | Zwei, drei Sätze: Aufgaben und was man mitbringen sollte. |
 | `module.bewerberChat.stellen[].fragen` | Welche kurzen Fragen der Chat stellt (zum Antippen). |
+| `module.bewerberChat.festeAntworten` | Feste Antworten für Bewerber, Wort für Wort und ohne KI. Voreingestellt: die Frage nach dem Gehalt. |
+| `module.bewerberChat.festeAntworten[].stichworte` | Kommt eines dieser Wörter in der Nachricht vor, greift die feste Antwort. Gezählt wird nur, wenn ein Wort damit ANFÄNGT („Gehalt“ trifft auch „Gehaltsvorstellung“). Eindeutige Wörter wählen. |
+| `module.bewerberChat.festeAntworten[].antwort` | Genau dieser Text wird geantwortet – Wort für Wort, ohne KI. |
 | `module.bewerberChat.initiativ` | Zusätzlich „Initiativbewerbung“ anbieten. |
 | `module.bewerberChat.maxDateiMb` | Größte erlaubte Datei in MB (PDF, Word, Fotos). |
 
