@@ -8,6 +8,7 @@
 //   4. WhatsApp Cloud API an den Inhaber (Stufe 2): WHATSAPP_TOKEN …
 // Ist nichts eingerichtet, wird die Anfrage unter Node in data/anfragen.log
 // geschrieben und auf Workers ins Log ausgegeben.
+import { gueltigeMail } from "./mail.ts";
 import { config } from "./config.ts";
 
 export type Anfrage = {
@@ -68,7 +69,7 @@ export async function sendeAnfrage(a: Anfrage): Promise<{ ok: boolean; kanal: st
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${E("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: E("RESEND_FROM"), to: E("ANFRAGE_EMPFAENGER") || config.betrieb.email, reply_to: a.kontakt.includes("@") ? a.kontakt : undefined, subject: betreff, text }),
+      body: JSON.stringify({ from: E("RESEND_FROM"), to: E("ANFRAGE_EMPFAENGER") || config.betrieb.email, reply_to: gueltigeMail(a.kontakt) ? a.kontakt : undefined, subject: betreff, text }),
     });
     if (!r.ok) throw new Error(`Resend ${r.status}`);
     kanaele.push("resend");
@@ -79,7 +80,7 @@ export async function sendeAnfrage(a: Anfrage): Promise<{ ok: boolean; kanal: st
     await nodemailer.createTransport({
       host: E("SMTP_HOST"), port: Number(E("SMTP_PORT") || 587), secure: E("SMTP_SECURE") === "1",
       auth: { user: E("SMTP_USER"), pass: E("SMTP_PASS") },
-    }).sendMail({ from: E("SMTP_FROM") || E("SMTP_USER"), to: E("ANFRAGE_EMPFAENGER") || config.betrieb.email, replyTo: a.kontakt.includes("@") ? a.kontakt : undefined, subject: betreff, text });
+    }).sendMail({ from: E("SMTP_FROM") || E("SMTP_USER"), to: E("ANFRAGE_EMPFAENGER") || config.betrieb.email, replyTo: gueltigeMail(a.kontakt) ? a.kontakt : undefined, subject: betreff, text });
     kanaele.push("smtp");
   }
 
