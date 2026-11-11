@@ -13,6 +13,7 @@ import { config, env, texte, STANDARD_KUNDE } from "./config.ts";
 import { aktuell, mitKunde, standardKunde } from "./kontext.ts";
 import { kundenRouten, monatVoll, zaehleEreignis, neueAnfrage } from "./kunden-routen.ts";
 import { adminRouten } from "./admin/routen.ts";
+import { terminAnfrageRouten } from "./kunden-termin.ts";
 import { antworte, type Msg } from "./llm.ts";
 import { istInjection } from "./guard.ts";
 import { sendeAnfrage, formsubmitDaten } from "./benachrichtigung.ts";
@@ -213,5 +214,7 @@ app.get("/health", (c) => c.json({ ok: true, provider: env.provider, killSwitch:
 
 // Alle Bots eines Kunden unter /k/<kunde>/… (steht am Ende, weil es die Routen oben wiederverwendet)
 kundenRouten(app, { chatRoute, anfrageRoute, configRoute });
+// Termin-Bot und Anfrage-Chat je Kunde (nutzt den Türsteher aus kundenRouten)
+terminAnfrageRouten(app);
 // Admin-Panel für die Kunden-Bots (nur mit Anmeldung): /admin
 adminRouten(app, { chatRoute, configRoute });

@@ -21,6 +21,9 @@ import { mitKunde, standardKunde, aktuell } from "../kontext.ts";
 import { beantworteFrage, systemFuer } from "../bewerber.ts";
 import { vergissKunde, kundenWidget } from "../kunden-routen.ts";
 import { bewerbenSeite, testSeite } from "../seiten/bewerben.ts";
+import { terminAnfrageRouten } from "../kunden-termin.ts";
+import { terminBetriebVon } from "../kunde/umwandeln.ts";
+import { kalenderMitId, dienstkontoMail } from "../termin.ts";
 import { sendeMail } from "../mail.ts";
 import { pruefeLimit } from "../limits.ts";
 import { ADMIN_HTML } from "../daten.generated.ts";
@@ -45,6 +48,8 @@ export function einbau(k: Kunde, basis: string) {
       knopf: `<a href="${b}/bewerben" target="_blank" rel="noopener">Jetzt in 3 Minuten bewerben</a>`,
       wo: "Link für Stellenanzeige, Instagram-Profil, Google-Unternehmensprofil und WhatsApp-Status. QR-Code für Firmenwagen, Bauzaun, Aushang.",
     } : null,
+    terminBot: terminBetriebVon(k) ? { link: `${b}/termin`, knopf: `<a href="${b}/termin" target="_blank" rel="noopener">Termin online buchen</a>`, wo: "Link für Website, Google-Unternehmensprofil, Instagram, E-Mail-Signatur. QR-Code für Visitenkarte, Rechnung, Schaufenster." } : null,
+    anfrageChat: k.module.anfrageChat.aktiv ? { link: `${b}/anfrage`, knopf: `<a href="${b}/anfrage" target="_blank" rel="noopener">Anfrage stellen</a>`, wo: "Link für Website („Kontakt“), Google-Unternehmensprofil und als Ziel für die SMS des Anruf-Retters." } : null,
   };
 }
 
@@ -108,7 +113,7 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
       eingebaut: [{ id: "prime-detailing", firmenname: std.betrieb.name, hinweis: "Kunde Nr. 1. Wird über das Website-CMS und chatbot/config/bot.config.json gepflegt und läuft über die alten Adressen (/api/chat, /api/jobs)." }],
       vorlagen: Object.entries(VORLAGEN).map(([id, v]) => ({ id, name: v.name })),
       pakete: Object.entries(PAKETE).map(([id, p]) => ({ id, name: p.name, module: p.module })),
-      status: STATUS, modulNamen: MODUL_NAMEN, nochNicht: NOCH_NICHT, hilfen: feldHilfen(), server: serverStand(c), basis: basisVon(c),
+      status: STATUS, modulNamen: MODUL_NAMEN, nochNicht: NOCH_NICHT, hilfen: feldHilfen(), server: { ...serverStand(c), kalenderKonto: dienstkontoMail(c) }, basis: basisVon(c),
     });
   });
 
@@ -205,8 +210,9 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     const e = await speicherVon(c).kundeLesen(c.req.param("id"));
     if (!e) return c.text("Nicht gefunden", 404);
     const stelle = String(c.req.query("stelle") || "").replace(/[^a-z0-9-]/g, "");
-    const ziel = `${basisVon(c)}/k/${e.id}/bewerben${stelle ? "?stelle=" + stelle : ""}`;
-    return c.body(qrSvg(ziel), 200, { "Content-Type": "image/svg+xml; charset=utf-8", "Content-Disposition": `inline; filename="qr-bewerben-${e.id}${stelle ? "-" + stelle : ""}.svg"` });
+    const seite = ["bewerben", "termin", "anfrage"].includes(c.req.query("seite")) ? c.req.query("seite") : "bewerben";
+    const ziel = `${basisVon(c)}/k/${e.id}/${seite}${seite === "bewerben" && stelle ? "?stelle=" + stelle : ""}`;
+    return c.body(qrSvg(ziel), 200, { "Content-Type": "image/svg+xml; charset=utf-8", "Content-Disposition": `inline; filename="qr-${seite}-${e.id}${stelle ? "-" + stelle : ""}.svg"` });
   });
   app.get("/admin/api/kunden/:id/export", async (c: any) => {
     const e = await speicherVon(c).kundeLesen(c.req.param("id"));
@@ -226,6 +232,21 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
         html: "<p>Das ist eine <b>Test-Mail</b>.</p><p>Wenn sie ankommt, erreichen Sie Anfragen und Bewerbungen aus dem Website-Assistenten unter dieser Adresse. Bitte auch im Spam-Ordner nachsehen und den Absender als sicher markieren.</p>" }) });
     }
     return c.json({ ok: ergebnis.some((x) => x.ok), ergebnis });
+  });
+
+  // Kalender wirklich abfragen: Stimmt die Kalender-ID und ist der Kalender für unser Dienstkonto freigegeben?
+  app.post("/admin/api/kunden/:id/kalendertest", async (c: any) => {
+    const e = await speicherVon(c).kundeLesen(c.req.param("id"));
+    if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
+    const konto = dienstkontoMail(c), id = e.entwurf.module.terminBot.kalenderId;
+    if (!konto) return c.json({ ok: false, fehler: "Am Server fehlt das Google-Dienstkonto (GOOGLE_SA_JSON). Siehe SECRETS.md." });
+    if (!id) return c.json({ ok: false, fehler: "Es ist noch keine Kalender-ID eingetragen (vorher speichern)." });
+    try {
+      const belegt = await kalenderMitId(c, id)!.belegt(Date.now(), Date.now() + 7 * 86_400_000);
+      return c.json({ ok: true, text: `Der Kalender ist erreichbar. In den nächsten 7 Tagen stehen ${belegt.length} belegte Zeiten drin.` });
+    } catch (x: any) {
+      return c.json({ ok: false, fehler: `Der Kalender ist nicht erreichbar. Meist fehlt die Freigabe: In Google Kalender → Einstellungen des Kalenders → „Für bestimmte Personen freigeben“ → ${konto} mit „Änderungen an Terminen vornehmen“ eintragen. (Meldung: ${String(x?.message || x).slice(0, 160)})` });
+    }
   });
 
   // --- Test-Chat mit dem Entwurf: zählt nichts, speichert nichts, verschickt nichts ---
@@ -259,6 +280,15 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     try { const f = (await c.req.formData()).get("datei"); if (f && typeof f !== "string") { name = (f as File).name; groesse = (f as File).size; } } catch { /* egal */ }
     return c.json({ ok: true, id: "0".repeat(64), name, groesse });
   });
+  // Termin-Bot und Anfrage-Chat in der Vorschau: dieselben Routen wie beim Kunden, aber mit dem Entwurf
+  // und im Test-Modus (nichts eintragen, speichern oder verschicken).
+  terminAnfrageRouten(app, T, [async (c: any, next: any) => {
+    const e = await speicherVon(c).kundeLesen(c.req.param("id"));
+    if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
+    c.set("kunde", e.entwurf);
+    c.header("Cache-Control", "no-store");
+    return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }), () => next());
+  }]);
   app.post(`${T}/api/jobs/absenden`, (c: any) => c.json({ ok: true, dateien: [] }));
   app.post(`${T}/api/jobs/bewerbung`, (c: any) => c.json({ ok: true, test: true }));
 }

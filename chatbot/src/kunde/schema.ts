@@ -27,8 +27,13 @@ export const PAKETE: Record<string, { name: string; module: ModulName[] }> = {
   komplett: { name: "Komplett", module: ["kundenChat", "bewerberChat", "terminBot", "anfrageChat", "anrufRetter"] },
 };
 /** Module, die es für echte Kunden noch nicht gibt (nur als Vorführung). Einstellungen sind schon da, einschalten geht noch nicht. */
-export const NOCH_NICHT: ModulName[] = ["terminBot", "anfrageChat", "anrufRetter"];
+export const NOCH_NICHT: ModulName[] = ["anrufRetter"];
 export const STATUS = { test: "Test", aktiv: "Aktiv", pausiert: "Pausiert", gekuendigt: "Gekündigt" } as const;
+
+export const TAGE = ["mo", "di", "mi", "do", "fr", "sa", "so"] as const;
+export type Wochentag = (typeof TAGE)[number];
+// Zeitfenster eines Tages als Text: "8-12, 13-17" oder "7:30-16"; leer = geschlossen
+const zeitfenster = z.string().trim().max(60).regex(/^$|^\d{1,2}(:\d{2})?\s*-\s*\d{1,2}(:\d{2})?(\s*,\s*\d{1,2}(:\d{2})?\s*-\s*\d{1,2}(:\d{2})?)*$/, "Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = geschlossen.");
 
 const Leistung = z.object({
   kategorie: text(60).default("Leistungen").describe("Überschrift, unter der die Leistung einsortiert wird, z. B. „Innenanstrich“."),
@@ -128,6 +133,9 @@ export const KundeSchema = z.object({
       aktiv: z.boolean().default(false),
       kalenderId: text(200).default("").describe("Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei."),
       termine: z.array(Terminart).max(12).default([]),
+      zeiten: z.object(Object.fromEntries(TAGE.map((t) => [t, zeitfenster.default(["sa", "so"].includes(t) ? "" : "8-17")])) as Record<Wochentag, typeof zeitfenster>).prefault({})
+        .describe("Wann Termine möglich sind, je Wochentag. Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = an dem Tag keine Termine."),
+      rasterMin: z.number().int().min(5).max(120).default(30).describe("Abstand der angebotenen Startzeiten in Minuten (30 = 8:00, 8:30, 9:00 …)."),
       pufferMin: z.number().int().min(0).max(120).default(15).describe("Pause nach jedem Termin in Minuten."),
       fahrtMin: z.number().int().min(0).max(180).default(0).describe("Fahrzeit vor und nach Terminen beim Kunden."),
       vorlaufStunden: z.number().int().min(0).max(336).default(24).describe("So viele Stunden vorher muss gebucht werden."),

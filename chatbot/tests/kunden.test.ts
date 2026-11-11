@@ -45,6 +45,7 @@ test("Schema: Module nur im passenden Paket, Anruf-Retter bleibt aus, doppelte S
   assert.match(r1.fehler[0].text, /nicht enthalten/);
   assert.equal(pruefeKunde({ ...basis, paket: "chat", module: { kundenChat: { aktiv: true } } }).ok, true);
   assert.equal(pruefeKunde({ ...basis, paket: "komplett", module: { anrufRetter: { aktiv: true } } }).ok, false);
+  assert.equal(pruefeKunde({ ...basis, paket: "komplett", module: { terminBot: { aktiv: true, zeiten: { mo: "8 bis 12" } } } }).ok, false, "Zeitfenster falsch geschrieben");
   const st = { id: "geselle", name: "Geselle" };
   assert.equal(pruefeKunde({ ...basis, module: { bewerberChat: { aktiv: true, stellen: [st, st] } } }).ok, false);
 });

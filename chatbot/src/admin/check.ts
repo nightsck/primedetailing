@@ -4,8 +4,8 @@
 //   gelb = läuft, sollte man sich aber ansehen
 //   gruen = passt
 import type { Kunde } from "../kunde/schema.ts";
-import { MODULE, MODUL_NAMEN } from "../kunde/schema.ts";
-import { betriebsStatus } from "../kunde/umwandeln.ts";
+import { MODULE, MODUL_NAMEN, NOCH_NICHT } from "../kunde/schema.ts";
+import { betriebsStatus, terminBetriebVon } from "../kunde/umwandeln.ts";
 import { mailAktiv } from "../mail.ts";
 import { env } from "../config.ts";
 
@@ -34,7 +34,7 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
   if (s.pausiert) dazu(false, "rot", "Notbremse ist aus", "KILL_SWITCH steht auf 1: Alle Bots auf diesem Server sind pausiert.");
 
   // Kunde allgemein
-  dazu(aktiv.length > 0, "rot", "Mindestens ein Modul ist eingeschaltet", "Unter „Module“ den Kunden-Chat oder den Bewerber-Chat einschalten.", "module");
+  dazu(aktiv.length > 0, "rot", "Mindestens ein Modul ist eingeschaltet", "Unter „Module“ mindestens ein Modul einschalten.", "module");
   dazu(!!k.rechtliches.datenschutzUrl, "rot", "Link zur Datenschutzerklärung ist eingetragen", "Unter „Recht & Technik“ den Link zur Datenschutzerklärung des Kunden eintragen. Dort müssen die Bots erwähnt sein (Vorlage in EINRICHTUNG-NEUER-KUNDE.md).", "recht");
   dazu(!!k.stammdaten.telefon, "gelb", "Telefonnummer ist eingetragen", "Ohne Telefonnummer kann der Bot Besucher bei der Übergabe nur per E-Mail an den Betrieb verweisen.", "stammdaten");
   const st = betriebsStatus(k);
@@ -57,10 +57,26 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
     dazu(!!(b.arbeitszeiten || k.stammdaten.oeffnungszeiten), "gelb", "Bewerber-Chat: Arbeitszeiten sind eingetragen", "Die häufigste Frage von Bewerbern.", "module");
     dazu(b.stellen.every((x) => x.text.length > 20), "gelb", "Bewerber-Chat: jede Stelle hat eine Beschreibung", "Zwei, drei Sätze pro Stelle reichen: Aufgaben und was man mitbringen sollte.", "module");
   }
+  // Termin-Bot
+  if (k.module.terminBot.aktiv) {
+    const t = k.module.terminBot;
+    dazu(s.kalender, "rot", "Termin-Bot: Google-Dienstkonto ist am Server hinterlegt", "Am Server fehlt GOOGLE_SA_JSON. Ohne Kalender kann niemand buchen. Siehe SECRETS.md.");
+    dazu(!!t.kalenderId, "rot", "Termin-Bot: Kalender-ID ist eingetragen", "Unter „Module → Termin-Bot“ die Kalender-ID des Kunden eintragen und mit „Kalender prüfen“ testen.", "module");
+    dazu(t.termine.length > 0, "rot", "Termin-Bot: mindestens eine Terminart", "Unter „Module → Termin-Bot“ eine Terminart anlegen (z. B. Besichtigung, 45 Minuten).", "module");
+    dazu(!!terminBetriebVon(k) || !t.termine.length, "rot", "Termin-Bot: an mindestens einem Wochentag sind Termine möglich", "Unter „Module → Termin-Bot“ die Zeiten je Wochentag eintragen, z. B. 8-12, 13-17.", "module");
+    dazu(!t.termine.some((x) => x.ort === "kunde") || t.fahrtMin > 0, "gelb", "Termin-Bot: Fahrzeit für Termine beim Kunden", "Es gibt Termine vor Ort, aber 0 Minuten Fahrzeit. Dann liegen Termine direkt hintereinander.", "module");
+  }
+  // Anfrage-Chat
+  if (k.module.anfrageChat.aktiv) {
+    const a = k.module.anfrageChat;
+    dazu(a.kategorien.length > 0, "gelb", "Anfrage-Chat: Anliegen zum Antippen", "Ohne Kategorien gibt es nur „Allgemeine Anfrage“. Unter „Module → Anfrage-Chat“ eintragen.", "module");
+    dazu(a.sicherheitsregeln.length > 0, "gelb", "Anfrage-Chat: Sicherheitsregeln", "Es gibt keine feste Regel für Notfälle (z. B. Brandgeruch, Wasser tritt aus). Wenn im Betrieb Gefahr entstehen kann: unter „Module → Anfrage-Chat“ eintragen.", "module");
+    dazu(!!k.stammdaten.telefon, "rot", "Anfrage-Chat: Telefonnummer für Notfälle", "Bei einem Notfall verweist die Seite auf die Telefonnummer. Unter „Stammdaten“ eintragen.", "stammdaten");
+  }
   // Veröffentlichung
   if (!stand.live) dazu(false, "gelb", "Kunde ist veröffentlicht", "Noch nicht live. Erst testen (Reiter „Testen“), dann oben auf „Veröffentlichen“.");
   else if (stand.offen) dazu(false, "gelb", "Alle Änderungen sind veröffentlicht", "Es gibt gespeicherte Änderungen, die noch nicht live sind. Oben auf „Veröffentlichen“ klicken.");
-  for (const m of MODULE) if (m !== "kundenChat" && m !== "bewerberChat" && k.module[m].aktiv) dazu(false, "rot", `${MODUL_NAMEN[m]} ist verfügbar`, "Dieses Modul gibt es für Kunden noch nicht.", "module");
+  for (const m of NOCH_NICHT) if (k.module[m].aktiv) dazu(false, "rot", `${MODUL_NAMEN[m]} ist verfügbar`, "Dieses Modul gibt es für Kunden noch nicht.", "module");
   return p;
 }
 

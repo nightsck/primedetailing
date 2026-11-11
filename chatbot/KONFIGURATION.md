@@ -12,7 +12,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 |---|---|
 | Bewerber-Chat | Bewerber-Chat |
 | Kunden-Chat + Bewerber-Chat | Kunden-Chat, Bewerber-Chat |
-| Komplett | Kunden-Chat, Bewerber-Chat, Termin-Bot (kommt bald), Anfrage-Chat (kommt bald), Anruf-Retter (kommt bald) |
+| Komplett | Kunden-Chat, Bewerber-Chat, Termin-Bot, Anfrage-Chat, Anruf-Retter (kommt bald) |
 
 ## Branchen-Vorlagen
 
@@ -101,6 +101,8 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | Feld | Wofür ist das? |
 |---|---|
 | `module.terminBot.kalenderId` | Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. |
+| `module.terminBot.zeiten` | Wann Termine möglich sind, je Wochentag. Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = an dem Tag keine Termine. |
+| `module.terminBot.rasterMin` | Abstand der angebotenen Startzeiten in Minuten (30 = 8:00, 8:30, 9:00 …). |
 | `module.terminBot.pufferMin` | Pause nach jedem Termin in Minuten. |
 | `module.terminBot.fahrtMin` | Fahrzeit vor und nach Terminen beim Kunden. |
 | `module.terminBot.vorlaufStunden` | So viele Stunden vorher muss gebucht werden. |

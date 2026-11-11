@@ -29,6 +29,19 @@ Vom unterschriebenen Vertrag bis zum laufenden Bot. Ziel: unter 30 Minuten, ohne
 - [ ] Was darf der Bot auf keinen Fall sagen oder versprechen?
 - [ ] Wer baut die eine Zeile Code in die Website ein? (Kunde, sein Webdesigner oder wir)
 
+**Für den Termin-Bot**
+- [ ] Welche Termine sollen online buchbar sein? Name, Dauer, wo (im Betrieb, beim Kunden, am Telefon)
+- [ ] An welchen Wochentagen und zu welchen Zeiten?
+- [ ] Wie viel Vorlauf braucht der Betrieb (z. B. 24 Stunden)? Wie viel Pause zwischen Terminen, wie viel Fahrzeit?
+- [ ] Google-Kalender: Der Kunde legt einen Kalender an (oder nimmt seinen bestehenden) und gibt ihn für unser Dienstkonto frei. Die Adresse steht im Admin-Panel unter „Module → Termin-Bot“. Berechtigung: „Änderungen an Terminen vornehmen“. Danach schickt er uns die **Kalender-ID** (Google Kalender → Einstellungen des Kalenders → „Kalender integrieren“).
+- [ ] Der Betrieb muss wissen: Was im Kalender steht, ist online nicht buchbar. Urlaub und private Termine also dort eintragen.
+
+**Für den Anfrage-Chat**
+- [ ] Welche Anliegen kommen typischerweise? (werden Knöpfe zum Antippen)
+- [ ] Gibt es Notfälle, bei denen Gefahr besteht (Brand, Wasser, Gas, Strom, Gesundheit)? Welche Stichworte, welcher Sicherheitshinweis?
+- [ ] Wer soll bei einem Notfall zusätzlich eine Mail bekommen? Telefonnummer für Notfälle?
+- [ ] Dem Betrieb klar sagen: Der Anfrage-Chat ist **kein Notruf**. Mails können verspätet ankommen. Die Seite verweist bei Notfällen deshalb immer auf den Anruf.
+
 ## 2. Im Admin-Panel anlegen (ca. 10 Minuten)
 
 1. `/admin` öffnen, anmelden (Code kommt per Mail).
@@ -37,6 +50,8 @@ Vom unterschriebenen Vertrag bis zum laufenden Bot. Ziel: unter 30 Minuten, ohne
 3. Reiter der Reihe nach anpassen, jeweils **Speichern**:
    - **Wissen:** Leistungen und Preise des Kunden eintragen, Beispiele aus der Vorlage löschen, häufige Fragen ergänzen.
    - **Module:** Stellen des Kunden eintragen, „Das bieten wir“ prüfen.
+   - **Module → Termin-Bot:** Kalender-ID eintragen, speichern, **Kalender prüfen** anklicken. Zeiten und Terminarten anpassen.
+   - **Module → Anfrage-Chat:** Anliegen und Sicherheitsregeln prüfen. Die Vorlage bringt typische Regeln mit; mit dem Betrieb durchgehen.
    - **Benachrichtigungen:** Empfänger eintragen, **Test-Mail schicken** und beim Kunden nachfragen, ob sie angekommen ist (Spam-Ordner!).
    - **Recht & Technik:** Link zur Datenschutzerklärung.
 
@@ -44,6 +59,8 @@ Vom unterschriebenen Vertrag bis zum laufenden Bot. Ziel: unter 30 Minuten, ohne
 
 Reiter **Testen**. Dort läuft der Entwurf, ohne dass etwas live geht oder verschickt wird.
 - Kunden-Chat: nach einem Preis fragen, nach etwas Unbekanntem fragen, einen Termin anfragen, einen Rabatt verlangen.
+- Termin-Bot: Zeigt er nur Zeiten, die im Kalender wirklich frei sind? Einen Termin „buchen“ (im Test wird nichts eingetragen).
+- Anfrage-Chat: ein Notfall-Stichwort eintippen. Der rote Hinweis muss sofort erscheinen.
 - Bewerber-Chat: eine Stelle wählen, nach Arbeitszeiten und Gehalt fragen, bis zum Abschicken durchklicken.
 
 ## 4. Veröffentlichen und einbauen (ca. 5 Minuten)
@@ -69,7 +86,7 @@ Reiter **Testen**. Dort läuft der Entwurf, ohne dass etwas live geht oder versc
 
 ## Abnahme-Checkliste (zum selbst Durchklicken, Ziel unter 30 Minuten)
 
-Testkunde „Malerbetrieb Müller“ mit Kunden-Chat und Bewerber-Chat:
+Testkunde „Malerbetrieb Müller“:
 
 - [ ] Im Admin-Panel anmelden: Code kommt per Mail, Anmeldung klappt. Den Link in der Mail zweimal öffnen und erst dann auf „Anmelden“ klicken: klappt trotzdem.
 - [ ] **+ Neuer Kunde** → Maler → „Malerbetrieb Müller“. Die Kunden-ID `malerbetrieb-mueller` wird vorgeschlagen.
@@ -86,5 +103,9 @@ Testkunde „Malerbetrieb Müller“ mit Kunden-Chat und Bewerber-Chat:
 - [ ] Status eines Eintrags ändern („Angebot geschrieben“): bleibt nach „Neu laden“ erhalten.
 - [ ] Auswertung zeigt die Nachrichten, die Anfrage und die Bewerbung von heute.
 - [ ] Bot-Namen ändern und nur speichern: live steht noch der alte Name. Nach „Veröffentlichen“ der neue.
+- [ ] Termin-Bot (Paket „Komplett“): Kalender-ID eines eigenen Test-Kalenders eintragen, „Kalender prüfen“ meldet Erfolg. Im Kalender einen Termin für morgen 10 Uhr eintragen: Diese Zeit wird online nicht angeboten.
+- [ ] Online einen Termin buchen: steht im Google-Kalender, Bestätigungs-Mail mit Kalender-Datei kommt an. Dieselbe Zeit ist danach nicht mehr buchbar.
+- [ ] Link „Termin absagen“ aus der Mail öffnen: erst Rückfrage, nach Klick ist der Termin aus dem Kalender weg und beide Seiten bekommen eine Mail.
+- [ ] Anfrage-Chat: „Wasser tritt aus“ eintippen. Roter Hinweis erscheint sofort. Absenden: Mail mit „NOTFALL:“ im Betreff, Eintrag in der Übersicht ist rot markiert.
 - [ ] Status „Pausiert“ und veröffentlichen: Das Chat-Fenster verschwindet von der Test-Seite, der Bewerber-Link zeigt „nicht verfügbar“.
 - [ ] primedetailing.eu: Chat unten rechts und /jobs/ funktionieren wie vorher.

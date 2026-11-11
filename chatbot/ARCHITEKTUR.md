@@ -39,7 +39,8 @@ flowchart TD
 | `kunde/vorlagen.ts` | Die neun Branchen-Vorlagen |
 | `kunde/umwandeln.ts` | Übersetzt die Konfiguration in das, was die einzelnen Bots brauchen |
 | `kunden-routen.ts` | Alle Adressen unter `/k/<kunde>/…` |
-| `seiten/bewerben.ts` | Die Bewerber-Seite und die kleine Startseite eines Kunden |
+| `kunden-termin.ts` | Termin-Bot und Anfrage-Chat je Kunde (`/k/<kunde>/termin`, `/k/<kunde>/anfrage`) |
+| `seiten/` | Die Seiten eines Kunden: Bewerben, Termin, Anfrage, kleine Startseite |
 | `speicher/` | Speicher-Schnittstelle, SQL-Befehle, je eine dünne Schicht für Cloudflare und Node |
 | `admin/` | Admin-Panel: Anmeldung, Schnittstellen, Einrichtungs-Check, Oberfläche (`seite.html`) |
 | `app.ts`, `llm.ts`, `prompt.ts`, `tools.ts`, `guard.ts`, `limits.ts`, `foto.ts` | Kunden-Chat (für alle Kunden gleich) |
@@ -47,6 +48,15 @@ flowchart TD
 | `demo.ts`, `betrieb.ts`, `termin.ts` | Vorführseiten auf primedetailing.eu/demo (unverändert) |
 | `anruf.ts`, `stimme.ts`, `kontakt.ts`, `crm/` | Anruf-Retter, Telefon-Bot, Kontaktformular, internes CRM (nicht Teil des Umbaus) |
 | `config/bot.config.json`, `data/wissen.md` | Prime Detailing (Kunde 1) und die Modell-Einstellungen für alle |
+
+## Was die KI darf und was nicht
+
+| Bot | Rolle der KI | Feste Grenzen im Code |
+|---|---|---|
+| Kunden-Chat | beantwortet Fragen, empfiehlt Leistungen | Preise nur aus der Preisliste, keine Zusagen, keine Rabatte, jeder Satz wird geprüft |
+| Bewerber-Chat | beantwortet Fragen zu Stellen | bewertet niemanden, sieht weder Angaben noch Unterlagen, keine Gehaltszahlen |
+| Termin-Bot | keine | freie Zeiten, Puffer und Buchung rechnet nur der Code |
+| Anfrage-Chat | sortiert nach Dringlichkeit vor | Sicherheitsregeln aus der Konfiguration gelten immer; die KI kann nur höher einstufen, nie niedriger |
 
 ## Entwurf und veröffentlicht
 

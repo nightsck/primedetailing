@@ -87,7 +87,7 @@ export const VORLAGEN: Record<string, Vorlage> = {
     module: { kundenChat: { startKnoepfe: ["Tisch reservieren", "Feier anfragen", "Öffnungszeiten", "Frage stellen"], objektLabel: "Anlass / Personenzahl", objektPlatzhalter: "z. B. Geburtstag, 12 Personen" },
       bewerberChat: { arbeitszeiten: "Abends und am Wochenende, nach Dienstplan", bietet: "Faire Bezahlung plus Trinkgeld, Essen während der Schicht, feste freie Tage.",
         stellen: [S("service", "Servicekraft (m/w/d)", "Teilzeit oder Minijob", "Gäste bedienen, kassieren. Erfahrung hilfreich, aber kein Muss.", ["erfahrung", "wochenende", "stunden", "start"]), S("kueche", "Koch / Köchin (m/w/d)", "Vollzeit", "Vorbereitung und Abendservice im kleinen Team.", ["erfahrung", "wochenende", "start"]), S("aushilfe", "Küchenhilfe / Spüler (m/w/d)", "Minijob", "Spülen, Vorbereiten. Keine Erfahrung nötig.", ["wochenende", "stunden", "start"])] },
-      terminBot: { termine: [T("tisch", "Tisch reservieren", "2 Stunden", 120)], pufferMin: 0, vorlaufStunden: 3 },
+      terminBot: { termine: [T("tisch", "Tisch reservieren", "2 Stunden", 120)], pufferMin: 0, vorlaufStunden: 3, zeiten: { mo: "", di: "17-21", mi: "17-21", do: "17-21", fr: "17-21", sa: "17-21", so: "17-21" } },
       anfrageChat: { kategorien: ["Reservierung", "Feier oder Gruppe", "Gutschein", "Etwas anderes"] } },
   } },
   friseur: { name: "Friseur", werte: {
@@ -99,7 +99,7 @@ export const VORLAGEN: Record<string, Vorlage> = {
     module: { kundenChat: { fotoCheck: false, startKnoepfe: ["Termin anfragen", "Preise", "Öffnungszeiten", "Frage stellen"], objektLabel: "Was soll gemacht werden?", objektPlatzhalter: "z. B. Schneiden und Strähnen" },
       bewerberChat: { arbeitszeiten: "Di–Sa nach Dienstplan", bietet: "Weiterbildungen, Trinkgeld bleibt bei dir, Produkte zum Mitarbeiterpreis.",
         stellen: [S("friseur", "Friseur / Friseurin (m/w/d)", "Vollzeit oder Teilzeit", "Schneiden, Färben, Beraten. Gesellenbrief erwünscht.", ["erfahrung", "wochenende", "start"]), S("ausbildung", "Ausbildung Friseur (m/w/d)", "3 Jahre, Start im September", "Probearbeiten vorher möglich.", ["start"])] },
-      terminBot: { termine: [T("herren", "Herrenhaarschnitt", "ca. 30 Minuten", 30), T("damen", "Waschen, Schneiden, Föhnen", "ca. 1 Stunde", 60), T("farbe", "Farbe", "ca. 2 Stunden", 120)], pufferMin: 5, vorlaufStunden: 4 },
+      terminBot: { termine: [T("herren", "Herrenhaarschnitt", "ca. 30 Minuten", 30), T("damen", "Waschen, Schneiden, Föhnen", "ca. 1 Stunde", 60), T("farbe", "Farbe", "ca. 2 Stunden", 120)], pufferMin: 5, vorlaufStunden: 4, zeiten: { mo: "", di: "9-18", mi: "9-18", do: "9-18", fr: "9-18", sa: "8-13", so: "" } },
       anfrageChat: { kategorien: ["Termin", "Farbe und Beratung", "Hochzeit oder Anlass", "Etwas anderes"] } },
   } },
   arztpraxis: { name: "Arztpraxis", werte: {
@@ -110,7 +110,7 @@ export const VORLAGEN: Record<string, Vorlage> = {
     module: { kundenChat: { startKnoepfe: ["Sprechzeiten", "Termin anfragen", "Rezept", "Frage stellen"], objektLabel: "Anliegen", objektPlatzhalter: "z. B. Vorsorgetermin (bitte keine Gesundheitsdaten)" },
       bewerberChat: { arbeitszeiten: "Mo–Fr zu den Sprechzeiten", bietet: "Geregelte Arbeitszeiten, kein Wochenenddienst, Fortbildungen.",
         stellen: [S("mfa", "Medizinische Fachangestellte (m/w/d)", "Vollzeit oder Teilzeit", "Anmeldung, Assistenz, Abrechnung.", ["erfahrung", "stunden", "start"]), S("ausbildung", "Ausbildung MFA (m/w/d)", "3 Jahre, Start im August", "Praktikum vorher möglich.", ["start"])] },
-      terminBot: { termine: [T("sprechstunde", "Sprechstunde", "ca. 15 Minuten", 15), T("vorsorge", "Vorsorge", "ca. 30 Minuten", 30)], pufferMin: 0 },
+      terminBot: { termine: [T("sprechstunde", "Sprechstunde", "ca. 15 Minuten", 15), T("vorsorge", "Vorsorge", "ca. 30 Minuten", 30)], pufferMin: 0, rasterMin: 15, zeiten: { mo: "8-12, 15-18", di: "8-12, 15-18", mi: "8-12", do: "8-12, 15-18", fr: "8-12", sa: "", so: "" } },
       anfrageChat: { kategorien: ["Termin", "Rezept", "Überweisung", "Etwas anderes"],
         sicherheitsregeln: [R(["Brustschmerz", "Atemnot", "bewusstlos", "Schlaganfall", "starke Blutung", "Notfall"], "Bei einem medizinischen Notfall bitte sofort die 112 anrufen. Außerhalb der Sprechzeiten hilft der ärztliche Bereitschaftsdienst unter 116 117.")] } },
   } },

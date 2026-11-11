@@ -131,3 +131,47 @@ export function betriebsStatus(k: Kunde, heute = new Date().toISOString().slice(
   if (k.status === "test" && k.testBis && k.testBis < heute) return { an: false, grund: "Testphase abgelaufen" };
   return { an: true };
 }
+
+/** "8-12, 13-17" → [[480, 720], [780, 1020]] (Minuten ab Mitternacht). Unsinnige Fenster fallen weg. */
+export function leseZeitfenster(text: string): [number, number][] {
+  const min = (t: string) => { const [h, m = "0"] = t.trim().split(":"); return Number(h) * 60 + Number(m); };
+  return String(text || "").split(",").map((teil) => teil.split("-")).filter((x) => x.length === 2)
+    .map(([a, b]) => [min(a), min(b)] as [number, number]).filter(([a, b]) => a >= 0 && b <= 1440 && b > a);
+}
+
+/**
+ * Betrieb in der Form, mit der die Termin-Rechnung arbeitet (src/assets/betriebe.js:
+ * freieZeiten, terminZeitraum). null = Termin-Bot aus oder nichts buchbar.
+ */
+export function terminBetriebVon(k: Kunde): any | null {
+  const t = k.module.terminBot, s = k.stammdaten;
+  if (!t.aktiv || !t.termine.length) return null;
+  const WD: Record<string, number> = { so: 0, mo: 1, di: 2, mi: 3, do: 4, fr: 5, sa: 6 };
+  const zeiten: Record<number, [number, number][]> = {};
+  for (const [tag, text] of Object.entries(t.zeiten)) { const f = leseZeitfenster(text as string); if (f.length) zeiten[WD[tag]] = f; }
+  if (!Object.keys(zeiten).length) return null;
+  return {
+    id: k.id, name: s.firmenname, art: s.brancheText, farbe: k.aussehen.primaerfarbe,
+    zeitenText: s.oeffnungszeiten, adresse: [s.strasse, [s.plz, s.ort].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+    zeiten, vorlaufStunden: t.vorlaufStunden, puffer: t.pufferMin, fahrt: t.fahrtMin, raster: t.rasterMin, horizont: t.tageVoraus,
+    termine: t.termine.map((x) => ({ id: x.id, name: x.name, kurz: x.kurz, dauer: x.dauerMin, ort: x.ort })),
+  };
+}
+
+/**
+ * Feste Sicherheitsregeln des Anfrage-Chats. Läuft im Code, ohne KI: Enthält der Text
+ * eines der Stichworte, gilt mindestens die Dringlichkeit der Regel und der Besucher
+ * sieht sofort den festen Hinweis. Die KI kann höher einstufen, nie niedriger.
+ */
+export function pruefeSicherheitsregeln(k: Kunde, text: string): { dringlichkeit: "normal" | "dringend" | "notfall"; hinweise: string[] } {
+  const norm = (x: string) => x.toLowerCase().replace(/ß/g, "ss").replace(/\s+/g, " ");
+  const t = norm(String(text || ""));
+  let dringlichkeit: "normal" | "dringend" | "notfall" = "normal";
+  const hinweise: string[] = [];
+  for (const r of k.module.anfrageChat.sicherheitsregeln) {
+    if (!r.stichworte.some((w) => t.includes(norm(w)))) continue;
+    if (r.dringlichkeit === "notfall" || dringlichkeit === "normal") dringlichkeit = r.dringlichkeit;
+    if (r.antwort && !hinweise.includes(r.antwort)) hinweise.push(r.antwort);
+  }
+  return { dringlichkeit, hinweise };
+}

@@ -7,8 +7,8 @@ import type { Kunde } from "../kunde/schema.ts";
 import { bewerberBetriebVon } from "../kunde/umwandeln.ts";
 import { JOBS_JS, JOBS_CSS } from "../daten.generated.ts";
 
-const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
-const json = (o: unknown) => JSON.stringify(o).replace(/</g, "\\u003c");
+export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
+export const json = (o: unknown) => JSON.stringify(o).replace(/</g, "\\u003c");
 
 /** Ist die Farbe hell? Dann braucht sie dunkle Schrift (und umgekehrt). */
 function hell(hex: string): boolean {
@@ -47,7 +47,7 @@ const FRAGEN = {
   erfahrung: { text: "Hast du schon Erfahrung in dem Bereich?", label: "Erfahrung", opts: [["ja, beruflich", "Ja, beruflich"], ["etwas, privat oder nebenbei", "Etwas, privat oder nebenbei"], ["noch keine", "Noch keine"]] },
 };
 
-function rahmen(k: Kunde, titel: string, inhalt: string): string {
+export function rahmen(k: Kunde, titel: string, inhalt: string): string {
   const r = k.rechtliches;
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${esc(titel)}</title><style>${farben(k)}${BASIS_CSS}${JOBS_CSS}</style></head><body>
@@ -101,7 +101,7 @@ export function kundenStartseite(k: Kunde, basis: string): string {
   return rahmen(k, `${s.firmenname} – Assistent`, `
 <div class="page-head"><div class="wrap"><span class="eyebrow">${esc(s.brancheText)}</span><h1>${esc(s.firmenname)}</h1>
 <p class="lead">${chat ? "Fragen zu Leistungen oder eine Anfrage? Der Chat unten rechts hilft sofort weiter." : "Hier finden Sie unsere digitalen Assistenten."}</p>
-<p>${jobs ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/bewerben">Jetzt bewerben</a> ` : ""}${s.website ? `<a class="btn btn-ghost" href="${esc(s.website)}" rel="noopener">Zur Website</a>` : ""}</p></div></div>
+<p>${k.module.terminBot.aktiv ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/termin">Termin buchen</a> ` : ""}${k.module.anfrageChat.aktiv ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/anfrage">Anfrage stellen</a> ` : ""}${jobs ? `<a class="btn ${k.module.terminBot.aktiv || k.module.anfrageChat.aktiv ? "btn-ghost" : "btn-primary"}" href="${basis}/k/${k.id}/bewerben">Jetzt bewerben</a> ` : ""}${s.website ? `<a class="btn btn-ghost" href="${esc(s.website)}" rel="noopener">Zur Website</a>` : ""}</p></div></div>
 ${chat ? `<script src="${basis}/k/${k.id}/widget.js" defer></script>` : ""}`);
 }
 

@@ -16,6 +16,12 @@ Schlüssel stehen **nie** im Repo, in der Kunden-Konfiguration oder in Mails. Pr
 | `BREVO_API_KEY` | Secret | brevo.com → SMTP & API → API-Schlüssel. Vorher die Absender-Domain bestätigen (SPF, DKIM, DMARC), sonst landen Mails im Spam. | Mails an Betriebe und der Anmelde-Code. |
 | `MAIL_ABSENDER` | Text | Adresse auf der bei Brevo bestätigten Domain, z. B. `assistent@ki-für-meinen-betrieb.de` (in Punycode-Schreibweise der Domain). | Absender aller Mails. |
 
+## Für den Termin-Bot zusätzlich
+
+| Name | Art | Woher | Wofür |
+|---|---|---|---|
+| `GOOGLE_SA_JSON` | Secret | console.cloud.google.com → Projekt anlegen → „Google Calendar API“ aktivieren → IAM → Dienstkonten → Dienstkonto erstellen → Schlüssel → JSON. Den **ganzen Inhalt** der Datei eintragen. Schritt für Schritt in CLOUDFLARE.md. | **Ein** Dienstkonto für alle Kunden. Jeder Kunde gibt seinen Kalender für die E-Mail-Adresse dieses Kontos frei; pro Kunde steht nur die Kalender-ID in seiner Konfiguration. |
+
 ## Optional
 
 | Name | Wofür |
@@ -25,7 +31,7 @@ Schlüssel stehen **nie** im Repo, in der Kunden-Konfiguration oder in Mails. Pr
 | `LLM_PROVIDER` | `anthropic` (Standard) oder `bedrock` für AWS Frankfurt. Bei `bedrock` zusätzlich AWS-Zugangsdaten und `bedrockModell` in `config/bot.config.json`. |
 | `ALLOWED_ORIGINS` | Erlaubte Websites nur für die **alten** Adressen von Prime Detailing. Neue Kunden: Website in den Stammdaten. |
 | `DATEN_PFAD` | Nur Hetzner: Ort der Datenbank-Datei (Standard im Container `/daten/kunden.sqlite`). |
-| `GOOGLE_SA_JSON`, `TERMIN_*` | Termin-Bot der Vorführung, siehe CLOUDFLARE.md. Für Kunden kommt der Termin-Bot später. |
+| `TERMIN_*` | Nur für den Termin-Bot der Vorführung (`/demo/termin/`), siehe CLOUDFLARE.md. |
 | `SIPGATE_*`, `ANRUF_*`, `STIMME_*`, `CRM_*`, `VERTRIEB_*`, `WEB3FORMS_KEY` | Anruf-Retter, Telefon-Bot, CRM, Formular von Prime Detailing: unverändert, siehe CLOUDFLARE.md und CRM.md. |
 
 ## Prüfen, ob alles sitzt
