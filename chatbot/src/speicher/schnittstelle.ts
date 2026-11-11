@@ -58,7 +58,7 @@ export interface Speicher {
 
   /** Anmelde-Code fürs Admin-Panel merken (nur als Hash). */
   loginMerken(hash: string, email: string, bis: number): Promise<void>;
-  /** Code prüfen. Zählt Fehlversuche; nach 5 ist der Code verbraucht. */
+  /** Code oder Link prüfen. `verbrauchen` = danach ungültig machen. Gibt die E-Mail zurück oder null. */
   loginPruefen(hash: string, verbrauchen: boolean): Promise<string | null>;
 
   /** Löscht alles, dessen Frist abgelaufen ist. Gibt die Anzahl zurück. */

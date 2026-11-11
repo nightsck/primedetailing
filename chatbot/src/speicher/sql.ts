@@ -22,7 +22,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
   sql(`CREATE TABLE IF NOT EXISTS datei (kunde TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, typ TEXT NOT NULL, groesse INTEGER NOT NULL, ablauf INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
   sql(`CREATE TABLE IF NOT EXISTS datei_teil (kunde TEXT NOT NULL, id TEXT NOT NULL, nr INTEGER NOT NULL, daten BLOB NOT NULL, PRIMARY KEY (kunde, id, nr))`);
   sql(`CREATE TABLE IF NOT EXISTS zaehler (kunde TEXT NOT NULL, tag TEXT NOT NULL, art TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (kunde, tag, art))`);
-  sql(`CREATE TABLE IF NOT EXISTS login (hash TEXT PRIMARY KEY, email TEXT NOT NULL, bis INTEGER NOT NULL, fehler INTEGER NOT NULL DEFAULT 0)`);
+  sql(`CREATE TABLE IF NOT EXISTS login (hash TEXT PRIMARY KEY, email TEXT NOT NULL, bis INTEGER NOT NULL)`);
 
   const lies = (s: string | null): Kunde | null => (s ? JSON.parse(s) : null);
 
@@ -127,10 +127,10 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
 
     async loginMerken(hash, email, bis) {
       sql(`DELETE FROM login WHERE bis < ?`, jetzt());
-      sql(`INSERT OR REPLACE INTO login (hash, email, bis, fehler) VALUES (?, ?, ?, 0)`, hash, email, bis);
+      sql(`INSERT OR REPLACE INTO login (hash, email, bis) VALUES (?, ?, ?)`, hash, email, bis);
     },
     async loginPruefen(hash, verbrauchen) {
-      const r = sql(`SELECT email FROM login WHERE hash = ? AND bis > ? AND fehler < 5`, hash, jetzt())[0];
+      const r = sql(`SELECT email FROM login WHERE hash = ? AND bis > ?`, hash, jetzt())[0];
       if (!r) return null;
       if (verbrauchen) sql(`DELETE FROM login WHERE hash = ?`, hash);
       return r.email;

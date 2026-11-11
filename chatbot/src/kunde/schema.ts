@@ -26,6 +26,8 @@ export const PAKETE: Record<string, { name: string; module: ModulName[] }> = {
   chat: { name: "Kunden-Chat + Bewerber-Chat", module: ["kundenChat", "bewerberChat"] },
   komplett: { name: "Komplett", module: ["kundenChat", "bewerberChat", "terminBot", "anfrageChat", "anrufRetter"] },
 };
+/** Module, die es für echte Kunden noch nicht gibt (nur als Vorführung). Einstellungen sind schon da, einschalten geht noch nicht. */
+export const NOCH_NICHT: ModulName[] = ["terminBot", "anfrageChat", "anrufRetter"];
 export const STATUS = { test: "Test", aktiv: "Aktiv", pausiert: "Pausiert", gekuendigt: "Gekündigt" } as const;
 
 const Leistung = z.object({
@@ -179,7 +181,9 @@ export function pruefeKunde(eingabe: unknown): { ok: true; kunde: Kunde } | { ok
   for (const m of MODULE) {
     if (kunde.module[m].aktiv && !erlaubt.includes(m)) fehler.push({ feld: `module.${m}.aktiv`, text: `${MODUL_NAMEN[m]} ist im Paket „${PAKETE[kunde.paket].name}“ nicht enthalten.` });
   }
-  if (kunde.module.anrufRetter.aktiv) fehler.push({ feld: "module.anrufRetter.aktiv", text: "Der Anruf-Retter ist noch nicht verfügbar." });
+  for (const m of NOCH_NICHT) {
+    if (kunde.module[m].aktiv) fehler.push({ feld: `module.${m}.aktiv`, text: `${MODUL_NAMEN[m]} ist für Kunden noch nicht verfügbar. Die Einstellungen können schon vorbereitet werden.` });
+  }
   const ids = new Set<string>();
   kunde.module.bewerberChat.stellen.forEach((s, i) => { if (ids.has(s.id)) fehler.push({ feld: `module.bewerberChat.stellen.${i}.id`, text: `Den Kurznamen „${s.id}“ gibt es doppelt.` }); ids.add(s.id); });
   return fehler.length ? { ok: false, fehler } : { ok: true, kunde };

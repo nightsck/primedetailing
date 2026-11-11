@@ -56,7 +56,8 @@ ${inhalt}
 </body></html>`;
 }
 
-export function bewerbenSeite(k: Kunde, basis: string): string {
+/** `api` = Adresse der Schnittstellen; im Test-Modus des Admin-Panels zeigt sie auf die Test-Schnittstellen. */
+export function bewerbenSeite(k: Kunde, basis: string, api = `${basis}/k/${k.id}`): string {
   const b = bewerberBetriebVon(k)!, m = k.module.bewerberChat, s = k.stammdaten;
   const monate = Math.max(1, Math.round(k.rechtliches.aufbewahrungTage / 30));
   const stellen = [
@@ -64,7 +65,7 @@ export function bewerbenSeite(k: Kunde, basis: string): string {
     ...(m.initiativ ? [{ id: "initiativ", name: "Initiativbewerbung", umfang: "nach Absprache", text: "Für alle, die keine passende Stelle sehen.", fragen: ["start"] }] : []),
   ];
   const daten = {
-    name: s.firmenname, gebiet: s.einsatzgebiet, ort: b.adresse ? `Du findest uns hier: ${b.adresse}.` : "", api: `${basis}/k/${k.id}`, versand: "server",
+    name: s.firmenname, gebiet: s.einsatzgebiet, ort: b.adresse ? `Du findest uns hier: ${b.adresse}.` : "", api, versand: "server",
     whatsapp: s.whatsapp, email: s.email, zeiten: b.zeiten, bietet: b.bietet, ablauf: m.ablauf, stellen,
     fragen: FRAGEN, frist: `${monate} Monaten`, datenschutz: k.rechtliches.datenschutzUrl || "#",
   };
@@ -102,4 +103,11 @@ export function kundenStartseite(k: Kunde, basis: string): string {
 <p class="lead">${chat ? "Fragen zu Leistungen oder eine Anfrage? Der Chat unten rechts hilft sofort weiter." : "Hier finden Sie unsere digitalen Assistenten."}</p>
 <p>${jobs ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/bewerben">Jetzt bewerben</a> ` : ""}${s.website ? `<a class="btn btn-ghost" href="${esc(s.website)}" rel="noopener">Zur Website</a>` : ""}</p></div></div>
 ${chat ? `<script src="${basis}/k/${k.id}/widget.js" defer></script>` : ""}`);
+}
+
+/** Leere Seite nur mit dem Chat-Fenster – für die Vorschau im Admin-Panel. */
+export function testSeite(k: Kunde, widgetUrl: string): string {
+  return rahmen(k, "Test: Kunden-Chat", `<div class="page-head"><div class="wrap"><span class="eyebrow">Test mit dem Entwurf</span><h1>${esc(k.stammdaten.firmenname)}</h1>
+<p class="lead">So sieht der Chat auf der Website aus. Unten ${k.aussehen.position === "links" ? "links" : "rechts"} auf den Knopf klicken. Im Test wird nichts gezählt, gespeichert oder verschickt.</p></div></div>
+<script src="${esc(widgetUrl)}" defer></script>`);
 }

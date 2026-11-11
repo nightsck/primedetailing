@@ -41,6 +41,12 @@ class_name = "UnterlagenAblage"
 name = "CRM"
 class_name = "CrmDaten"
 
+# Kunden-Bots: Konfiguration je Kunde, Anfragen, Bewerbungen, Unterlagen und
+# Zahlen für die Auswertung (Admin-Panel unter /admin). Getrennt vom CRM.
+[[durable_objects.bindings]]
+name = "KUNDEN"
+class_name = "KundenDaten"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["LimitZaehler"]
@@ -52,6 +58,10 @@ new_sqlite_classes = ["UnterlagenAblage"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["CrmDaten"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["KundenDaten"]
 
 # Akquise-Bot des CRM: alle 10 Minuten ein kleiner Schritt (suchen, bewerten,
 # Anruf-Impulse, Monatsposten). Im kostenlosen Tarif enthalten.

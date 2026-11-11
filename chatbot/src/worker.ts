@@ -10,6 +10,8 @@ import { geplant } from "./crm/routen.ts";
 export { LimitZaehler } from "./limit-do.ts";
 export { UnterlagenAblage } from "./ablage-do.ts";
 export { CrmDaten } from "./crm/do.ts";
+// KundenDaten: Konfiguration, Anfragen, Bewerbungen und Zahlen aller Kunden (Admin-Panel unter /admin)
+export { KundenDaten } from "./speicher/cloudflare.ts";
 export default {
   fetch: (req: Request, env: any, ctx: any) => app.fetch(req, env, ctx),
   scheduled: (_e: unknown, env: any, ctx: any) => {
