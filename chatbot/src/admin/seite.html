@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Kunden-Bots · Admin</title>
+<style>
+/* Farben der Marke ki-für-meinen-betrieb.de (dunkel, kein reines Weiß als Fläche) */
+:root{color-scheme:dark;--grund:#0a0817;--abschnitt:#100d24;--karte:#171232;--linie:#2a2350;--knopf:#6b47a8;--knopf-hell:#7d58bd;--akzent:#bba9f5;
+--h:#f3f0fb;--text:#cfc9e6;--neben:#9a93b8;--gruen:#58c98b;--gelb:#e8c15a;--rot:#ff8f86;--r:12px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--grund);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,h3{color:var(--h);margin:0 0 .5em;line-height:1.25}
+h1{font-size:24px}h2{font-size:18px}h3{font-size:15px}
+p{margin:0 0 .8em}
+a{color:var(--akzent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+header.top{background:var(--abschnitt);border-bottom:1px solid var(--linie);position:sticky;top:0;z-index:5}
+header.top .wrap{display:flex;align-items:center;gap:14px;min-height:56px;flex-wrap:wrap}
+.marke{font-weight:700;color:var(--h);text-decoration:none}
+.marke small{color:var(--neben);font-weight:400;margin-left:6px}
+.spacer{flex:1}
+.neben{color:var(--neben)}
+.klein{font-size:13px}
+main{padding:22px 0 80px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--linie);background:transparent;color:var(--h);cursor:pointer;text-decoration:none;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--akzent)}
+.btn.haupt{background:var(--knopf);border-color:var(--knopf)}
+.btn.haupt:hover{background:var(--knopf-hell)}
+.btn.gefahr{color:var(--rot)}
+.btn.klein{min-height:32px;padding:0 11px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:default}
+.karte{background:var(--karte);border:1px solid var(--linie);border-radius:var(--r);padding:18px}
+.karte+.karte{margin-top:14px}.raster>.karte{margin-top:0}
+.raster{display:grid;gap:14px}
+@media(min-width:760px){.raster.zwei{grid-template-columns:1fr 1fr}.raster.drei{grid-template-columns:repeat(3,1fr)}}
+.zeile{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+label.feld{display:block;margin:0 0 14px}
+label.feld>span.l{display:block;font-weight:600;color:var(--h);margin-bottom:4px}
+label.feld small,.hilfe{display:block;color:var(--neben);font-size:13px;margin-top:4px}
+input[type=text],input[type=email],input[type=url],input[type=number],input[type=date],select,textarea{width:100%;background:var(--abschnitt);border:1px solid var(--linie);border-radius:9px;padding:9px 11px;min-height:40px}
+textarea{min-height:92px;resize:vertical}
+input[type=color]{width:56px;height:40px;padding:2px;background:var(--abschnitt);border:1px solid var(--linie);border-radius:9px}
+label.haken{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;cursor:pointer}
+label.haken input{width:20px;height:20px;margin-top:1px;accent-color:var(--knopf)}
+label.haken b{color:var(--h)}
+.fehler{color:var(--rot);font-size:13px;margin-top:4px}
+.hat-fehler input,.hat-fehler textarea,.hat-fehler select{border-color:var(--rot)}
+.punkt{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.punkt.gruen{background:var(--gruen)}.punkt.gelb{background:var(--gelb)}.punkt.rot{background:var(--rot)}
+.marker{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linie);border-radius:99px;padding:2px 10px;font-size:12.5px;color:var(--text);white-space:nowrap}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12.5px;color:var(--neben);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--linie)}
+td{padding:11px 10px;border-bottom:1px solid var(--linie);vertical-align:top}
+tr.klick{cursor:pointer}tr.klick:hover td{background:var(--abschnitt)}
+.tabelle{overflow-x:auto}
+nav.reiter{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--linie);margin:14px 0 18px}
+nav.reiter button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;color:var(--neben);cursor:pointer;white-space:nowrap;font-weight:600}
+nav.reiter button.an{color:var(--h);border-bottom-color:var(--akzent)}
+.leiste{position:sticky;bottom:0;background:var(--abschnitt);border-top:1px solid var(--linie);padding:10px 0;z-index:4}
+.eintrag{border:1px solid var(--linie);border-radius:10px;padding:14px 14px 2px;margin-bottom:12px;background:var(--abschnitt)}
+.check li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--linie);align-items:flex-start}
+.check{list-style:none;margin:0;padding:0}.check li:last-child{border:0}.check .punkt{margin-top:6px}
+pre.code{background:var(--abschnitt);border:1px solid var(--linie);border-radius:9px;padding:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:0 0 8px;font-size:13px;color:var(--h)}
+.vorschau{width:100%;height:640px;border:1px solid var(--linie);border-radius:var(--r);background:#f6f5f2}
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kachel{background:var(--abschnitt);border:1px solid var(--linie);border-radius:10px;padding:14px}
+.kachel b{display:block;font-size:26px;color:var(--h);line-height:1.1}
+.balken{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid var(--linie);margin:6px 0 4px}
+.balken i{flex:1;background:var(--akzent);border-radius:4px 4px 0 0;min-height:1px}
+.balken i:hover{background:var(--h)}
+.wahl{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.wahl button{background:var(--abschnitt);border:1px solid var(--linie);border-radius:10px;padding:16px 12px;cursor:pointer;color:var(--h);font-weight:600;text-align:left}
+.wahl button.an{border-color:var(--akzent);background:var(--karte)}
+.schritte{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.schritte span{font-size:13px;padding:3px 10px;border-radius:99px;border:1px solid var(--linie);color:var(--neben)}
+.schritte span.an{border-color:var(--akzent);color:var(--h)}
+.toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);background:var(--karte);border:1px solid var(--akzent);color:var(--h);padding:10px 16px;border-radius:10px;z-index:20;max-width:92vw}
+.anmelden{max-width:420px;margin:9vh auto 0}
+details summary{cursor:pointer;color:var(--h);font-weight:600;margin-bottom:10px}
+dl.daten{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:8px 0 0}
+dl.daten dt{color:var(--neben)}dl.daten dd{margin:0;white-space:pre-wrap;word-break:break-word}
+@media(max-width:600px){h1{font-size:20px}.vorschau{height:560px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-top:40px">Lädt …</div></div>
+<script>
+// Admin-Panel der Kunden-Bots. Eine Seite, kein Framework:
+// S = Zustand, zeichne() baut die Ansicht neu, Klicks laufen über data-akt="…".
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const S = { ich: null, start: null, ansicht: 'liste', id: null, d: null, K: null, reiter: 'uebersicht', geaendert: false, fehler: {}, neu: null, vorschau: 'chat', vorgaenge: null, auswertung: null, offen: {} };
+
+async function api(pfad, opt = {}) {
+  const r = await fetch('/admin/api' + pfad, Object.assign({ headers: { 'Content-Type': 'application/json', 'X-Admin': '1' } }, opt, opt.body ? { body: JSON.stringify(opt.body), method: opt.method || 'POST' } : {}));
+  let j = {}; try { j = await r.json(); } catch (e) { /* leer */ }
+  if (r.status === 401 && S.ich) { S.ich = null; zeichne(); }
+  return Object.assign({ status: r.status }, j);
+}
+let toastT;
+function toast(t) { let el = $('.toast'); if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); } el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4200); }
+const hol = (o, pfad) => pfad.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+function setz(o, pfad, w) { const t = pfad.split('.'); let x = o; for (let i = 0; i < t.length - 1; i++) { if (x[t[i]] == null) x[t[i]] = {}; x = x[t[i]]; } x[t[t.length - 1]] = w; }
+const datum = ms => ms ? new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
+const tag = ms => ms ? new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
+const slug = s => String(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+const AMPEL = { gruen: 'Alles eingerichtet', gelb: 'Hinweise', rot: 'Fehlt noch etwas' };
+
+/* ---------- Felder ---------- */
+// Ein Feld: [Pfad in der Konfiguration, Beschriftung, Art, Extras]. Die Erklärung kommt vom Server (Schema).
+const hilfe = pfad => (S.start.hilfen[pfad.replace(/\.\d+(?=\.|$)/g, '[]')] || '');
+function feld(pfad, label, art = 'text', x = {}) {
+  const w = hol(S.K, pfad), f = S.fehler[pfad], h = (x.hilfe || hilfe(pfad)).trim();
+  const attr = `data-pfad="${pfad}" data-art="${art}"`;
+  if (art === 'haken') return `<label class="haken"><input type="checkbox" ${attr} ${w ? 'checked' : ''} ${x.aus ? 'disabled' : ''}><span><b>${esc(label)}</b>${h ? `<small class="hilfe">${esc(h)}</small>` : ''}${f ? `<div class="fehler">${esc(f)}</div>` : ''}</span></label>`;
+  let ein;
+  if (art === 'lang') ein = `<textarea ${attr} rows="${x.zeilen || 4}">${esc(w)}</textarea>`;
+  else if (art === 'zeilen') ein = `<textarea ${attr} rows="${x.zeilen || 4}" placeholder="Eine Zeile pro Eintrag">${esc((w || []).join('\n'))}</textarea>`;
+  else if (art === 'wahl') ein = `<select ${attr}>${x.optionen.map(([v, t]) => `<option value="${esc(v)}" ${v === w ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  else if (art === 'farbe') ein = `<div class="zeile"><input type="color" ${attr} value="${esc(w || '#1f2a37')}"><span class="neben">${esc(w || '')}</span></div>`;
+  else if (art === 'zahl' || art === 'preis') ein = `<input type="number" ${attr} value="${w == null ? '' : esc(w)}" ${art === 'preis' ? 'step="0.01" min="0" placeholder="leer = auf Anfrage"' : 'step="1"'}>`;
+  else ein = `<input type="${art === 'datum' ? 'date' : art === 'mail' ? 'email' : 'text'}" ${attr} value="${esc(w)}" ${x.platz ? `placeholder="${esc(x.platz)}"` : ''} ${x.fest ? 'disabled' : ''}>`;
+  return `<label class="feld${f ? ' hat-fehler' : ''}"><span class="l">${esc(label)}</span>${ein}${h ? `<small>${esc(h)}</small>` : ''}${f ? `<div class="fehler">${esc(f)}</div>` : ''}</label>`;
+}
+// Liste aus mehreren gleichen Einträgen (Leistungen, Fragen, Stellen)
+function liste(pfad, titel, neu, felder, name) {
+  const arr = hol(S.K, pfad) || [];
+  return `<h3>${esc(titel)} <span class="neben">(${arr.length})</span></h3>${hilfe(pfad) ? `<p class="hilfe" style="margin-bottom:10px">${esc(hilfe(pfad))}</p>` : ''}
+  ${arr.map((e, i) => `<div class="eintrag"><div class="zeile" style="margin-bottom:8px"><b style="color:var(--h)">${esc(name(e) || 'Neuer Eintrag')}</b><span class="spacer"></span><button class="btn klein gefahr" data-akt="raus" data-pfad="${pfad}" data-i="${i}">Entfernen</button></div>${felder(pfad + '.' + i)}</div>`).join('')}
+  <p><button class="btn klein" data-akt="dazu" data-pfad="${pfad}" data-neu='${esc(JSON.stringify(neu))}'>+ ${esc({ Leistungen: 'Leistung', 'Häufige Fragen': 'Frage', Stellen: 'Stelle', Terminarten: 'Terminart', Sicherheitsregeln: 'Regel', 'Feste Antworten': 'feste Antwort' }[titel] || titel)} hinzufügen</button></p>`;
+}
+function leseFeld(el) {
+  const art = el.dataset.art;
+  if (art === 'haken') return el.checked;
+  if (art === 'zeilen') return el.value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (art === 'zahl') return el.value === '' ? 0 : Number(el.value);
+  if (art === 'preis') return el.value === '' ? null : Number(el.value);
+  return el.value;
+}
+
+/* ---------- Reiter eines Kunden ---------- */
+const REITER = [['uebersicht', 'Übersicht'], ['stammdaten', 'Stammdaten'], ['aussehen', 'Aussehen & Ton'], ['wissen', 'Wissen'], ['module', 'Module'], ['mails', 'Benachrichtigungen'], ['recht', 'Recht & Technik'], ['testen', 'Testen'], ['einbau', 'Einbau-Code'], ['vorgaenge', 'Anfragen & Bewerbungen'], ['auswertung', 'Auswertung'], ['verlauf', 'Verlauf & Daten']];
+const FORMULAR = ['stammdaten', 'aussehen', 'wissen', 'module', 'mails', 'recht'];
+const optionen = o => Object.entries(o);
+const ALLE_MODULE = ['kundenChat', 'bewerberChat', 'terminBot', 'anfrageChat'];
+const FRAGEN = [['erfahrung', 'Erfahrung'], ['fuehrerschein', 'Führerschein'], ['wochenende', 'Wochenende'], ['stunden', 'Stunden pro Woche'], ['start', 'Ab wann']];
+
+const T = {
+  stammdaten: () => `<div class="raster zwei"><div class="karte"><h2>Betrieb</h2>
+    ${feld('stammdaten.firmenname', 'Firmenname')}${feld('stammdaten.brancheText', 'Was macht der Betrieb?')}
+    ${feld('stammdaten.strasse', 'Straße und Hausnummer')}<div class="raster zwei">${feld('stammdaten.plz', 'PLZ')}${feld('stammdaten.ort', 'Ort')}</div>
+    ${feld('stammdaten.telefon', 'Telefon')}${feld('stammdaten.whatsapp', 'WhatsApp', 'text', { platz: '4917112345678' })}${feld('stammdaten.email', 'E-Mail', 'mail')}
+    ${feld('stammdaten.website', 'Website', 'text', { platz: 'https://www.beispiel.de' })}${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.einsatzgebiet', 'Einsatzgebiet')}${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}
+    </div><div class="karte"><h2>Vertrag</h2>
+    ${feld('id', 'Kunden-ID', 'text', { fest: true })}
+    ${feld('status', 'Status', 'wahl', { optionen: optionen(S.start.status) })}
+    ${feld('paket', 'Paket', 'wahl', { optionen: S.start.pakete.map(p => [p.id, p.name]) })}
+    ${feld('testBis', 'Testphase bis', 'datum')}${feld('notiz', 'Interne Notiz', 'lang')}</div></div>
+    <div class="karte"><h2>Kunden-Zugang</h2>${feld('zugang.aktiv', 'Der Kunde darf Kleinigkeiten selbst ändern', 'haken')}${feld('zugang.adressen', 'Wer darf sich anmelden?', 'zeilen', { zeilen: 3 })}
+      <p class="hilfe">Der Kunde ändert: Öffnungszeiten, aktueller Hinweis, Begrüßung, Leistungen, häufige Fragen, Bezahlung, Anfahrt, Stellen. Gesperrt bleibt alles andere. Jede Änderung kommt per Mail zu dir und steht im Verlauf. Den Link für den Kunden findest du nach dem Veröffentlichen unter „Einbau-Code“.</p></div>`,
+  aussehen: () => `<div class="raster zwei"><div class="karte"><h2>Chat-Fenster</h2>
+    ${feld('aussehen.botName', 'Name des Bots')}<div class="raster zwei">${feld('aussehen.primaerfarbe', 'Hauptfarbe', 'farbe')}${feld('aussehen.akzentfarbe', 'Zweite Farbe', 'farbe')}</div>
+    ${feld('aussehen.position', 'Position', 'wahl', { optionen: [['rechts', 'Unten rechts'], ['links', 'Unten links']] })}${feld('aussehen.knopfText', 'Text auf dem Chat-Knopf')}
+    ${feld('aussehen.begruessung', 'Begrüßung', 'lang', { zeilen: 3 })}${feld('aussehen.logoBuchstaben', 'Logo-Buchstaben (Bewerber-Seite)')}</div>
+    <div class="karte"><h2>Ton</h2>${feld('ton.anrede', 'Anrede', 'wahl', { optionen: [['Sie', 'Sie'], ['du', 'du']] })}${feld('ton.stil', 'Stil in Stichworten')}
+    <p class="hilfe">Tipp: Nach dem Speichern im Reiter „Testen“ ansehen, wie es wirkt.</p></div></div>`,
+  wissen: () => `<div class="karte">${liste('wissen.leistungen', 'Leistungen', { kategorie: 'Leistungen', name: '', preis: null, ab: false, beschreibung: '' },
+      p => `<div class="raster drei">${feld(p + '.name', 'Name')}${feld(p + '.kategorie', 'Kategorie')}${feld(p + '.preis', 'Preis in €', 'preis')}</div>${feld(p + '.ab', '„ab“-Preis (Richtpreis)', 'haken')}${feld(p + '.beschreibung', 'Beschreibung')}${(hol(S.K, p) || {}).wunsch ? '<p style="color:var(--gelb);margin:0 0 12px">Der Kunde möchte diesen Preis ändern. Freigeben oder ablehnen: Reiter „Übersicht“.</p>' : ''}`, e => e.name)}</div>
+    <div class="karte">${liste('wissen.faq', 'Häufige Fragen', { frage: '', antwort: '' }, p => `${feld(p + '.frage', 'Frage')}${feld(p + '.antwort', 'Antwort', 'lang', { zeilen: 2 })}`, e => e.frage)}</div>
+    <div class="karte"><h2>Website automatisch einlesen</h2>
+      <p class="hilfe" style="margin-bottom:12px">Der Server liest einmal am Tag die Website des Kunden und gibt dem Kunden-Chat den Text als zusätzliches Wissen mit. So bleibt der Bot aktuell, ohne dass jemand etwas eintippt. Was eingetragen ist, hat Vorrang. Preise nennt der Bot weiter nur aus der Preisliste oben.</p>
+      ${feld('wissen.websiteLesen.aktiv', 'Website jeden Tag einlesen und dem Bot mitgeben', 'haken')}${feld('wissen.websiteLesen.seiten', 'Nur diese Seiten lesen (leer = selbst finden)', 'zeilen', { zeilen: 3 })}
+      <div class="zeile" style="margin-bottom:10px"><button class="btn" data-akt="websiteLesen" ${S.websiteLaeuft ? 'disabled' : ''}>${S.websiteLaeuft ? 'Liest …' : 'Jetzt einlesen'}</button><span class="neben klein">${websiteStatus()}</span></div>
+      ${S.d.website && S.d.website.text ? `<details><summary style="cursor:pointer;color:var(--akzent)">Das weiß der Bot von der Website (${S.d.website.text.length.toLocaleString('de-DE')} Zeichen)</summary><pre style="white-space:pre-wrap;word-break:break-word;font:inherit;font-size:13.5px;max-height:420px;overflow:auto;margin:10px 0 0;padding:12px;border:1px solid var(--linie);border-radius:10px">${esc(S.d.website.text)}</pre></details>` : ''}</div>
+    <div class="karte"><h2>Weiteres Wissen</h2>${feld('wissen.hinweis', 'Aktueller Hinweis')}<div class="raster zwei">${feld('wissen.zahlung', 'Bezahlung')}${feld('wissen.wartezeit', 'Wie schnell gibt es einen Termin?')}</div>${feld('wissen.anfahrt', 'Anfahrt und Parken')}${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}</div>
+    <div class="karte"><h2>Was der Bot darf und was nicht</h2><p class="hilfe" style="margin-bottom:14px">Drei Stufen, von fest bis frei: <b>Feste Antworten</b> kommen Wort für Wort und ohne KI. <b>„Das sagt der Bot nie“</b> und <b>verbotene Wörter</b> sind Grenzen für alles andere. Zusätzlich prüft der Code jede Antwort auf erfundene Preise, Zusagen und Rabatte – das lässt sich nicht abschalten.</p>
+      ${feld('wissen.nurWissensbasis', 'Streng: nur antworten, was hier eingetragen ist', 'haken')}
+      ${liste('wissen.festeAntworten', 'Feste Antworten', { stichworte: [], antwort: '' }, p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.antwort', 'Antwort, Wort für Wort', 'lang', { zeilen: 3 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}
+      ${feld('wissen.nieSagen', 'Das sagt der Bot nie', 'zeilen', { zeilen: 5 })}${feld('wissen.verboteneWoerter', 'Verbotene Wörter', 'zeilen', { zeilen: 3 })}${feld('wissen.erlaubtePhrasen', 'Erlaubte Formulierungen (Ausnahmen)', 'zeilen', { zeilen: 3 })}</div>`,
+  module: () => {
+    const erlaubt = (S.start.pakete.find(p => p.id === S.K.paket) || { module: [] }).module;
+    const kopf = (m, text) => `<h2>${esc(S.start.modulNamen[m])} ${!erlaubt.includes(m) ? '<span class="marker">nicht im Paket</span>' : ''}</h2><p class="hilfe" style="margin-bottom:12px">${esc(text)}</p>`;
+    const bald = m => `<div class="karte">${kopf(m, 'Für Kunden noch nicht verfügbar (bisher nur als Vorführung). Die Einstellungen aus der Branchen-Vorlage sind schon gespeichert und werden beim Start übernommen.')}<span class="marker">kommt bald</span></div>`;
+    return `<div class="karte">${kopf('kundenChat', 'Chat-Fenster auf der Website: beantwortet Fragen zu Leistungen und Preisen und bereitet Anfragen vor.')}
+      ${feld('module.kundenChat.aktiv', 'Kunden-Chat einschalten', 'haken', { aus: !erlaubt.includes('kundenChat') })}
+      ${feld('module.kundenChat.startKnoepfe', 'Knöpfe unter der Begrüßung', 'zeilen', { zeilen: 4 })}
+      <div class="raster zwei">${feld('module.kundenChat.objektLabel', 'Feld im Anfrageformular')}${feld('module.kundenChat.objektPlatzhalter', 'Beispiel im Feld')}</div>
+      ${feld('module.kundenChat.fotoCheck', 'Foto-Check einschalten', 'haken')}${feld('module.kundenChat.fotoWorauf', 'Worauf achtet der Bot bei Fotos?', 'lang', { zeilen: 3 })}</div>
+      <div class="karte">${kopf('bewerberChat', 'Bewerbung in drei Minuten per Chat, als eigene Seite mit Link und QR-Code. Die KI beantwortet nur Fragen und bewertet niemanden.')}
+      ${feld('module.bewerberChat.aktiv', 'Bewerber-Chat einschalten', 'haken', { aus: !erlaubt.includes('bewerberChat') })}
+      ${feld('module.bewerberChat.arbeitszeiten', 'Arbeitszeiten')}${feld('module.bewerberChat.bietet', 'Das bieten wir', 'lang', { zeilen: 2 })}${feld('module.bewerberChat.ablauf', 'Nach der Bewerbung', 'lang', { zeilen: 2 })}
+      ${liste('module.bewerberChat.stellen', 'Stellen', { id: '', name: '', umfang: '', text: '', fragen: ['erfahrung', 'start'] },
+        p => `<div class="raster zwei">${feld(p + '.name', 'Stellenbezeichnung')}${feld(p + '.id', 'Kurzname für den Link', 'text', { platz: 'z. B. geselle' })}</div>${feld(p + '.umfang', 'Umfang')}${feld(p + '.text', 'Beschreibung', 'lang', { zeilen: 2 })}
+          <div class="feld"><span class="l" style="display:block;font-weight:600;color:var(--h);margin-bottom:6px">Fragen im Chat</span><div class="zeile">${FRAGEN.map(([v, t]) => `<label class="zeile" style="gap:6px"><input type="checkbox" data-mehr="${p}.fragen" value="${v}" ${(hol(S.K, p + '.fragen') || []).includes(v) ? 'checked' : ''}> ${t}</label>`).join('')}</div></div>`, e => e.name)}
+      ${liste('module.bewerberChat.festeAntworten', 'Feste Antworten', { stichworte: [], antwort: '' }, p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.antwort', 'Antwort, Wort für Wort', 'lang', { zeilen: 3 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}
+      ${feld('module.bewerberChat.initiativ', 'Initiativbewerbung anbieten', 'haken')}${feld('module.bewerberChat.maxDateiMb', 'Größte Datei in MB', 'zahl')}</div>
+      <div class="karte">${kopf('terminBot', 'Kunden buchen ihren Termin selbst, mit echten freien Zeiten aus dem Google-Kalender des Betriebs. Hier rechnet nur der Code, keine KI.')}
+      ${feld('module.terminBot.aktiv', 'Termin-Bot einschalten', 'haken', { aus: !erlaubt.includes('terminBot') })}
+      ${feld('module.terminBot.kalenderId', 'Kalender-ID (Google Kalender)', 'text', { platz: '…@group.calendar.google.com' })}
+      <p class="hilfe" style="margin:-6px 0 14px">${S.start.server.kalenderKonto ? `Der Kunde gibt seinen Kalender für diese Adresse frei („Änderungen an Terminen vornehmen“): <b style="color:var(--h)">${esc(S.start.server.kalenderKonto)}</b>` : '<b style="color:var(--rot)">Am Server ist noch kein Google-Dienstkonto hinterlegt (GOOGLE_SA_JSON, siehe SECRETS.md).</b>'} <button class="btn klein" data-akt="kalendertest">Kalender prüfen</button></p>
+      <h3>Wann sind Termine möglich?</h3><p class="hilfe" style="margin-bottom:10px">${esc(hilfe('module.terminBot.zeiten'))}</p>
+      <div class="raster drei">${[['mo', 'Montag'], ['di', 'Dienstag'], ['mi', 'Mittwoch'], ['do', 'Donnerstag'], ['fr', 'Freitag'], ['sa', 'Samstag'], ['so', 'Sonntag']].map(([t, n]) => feld('module.terminBot.zeiten.' + t, n, 'text', { platz: 'geschlossen', hilfe: ' ' })).join('')}</div>
+      ${liste('module.terminBot.termine', 'Terminarten', { id: '', name: '', kurz: '', dauerMin: 60, ort: 'betrieb' },
+        p => `<div class="raster zwei">${feld(p + '.name', 'Name', 'text', { platz: 'z. B. Besichtigung vor Ort' })}${feld(p + '.id', 'Kurzname', 'text', { platz: 'z. B. besichtigung', hilfe: 'Nur Kleinbuchstaben, Zahlen, Bindestriche.' })}</div>${feld(p + '.kurz', 'Kurzbeschreibung', 'text', { hilfe: ' ' })}
+          <div class="raster zwei">${feld(p + '.dauerMin', 'Dauer in Minuten', 'zahl', { hilfe: ' ' })}${feld(p + '.ort', 'Wo?', 'wahl', { optionen: [['betrieb', 'Im Betrieb'], ['kunde', 'Beim Kunden vor Ort'], ['telefon', 'Am Telefon (Rückruf)']], hilfe: ' ' })}</div>`, e => e.name)}
+      <div class="raster zwei">${feld('module.terminBot.pufferMin', 'Pause nach jedem Termin (Minuten)', 'zahl')}${feld('module.terminBot.fahrtMin', 'Fahrzeit bei Terminen vor Ort (Minuten)', 'zahl')}
+      ${feld('module.terminBot.vorlaufStunden', 'Vorlauf in Stunden', 'zahl')}${feld('module.terminBot.tageVoraus', 'Buchbar im Voraus (Tage)', 'zahl')}${feld('module.terminBot.rasterMin', 'Raster der Startzeiten (Minuten)', 'zahl')}</div></div>
+      <div class="karte">${kopf('anfrageChat', 'Kunden schildern ihr Anliegen. Feste Sicherheitsregeln greifen sofort und ohne KI; die KI sortiert danach nur nach Dringlichkeit vor und kann nie unter die Regeln gehen.')}
+      ${feld('module.anfrageChat.aktiv', 'Anfrage-Chat einschalten', 'haken', { aus: !erlaubt.includes('anfrageChat') })}
+      ${feld('module.anfrageChat.kategorien', 'Anliegen zum Antippen', 'zeilen', { zeilen: 5 })}
+      ${liste('module.anfrageChat.sicherheitsregeln', 'Sicherheitsregeln', { stichworte: [], dringlichkeit: 'notfall', antwort: '' },
+        p => `${feld(p + '.stichworte', 'Stichworte (eins pro Zeile)', 'zeilen', { zeilen: 3 })}${feld(p + '.dringlichkeit', 'Einstufung', 'wahl', { optionen: [['notfall', 'Notfall'], ['dringend', 'Dringend']], hilfe: ' ' })}${feld(p + '.antwort', 'Fester Hinweis für den Kunden', 'lang', { zeilen: 2 })}`, e => (e.stichworte || []).slice(0, 3).join(', '))}</div>
+      ${bald('anrufRetter')}`;
+  },
+  mails: () => `<div class="karte"><h2>Wer bekommt was?</h2><p class="hilfe" style="margin-bottom:12px">Eine Adresse pro Zeile. Leer = die Kontakt-Adresse aus den Stammdaten (${esc(S.K.stammdaten.email)}).</p>
+    ${feld('benachrichtigungen.anfragen', 'Anfragen aus dem Kunden-Chat', 'zeilen', { zeilen: 2 })}${feld('benachrichtigungen.bewerbungen', 'Bewerbungen', 'zeilen', { zeilen: 2 })}
+    ${feld('benachrichtigungen.termine', 'Termine (kommt mit dem Termin-Bot)', 'zeilen', { zeilen: 2 })}${feld('benachrichtigungen.notfall', 'Notfälle zusätzlich an (kommt mit dem Anfrage-Chat)', 'zeilen', { zeilen: 2 })}
+    <p><button class="btn" data-akt="testmail">Test-Mail an diese Adressen schicken</button></p><p class="hilfe">Vorher speichern. ${S.start.server.mail ? '' : '<b style="color:var(--rot)">Am Server ist noch kein Mailversand eingerichtet (siehe SECRETS.md).</b>'}</p></div>`,
+  recht: () => `<div class="raster zwei"><div class="karte"><h2>Rechtliches</h2>${feld('rechtliches.datenschutzUrl', 'Link zur Datenschutzerklärung', 'text', { platz: 'https://…' })}${feld('rechtliches.impressumUrl', 'Link zum Impressum', 'text', { platz: 'https://…' })}
+    ${feld('rechtliches.aufbewahrungTage', 'Aufbewahrung in Tagen', 'zahl')}${feld('rechtliches.poweredBy', 'Hinweis „Powered by Claude (Anthropic)“ zeigen', 'haken')}</div>
+    <div class="karte"><h2>Technik</h2>${feld('technik.erlaubteWebsites', 'Weitere erlaubte Websites', 'zeilen', { zeilen: 3 })}${feld('technik.tagesbudget', 'Nachrichten pro Tag (höchstens)', 'zahl')}${feld('technik.monatsbudget', 'Nachrichten pro Monat (höchstens)', 'zahl')}</div></div>`,
+
+  uebersicht: () => {
+    const d = S.d, rot = d.check.filter(p => p.farbe === 'rot'), gelb = d.check.filter(p => p.farbe === 'gelb'), gruen = d.check.filter(p => p.farbe === 'gruen');
+    const zeile = p => `<li><span class="punkt ${p.farbe}" aria-hidden="true"></span><div><b style="color:var(--h)">${esc(p.titel)}</b>${p.hilfe ? `<div class="neben">${esc(p.hilfe)} ${p.reiter ? `<a href="#" data-akt="reiter" data-r="${p.reiter}">Dort hin</a>` : ''}</div>` : ''}</div></li>`;
+    const eur = (p, ab) => p == null ? 'auf Anfrage' : (ab ? 'ab ' : '') + Number(p).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' €';
+    const wuensche = (d.preiswuensche || []).length ? `<div class="karte" style="border-color:var(--gelb);margin-bottom:14px"><h2>Der Kunde möchte ${d.preiswuensche.length === 1 ? 'einen Preis' : d.preiswuensche.length + ' Preise'} ändern</h2>
+      <p class="hilfe" style="margin-bottom:10px">Eingetragen über den Kunden-Zugang. Der Bot nennt noch die bisherigen Preise. „Übernehmen“ schaltet die neuen sofort live.</p>
+      <div class="tabelle"><table><thead><tr><th>Leistung</th><th>Bisher</th><th>Neu</th></tr></thead><tbody>${d.preiswuensche.map(w => `<tr><td><b style="color:var(--h)">${esc(w.name)}</b></td><td>${eur(w.preis, w.ab)}</td><td><b style="color:var(--h)">${eur(w.wunsch.preis, w.wunsch.ab)}</b></td></tr>`).join('')}</tbody></table></div>
+      <div class="zeile" style="margin-top:12px"><button class="btn haupt" data-akt="preiswunsch" data-ja="1">Übernehmen</button><button class="btn" data-akt="preiswunsch" data-ja="0">Ablehnen</button></div></div>` : '';
+    return `${wuensche}<div class="raster zwei"><div class="karte"><h2>Einrichtungs-Check</h2>
+      <p><span class="marker"><span class="punkt ${d.ampel}"></span>${AMPEL[d.ampel]}</span></p>
+      <ul class="check">${[...rot, ...gelb].map(zeile).join('') || '<li><span class="punkt gruen"></span><div>Nichts zu tun.</div></li>'}</ul>
+      ${gruen.length ? `<details style="margin-top:12px"><summary>${gruen.length} Punkte in Ordnung</summary><ul class="check">${gruen.map(zeile).join('')}</ul></details>` : ''}</div>
+      <div class="karte"><h2>Stand</h2><dl class="daten">
+        <dt>Status</dt><dd>${esc(S.start.status[S.K.status])}${S.K.testBis ? ` · Test bis ${esc(S.K.testBis.split('-').reverse().join('.'))}` : ''}</dd>
+        <dt>Paket</dt><dd>${esc((S.start.pakete.find(p => p.id === S.K.paket) || {}).name)}</dd>
+        <dt>Module</dt><dd>${ALLE_MODULE.filter(m => S.K.module[m].aktiv).map(m => S.start.modulNamen[m]).join(', ') || 'keins eingeschaltet'}</dd>
+        <dt>Live</dt><dd>${d.live ? (d.offen ? 'Ja, aber es gibt unveröffentlichte Änderungen' : 'Ja, aktueller Stand') : 'Nein, nur Entwurf'}</dd>
+        <dt>Geändert</dt><dd>${datum(d.geaendert)} von ${esc(d.geaendertVon)}</dd></dl>
+      <h3 style="margin-top:18px">So geht es weiter</h3><ol style="margin:0;padding-left:20px"><li>Reiter der Reihe nach durchgehen und speichern.</li><li>Unter „Testen“ ausprobieren.</li><li>Rote Punkte links beheben, dann „Veröffentlichen“.</li><li>Unter „Einbau-Code“ Code, Link und QR-Code holen.</li></ol></div></div>`;
+  },
+  testen: () => `<div class="karte"><div class="zeile" style="margin-bottom:12px"><h2 style="margin:0">Vorschau mit dem Entwurf</h2><span class="spacer"></span>
+      <button class="btn klein ${S.vorschau === 'chat' ? 'haupt' : ''}" data-akt="vorschau" data-v="chat">Kunden-Chat</button><button class="btn klein ${S.vorschau === 'bewerben' ? 'haupt' : ''}" data-akt="vorschau" data-v="bewerben">Bewerber-Chat</button><button class="btn klein ${S.vorschau === 'termin' ? 'haupt' : ''}" data-akt="vorschau" data-v="termin">Termin-Bot</button><button class="btn klein ${S.vorschau === 'anfrage' ? 'haupt' : ''}" data-akt="vorschau" data-v="anfrage">Anfrage-Chat</button>
+      <button class="btn klein" data-akt="vorschau" data-v="${S.vorschau}">Neu laden</button></div>
+    <p class="hilfe" style="margin-bottom:12px">Zeigt den zuletzt <b>gespeicherten</b> Entwurf, auch wenn er noch nicht veröffentlicht ist. Im Test wird nichts gezählt, gespeichert oder verschickt. ${S.start.server.ki ? '' : '<b style="color:var(--gelb)">Ohne KI-Schlüssel antwortet der Chat nur mit festen Beispieltexten.</b>'}</p>
+    ${S.geaendert ? '<p style="color:var(--gelb)">Es gibt ungespeicherte Änderungen. Erst speichern, dann testen.</p>' : ''}
+    ${S.vorschau === 'chat' ? `<div class="eintrag" style="padding-bottom:14px"><div class="zeile"><div><b style="color:var(--h)">Selbsttest</b><div class="hilfe">Stellt dem Kunden-Chat rund 20 Fangfragen (Rabatt, Zusage, erfundene Leistung, fremde Themen, Manipulation) plus eure festen Antworten und häufigen Fragen. Dauert etwa eine Minute und kostet wenige Cent.</div></div><span class="spacer"></span><button class="btn haupt" data-akt="selbsttest" ${S.testLaeuft ? 'disabled' : ''}>${S.testLaeuft ? 'Läuft …' : 'Selbsttest starten'}</button></div>${selbsttestHtml()}</div>` : ''}
+    <iframe class="vorschau" title="Vorschau" src="/admin/api/kunden/${S.id}/test/${S.vorschau === 'chat' ? 'seite' : S.vorschau}?v=${Date.now()}"></iframe></div>`,
+  einbau: () => {
+    const e = S.d.einbau, code = t => `<pre class="code">${esc(t)}</pre><p><button class="btn klein" data-akt="kopieren" data-text="${esc(t)}">Kopieren</button></p>`;
+    return `${S.d.live ? '' : '<div class="karte" style="border-color:var(--gelb)">Der Kunde ist noch nicht veröffentlicht. Code und Links funktionieren erst danach.</div>'}
+    <div class="karte"><h2>Kunden-Zugang</h2>${e.zugang ? `<p class="hilfe">Diesen Link bekommt der Kunde. Dort ändert er Kleinigkeiten selbst. Anmelden können sich: ${esc(e.zugang.adressen.join(', '))}</p>${code(e.zugang.link)}` : '<p class="neben">Der Kunden-Zugang ist nicht eingeschaltet (Reiter „Stammdaten“).</p>'}</div>
+    <div class="karte"><h2>Kunden-Chat auf der Website</h2>${e.kundenChat ? `<p class="hilfe">${esc(e.kundenChat.wo)}</p>${code(e.kundenChat.code)}<p class="hilfe">Zum Ansehen ohne Einbau: <a href="${esc(e.seite)}" target="_blank" rel="noopener">${esc(e.seite)}</a></p>` : '<p class="neben">Der Kunden-Chat ist nicht eingeschaltet.</p>'}</div>
+    <div class="karte"><h2>Bewerber-Chat</h2>${e.bewerberChat ? `<p class="hilfe">${esc(e.bewerberChat.wo)}</p><h3>Link</h3>${code(e.bewerberChat.link)}
+      ${e.bewerberChat.stellen.length ? `<details><summary>Direktlinks je Stelle</summary>${e.bewerberChat.stellen.map(s => `<p style="margin:0 0 4px"><b>${esc(s.name)}</b></p>${code(s.link)}`).join('')}</details>` : ''}
+      <h3 style="margin-top:14px">Knopf für die Website</h3>${code(e.bewerberChat.knopf)}
+      <h3 style="margin-top:14px">QR-Code</h3><div class="zeile" style="align-items:flex-start"><img src="/admin/api/kunden/${S.id}/qr" alt="QR-Code zum Bewerber-Chat" width="170" height="170" style="background:#fff;border-radius:8px">
+      <div><p class="hilfe">Für Firmenwagen, Bauzaun, Aushang, Stellenanzeige in der Zeitung. Als SVG beliebig groß druckbar.</p><p><a class="btn klein" href="/admin/api/kunden/${S.id}/qr" download="qr-bewerben-${S.id}.svg">QR-Code herunterladen</a></p></div></div>` : '<p class="neben">Der Bewerber-Chat ist nicht eingeschaltet oder hat keine Stelle.</p>'}</div>
+    ${[['terminBot', 'Termin-Bot', 'termin', 'Der Termin-Bot ist nicht eingeschaltet oder noch nicht fertig eingerichtet.'], ['anfrageChat', 'Anfrage-Chat', 'anfrage', 'Der Anfrage-Chat ist nicht eingeschaltet.']].map(([m, titel, seite, leer]) => `<div class="karte"><h2>${titel}</h2>${e[m] ? `<p class="hilfe">${esc(e[m].wo)}</p><h3>Link</h3>${code(e[m].link)}<h3 style="margin-top:14px">Knopf für die Website</h3>${code(e[m].knopf)}
+      <h3 style="margin-top:14px">QR-Code</h3><div class="zeile" style="align-items:flex-start"><img src="/admin/api/kunden/${S.id}/qr?seite=${seite}" alt="QR-Code" width="170" height="170" style="background:#fff;border-radius:8px"><p><a class="btn klein" href="/admin/api/kunden/${S.id}/qr?seite=${seite}" download="qr-${seite}-${S.id}.svg">QR-Code herunterladen</a></p></div>` : `<p class="neben">${leer}</p>`}</div>`).join('')}`;
+  },
+  vorgaenge: () => {
+    if (!S.vorgaenge) { ladeVorgaenge(); return '<div class="karte">Lädt …</div>'; }
+    const ART = { anfrage: 'Anfrage', bewerbung: 'Bewerbung', termin: 'Termin' }, STAT = { anfrage: ['neu', 'Angebot geschrieben', 'Auftrag', 'erledigt', 'abgelehnt'], bewerbung: ['neu', 'angerufen', 'Gespräch', 'eingestellt', 'abgesagt'], termin: ['neu', 'erledigt', 'nicht erschienen'] };
+    const daten = v => { const d = v.daten, z = []; for (const [k, w] of Object.entries(d)) { if (k === 'felder' && w) for (const [a, b] of Object.entries(w)) z.push([a, b]); else if (k === 'dateien') z.push(['Unterlagen', (w || []).map(x => x.name).join(', ') || 'keine']); else if (w) z.push([{ name: 'Name', kontakt: 'Kontakt', telefon: 'Telefon', email: 'E-Mail', objekt: 'Objekt', leistung: 'Leistung', wunschtermin: 'Wunschtermin', notiz: 'Notiz', verlauf: 'Gespräch', stelle: 'Stelle', dringlichkeit: 'Dringlichkeit', anliegen: 'Anliegen', beschreibung: 'Beschreibung', adresse: 'Adresse', rueckfragen: 'Rückfragen', terminart: 'Termin', wann: 'Wann', ort: 'Wo' }[k] || k, w]); } return `<dl class="daten">${z.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl>${(d.dateien || []).map(x => `<p style="margin:8px 0 0"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)} herunterladen</a></p>`).join('')}`; };
+    return `<div class="karte"><div class="zeile"><h2 style="margin:0">Anfragen und Bewerbungen</h2><span class="spacer"></span><button class="btn klein" data-akt="vorgaenge-neu">Neu laden</button></div>
+      <p class="hilfe" style="margin:8px 0 12px">Alles, was über die Bots dieses Kunden hereingekommen ist. Wird nach ${S.K.rechtliches.aufbewahrungTage} Tagen automatisch gelöscht.</p>
+      ${S.vorgaenge.length ? `<div class="tabelle"><table><thead><tr><th>Eingang</th><th>Art</th><th>Betreff</th><th>Status</th><th></th></tr></thead><tbody>${S.vorgaenge.map(v => `<tr><td>${datum(v.erstellt)}</td><td>${ART[v.art] || v.art}${v.dringlichkeit !== 'normal' ? `<div><span class="marker"><span class="punkt ${v.dringlichkeit === 'notfall' ? 'rot' : 'gelb'}"></span>${v.dringlichkeit === 'notfall' ? 'Notfall' : 'Dringend'}</span></div>` : ''}</td>
+        <td><b style="color:var(--h)">${esc(v.titel)}</b>${S.offen[v.id] ? daten(v) : ''}</td>
+        <td><select data-vstatus="${v.id}" aria-label="Status">${[...new Set([...(STAT[v.art] || ['neu']), v.status])].map(s => `<option ${s === v.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></td>
+        <td class="zeile"><button class="btn klein" data-akt="auf" data-v="${v.id}">${S.offen[v.id] ? 'Zu' : 'Ansehen'}</button><button class="btn klein gefahr" data-akt="vweg" data-v="${v.id}">Löschen</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="neben">Noch nichts eingegangen.</p>'}</div>`;
+  },
+  auswertung: () => {
+    if (!S.auswertung) { ladeAuswertung(); return '<div class="karte">Lädt …</div>'; }
+    const z = S.auswertung.zeilen, summe = a => z.filter(x => x.art === a).reduce((n, x) => n + x.n, 0);
+    const tage = []; for (let i = S.auswertung.tage - 1; i >= 0; i--) tage.push(new Date(Date.now() - i * 864e5).toISOString().slice(0, 10));
+    const chats = tage.map(t => (z.find(x => x.tag === t && x.art === 'chat') || { n: 0 }).n), max = Math.max(1, ...chats);
+    const de = t => t.split('-').reverse().slice(0, 2).join('.') + '.';
+    return `<div class="karte"><h2>Letzte ${S.auswertung.tage} Tage</h2>
+      <div class="kacheln"><div class="kachel"><b>${summe('chat')}</b>Chat-Nachrichten</div><div class="kachel"><b>${summe('anfrage')}</b>Anfragen</div><div class="kachel"><b>${summe('bewerben-aufruf')}</b>Aufrufe Bewerber-Seite</div><div class="kachel"><b>${summe('bewerbung')}</b>Bewerbungen</div><div class="kachel"><b>${summe('termin')}</b>Gebuchte Termine</div><div class="kachel"><b>${summe('foto')}</b>Foto-Checks</div></div>
+      <h3>Chat-Nachrichten pro Tag</h3><div class="balken" role="img" aria-label="Chat-Nachrichten pro Tag, höchster Wert ${max}">${chats.map((n, i) => `<i style="height:${Math.round(n / max * 100)}%" title="${de(tage[i])} ${n} Nachrichten"></i>`).join('')}</div>
+      <div class="zeile klein neben"><span>${de(tage[0])}</span><span class="spacer"></span><span>höchster Tag: ${max === 1 && !chats.some(Boolean) ? 0 : max}</span><span class="spacer"></span><span>${de(tage[tage.length - 1])}</span></div>
+      <details style="margin-top:14px"><summary>Als Tabelle</summary><div class="tabelle"><table><thead><tr><th>Tag</th><th>Art</th><th>Anzahl</th></tr></thead><tbody>${z.slice().reverse().map(x => `<tr><td>${de(x.tag)}</td><td>${esc(x.art)}</td><td>${x.n}</td></tr>`).join('') || '<tr><td colspan="3" class="neben">Noch keine Zahlen.</td></tr>'}</tbody></table></div></details>
+      <p class="hilfe" style="margin-top:12px">Gezählt wird ohne Cookies und ohne Personenbezug: nur „an diesem Tag gab es so viele Nachrichten“.</p></div>`;
+  },
+  verlauf: () => `<div class="raster zwei"><div class="karte"><h2>Änderungsverlauf</h2><p class="hilfe" style="margin-bottom:10px">Jede Veröffentlichung wird hier festgehalten. „Zurückholen“ lädt die alte Fassung als Entwurf – live geht sie erst mit „Veröffentlichen“.</p>
+      ${S.d.versionen.length ? `<div class="tabelle"><table><thead><tr><th>Nr.</th><th>Wann</th><th>Wer</th><th></th></tr></thead><tbody>${S.d.versionen.map(v => `<tr><td>${v.nr}</td><td>${datum(v.zeit)}</td><td>${esc(v.wer)}</td><td><button class="btn klein" data-akt="zurueck" data-nr="${v.nr}">Zurückholen</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="neben">Noch nie veröffentlicht.</p>'}
+      ${S.d.live && S.d.offen ? '<p style="margin-top:12px"><button class="btn" data-akt="verwerfen">Entwurf verwerfen (zurück zum Live-Stand)</button></p>' : ''}</div>
+    <div class="karte"><h2>Sichern und kopieren</h2><p><a class="btn" href="/admin/api/kunden/${S.id}/export">Konfiguration als Datei herunterladen</a></p>
+      <p class="hilfe">Zum Sichern oder um einen ähnlichen Kunden anzulegen: Datei in der Kundenliste über „Aus Datei anlegen“ wieder einlesen.</p>
+      <h2 style="margin-top:22px;color:var(--rot)">Kunden löschen</h2><p class="hilfe">Löscht Konfiguration, Anfragen, Bewerbungen, Unterlagen und Zahlen dieses Kunden. Das lässt sich nicht rückgängig machen.</p>
+      <div class="zeile"><input type="text" id="loeschText" placeholder="Kunden-ID eintippen: ${S.id}" style="max-width:260px" aria-label="Kunden-ID zur Bestätigung"><button class="btn gefahr" data-akt="loeschen">Endgültig löschen</button></div></div></div>`,
+};
+
+function selbsttestHtml() {
+  const t = S.selbsttest; if (!t) return '';
+  if (!t.ok) return `<p class="fehler" style="margin-top:10px">${esc(t.fehler || 'Der Selbsttest hat nicht geklappt.')}</p>`;
+  if (t.ohneKi) return '<p style="color:var(--gelb);margin-top:10px">Ohne KI-Schlüssel am Server gibt es nichts zu testen: Der Chat antwortet dann nur mit festen Beispieltexten.</p>';
+  const n = u => t.ergebnisse.filter(e => e.urteil === u).length, F = { ok: 'gruen', fehler: 'rot', lesen: 'gelb' }, W = { ok: 'In Ordnung', fehler: 'Fehler', lesen: 'Bitte lesen' };
+  const sortiert = [...t.ergebnisse].sort((a, b) => ['fehler', 'lesen', 'ok'].indexOf(a.urteil) - ['fehler', 'lesen', 'ok'].indexOf(b.urteil));
+  return `<p style="margin:12px 0 8px"><span class="marker"><span class="punkt rot"></span>${n('fehler')} Fehler</span> <span class="marker"><span class="punkt gelb"></span>${n('lesen')} zum Gegenlesen</span> <span class="marker"><span class="punkt gruen"></span>${n('ok')} in Ordnung</span></p>
+    <div class="tabelle"><table><thead><tr><th>Ergebnis</th><th>Frage und Antwort</th></tr></thead><tbody>${sortiert.map(e => `<tr><td style="white-space:nowrap"><span class="marker"><span class="punkt ${F[e.urteil]}"></span>${W[e.urteil]}</span><div class="neben klein" style="margin-top:4px">${esc(e.gruppe)}</div></td>
+      <td><b style="color:var(--h)">${esc(e.frage)}</b><div style="margin:4px 0;white-space:pre-wrap">${esc(e.antwort) || '<span class="neben">(keine Antwort)</span>'}</div>${e.zeigt.length ? `<div class="neben klein">Zeigt dazu: ${e.zeigt.map(z => ({ uebergabe: 'Kontakt-Knöpfe', anfrage_formular: 'Anfrageformular', buttons: 'Auswahl-Knöpfe' }[z] || z)).join(', ')}</div>` : ''}<div class="neben klein">${esc(e.hinweis)}</div></td></tr>`).join('')}</tbody></table></div>
+    <p class="hilfe" style="margin-top:8px">„Fehler“ beheben: meist fehlt eine Angabe unter „Wissen“ oder eine Zeile bei „Das sagt der Bot nie“. Für Antworten, die immer gleich sein müssen: „Feste Antworten“. Danach speichern und den Test wiederholen.</p>`;
+}
+
+function websiteStatus() {
+  const w = S.d.website;
+  if (!w) return 'Noch nie gelesen.';
+  const wann = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return (w.text ? `Zuletzt gelesen: ${wann(w.zeit)} · ${w.seiten.length} ${w.seiten.length === 1 ? 'Seite' : 'Seiten'}` : 'Noch kein Text gelesen') + (w.fehler ? ` · Hinweis: ${esc(w.fehler)}` : '');
+}
+
+/* ---------- Ansichten ---------- */
+function vAnmelden() {
+  const t = new URLSearchParams(location.search).get('t');
+  if (t) return `<div class="wrap"><div class="karte anmelden"><h1>Anmelden</h1><p>Du hast den Link aus der Mail geöffnet. Mit einem Klick bist du drin.</p><p><button class="btn haupt" data-akt="link" data-t="${esc(t)}">Jetzt anmelden</button></p><p class="fehler" id="lf"></p></div></div>`;
+  return `<div class="wrap"><div class="karte anmelden"><h1>Kunden-Bots · Admin</h1>
+    ${S.codeAn ? `<p>Wenn die Adresse freigeschaltet ist, kommt gleich eine Mail mit einem 6-stelligen Code.</p><label class="feld"><span class="l">Code</span><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" autofocus></label>
+      <div class="zeile"><button class="btn haupt" data-akt="code">Anmelden</button><button class="btn" data-akt="andere">Andere Adresse</button></div>`
+    : `<p class="neben">Anmelden ohne Passwort: Du bekommst einen Code per Mail.</p><label class="feld"><span class="l">E-Mail</span><input type="email" id="email" autocomplete="email" autofocus></label><button class="btn haupt" data-akt="anfordern">Code schicken</button>`}
+    <p class="fehler" id="lf"></p></div></div>`;
+}
+function vListe() {
+  const s = S.start, sv = s.server;
+  const warn = [!sv.ki && 'KI-Schlüssel fehlt', !sv.mail && 'Mailversand nicht eingerichtet', !sv.sitzung && 'SESSION_SECRET nicht gesetzt', sv.pausiert && 'Notbremse aktiv: alle Bots pausiert'].filter(Boolean);
+  return `<div class="wrap"><div class="zeile" style="margin-bottom:16px"><h1 style="margin:0">Kunden</h1><span class="spacer"></span>
+    <button class="btn" data-akt="demos">Branchen-Demos</button><label class="btn">Aus Datei anlegen<input type="file" id="importDatei" accept="application/json,.json" hidden></label><button class="btn haupt" data-akt="neu">+ Neuer Kunde</button></div>
+    ${s.kunden.some(k => k.id.startsWith('demo-')) ? `<div class="karte" style="margin-bottom:14px"><b style="color:var(--h)">Beispielbetriebe für Vorführungen:</b> ${s.kunden.filter(k => k.id.startsWith('demo-')).length} Branchen. <a href="/demos" target="_blank" rel="noopener">Übersicht öffnen</a> – diesen Link kann Giosuè im Gespräch zeigen. Die Betriebe stehen unten in der Liste und lassen sich wie jeder Kunde anpassen.</div>` : ''}
+    ${warn.length ? `<div class="karte" style="border-color:var(--gelb);margin-bottom:14px"><b style="color:var(--gelb)">Am Server fehlt noch etwas:</b> ${warn.map(esc).join(' · ')}. Anleitung in SECRETS.md.</div>` : ''}
+    <div class="karte" style="padding:6px 8px"><div class="tabelle"><table><thead><tr><th>Kunde</th><th>Status</th><th>Paket</th><th>Module</th><th>Test bis</th><th>Letzte Aktivität</th><th>Einrichtung</th></tr></thead><tbody>
+    ${[...s.kunden.filter(k => !k.id.startsWith('demo-')), ...s.kunden.filter(k => k.id.startsWith('demo-'))].map(k => `<tr class="klick" data-akt="oeffnen" data-id="${k.id}" tabindex="0"><td><b style="color:var(--h)">${esc(k.firmenname)}</b><div class="neben klein">${k.id}</div></td>
+      <td><span class="marker">${esc(s.status[k.status])}</span>${k.live ? (k.offen ? '<div class="neben klein">Änderungen offen</div>' : '') : '<div class="neben klein">nur Entwurf</div>'}</td>
+      <td>${esc((s.pakete.find(p => p.id === k.paket) || {}).name)}</td><td>${k.module.map(m => esc(s.modulNamen[m])).join(', ') || '<span class="neben">keins</span>'}</td>
+      <td>${k.testBis ? esc(k.testBis.split('-').reverse().join('.')) : '–'}</td><td>${tag(k.letzteAktivitaet)}</td>
+      <td><span class="marker"><span class="punkt ${k.ampel}"></span>${AMPEL[k.ampel]}</span></td></tr>`).join('')}
+    ${s.eingebaut.map(k => `<tr><td><b style="color:var(--h)">${esc(k.firmenname)}</b><div class="neben klein">${k.id}</div></td><td><span class="marker">Aktiv</span></td><td colspan="5" class="neben klein">${esc(k.hinweis)}</td></tr>`).join('')}
+    </tbody></table></div></div>
+    ${s.kunden.length ? '' : '<p class="neben" style="margin-top:14px">Noch kein Kunde angelegt. Mit „+ Neuer Kunde“ geht es in sechs kurzen Schritten.</p>'}</div>`;
+}
+const SCHRITTE = ['Branche', 'Betrieb', 'Aussehen', 'Paket & Module', 'Mails & Recht', 'Prüfen'];
+function vNeu() {
+  const n = S.neu; S.K = n.k;
+  const erlaubt = (S.start.pakete.find(p => p.id === n.k.paket) || { module: [] }).module;
+  const schritt = [
+    () => `<h2>Welche Branche?</h2><p class="hilfe" style="margin-bottom:12px">Die Vorlage bringt passende Leistungen, Fragen, Stellen und Regeln mit. Alles lässt sich danach ändern.</p><div class="wahl">${S.start.vorlagen.map(v => `<button data-akt="branche" data-b="${v.id}" class="${n.k.stammdaten.branche === v.id ? 'an' : ''}">${esc(v.name)}</button>`).join('')}</div>`,
+    () => `<h2>Der Betrieb</h2>${feld('stammdaten.firmenname', 'Firmenname *')}${feld('id', 'Kunden-ID *', 'text', { platz: 'wird aus dem Firmennamen gebildet' })}${feld('stammdaten.brancheText', 'Was macht der Betrieb? *')}
+      ${feld('stammdaten.email', 'E-Mail des Betriebs *', 'mail')}<div class="raster zwei">${feld('stammdaten.telefon', 'Telefon')}${feld('stammdaten.website', 'Website', 'text', { platz: 'https://www.beispiel.de' })}</div>
+      ${feld('stammdaten.strasse', 'Straße und Hausnummer')}<div class="raster zwei">${feld('stammdaten.plz', 'PLZ')}${feld('stammdaten.ort', 'Ort')}</div>${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}`,
+    () => `<h2>Aussehen und Ton</h2>${feld('aussehen.botName', 'Name des Bots')}<div class="raster zwei">${feld('aussehen.primaerfarbe', 'Hauptfarbe (Firmenfarbe)', 'farbe')}${feld('ton.anrede', 'Anrede im Kunden-Chat', 'wahl', { optionen: [['Sie', 'Sie'], ['du', 'du']] })}</div>`,
+    () => `<h2>Paket und Module</h2>${feld('paket', 'Paket', 'wahl', { optionen: S.start.pakete.map(p => [p.id, p.name]) })}
+      ${feld('module.bewerberChat.aktiv', 'Bewerber-Chat einschalten', 'haken', { aus: !erlaubt.includes('bewerberChat') })}${feld('module.kundenChat.aktiv', 'Kunden-Chat einschalten', 'haken', { aus: !erlaubt.includes('kundenChat'), hilfe: erlaubt.includes('kundenChat') ? '' : 'Im gewählten Paket nicht enthalten.' })}
+      ${erlaubt.includes('terminBot') ? feld('module.terminBot.aktiv', 'Termin-Bot einschalten', 'haken', { hilfe: 'Braucht die Kalender-ID des Kunden. Die trägst du nach dem Anlegen unter „Module“ ein.' }) + feld('module.anfrageChat.aktiv', 'Anfrage-Chat einschalten', 'haken', { hilfe: 'Mit den Sicherheitsregeln aus der Branchen-Vorlage.' }) : ''}
+      ${feld('status', 'Status', 'wahl', { optionen: [['test', 'Test'], ['aktiv', 'Aktiv']] })}${feld('testBis', 'Testphase bis', 'datum')}`,
+    () => `<h2>Mails und Recht</h2>${feld('benachrichtigungen.bewerbungen', 'Bewerbungen gehen an', 'zeilen', { zeilen: 2 })}${feld('benachrichtigungen.anfragen', 'Anfragen gehen an', 'zeilen', { zeilen: 2 })}
+      <p class="hilfe" style="margin:-6px 0 14px">Leer lassen = E-Mail des Betriebs.</p>${feld('rechtliches.datenschutzUrl', 'Link zur Datenschutzerklärung', 'text', { platz: 'https://…' })}<p class="hilfe" style="margin:-6px 0 0">Kann nachgetragen werden, ist aber Pflicht vor dem Veröffentlichen.</p>`,
+    () => `<h2>Prüfen und anlegen</h2><dl class="daten"><dt>Firma</dt><dd>${esc(n.k.stammdaten.firmenname)}</dd><dt>Kunden-ID</dt><dd>${esc(n.k.id)}</dd><dt>Branche</dt><dd>${esc((S.start.vorlagen.find(v => v.id === n.k.stammdaten.branche) || {}).name)}</dd>
+      <dt>Paket</dt><dd>${esc((S.start.pakete.find(p => p.id === n.k.paket) || {}).name)}</dd><dt>Module</dt><dd>${ALLE_MODULE.filter(m => n.k.module[m].aktiv).map(m => S.start.modulNamen[m]).join(', ') || 'keins'}</dd><dt>Status</dt><dd>${esc(S.start.status[n.k.status])}${n.k.testBis ? ' bis ' + esc(n.k.testBis.split('-').reverse().join('.')) : ''}</dd></dl>
+      <p class="hilfe" style="margin-top:14px">Der Kunde wird als Entwurf angelegt und ist noch nicht live. Danach: Leistungen und Stellen anpassen, testen, veröffentlichen.</p>
+      ${Object.keys(S.fehler).length ? `<div class="fehler" style="margin-top:10px">${Object.entries(S.fehler).map(([f, t]) => `${esc(f)}: ${esc(t)}`).join('<br>')}</div>` : ''}`,
+  ][n.schritt]();
+  return `<div class="wrap" style="max-width:760px"><p><a href="#" data-akt="liste">← Kundenliste</a></p><h1>Neuer Kunde</h1>
+    <div class="schritte">${SCHRITTE.map((s, i) => `<span class="${i === n.schritt ? 'an' : ''}">${i + 1}. ${s}</span>`).join('')}</div>
+    <div class="karte">${schritt}</div>
+    <div class="zeile" style="margin-top:14px">${n.schritt > 0 ? '<button class="btn" data-akt="nzurueck">Zurück</button>' : ''}<span class="spacer"></span>
+      ${n.schritt < 5 ? `<button class="btn haupt" data-akt="nweiter" ${n.schritt === 0 && !n.k.stammdaten.branche ? 'disabled' : ''}>Weiter</button>` : '<button class="btn haupt" data-akt="nanlegen">Kunden anlegen</button>'}</div></div>`;
+}
+function vKunde() {
+  const d = S.d, form = FORMULAR.includes(S.reiter);
+  const stand = d.live ? (d.offen ? ['gelb', 'Live · Änderungen noch nicht veröffentlicht'] : ['gruen', 'Live']) : ['gelb', 'Entwurf · noch nicht live'];
+  return `<div class="wrap"><p><a href="#" data-akt="liste">← Kundenliste</a></p>
+    <div class="zeile"><div><h1 style="margin:0">${esc(S.K.stammdaten.firmenname)}</h1><div class="neben klein">${S.id}</div></div><span class="marker"><span class="punkt ${stand[0]}"></span>${stand[1]}</span><span class="spacer"></span>
+      <button class="btn haupt" data-akt="live" ${d.live && !d.offen && !S.geaendert ? 'disabled' : ''}>Veröffentlichen</button></div>
+    <nav class="reiter" aria-label="Bereiche">${REITER.map(([id, name]) => `<button class="${id === S.reiter ? 'an' : ''}" data-akt="reiter" data-r="${id}">${name}</button>`).join('')}</nav>
+    ${T[S.reiter]()}</div>
+    ${form ? `<div class="leiste"><div class="wrap zeile"><span class="neben" id="stand">${S.geaendert ? 'Ungespeicherte Änderungen' : 'Alles gespeichert'}</span><span class="spacer"></span><button class="btn haupt" data-akt="speichern">Speichern</button></div></div>` : ''}`;
+}
+function zeichne() {
+  const app = $('#app');
+  if (!S.ich) { app.innerHTML = vAnmelden(); return; }
+  const kopf = `<header class="top"><div class="wrap"><a class="marke" href="#" data-akt="liste">Kunden-Bots<small>Admin</small></a><span class="spacer"></span><span class="neben klein">${esc(S.ich)}</span><button class="btn klein" data-akt="abmelden">Abmelden</button></div></header>`;
+  app.innerHTML = kopf + '<main>' + (S.ansicht === 'neu' ? vNeu() : S.ansicht === 'kunde' && S.d ? vKunde() : vListe()) + '</main>';
+}
+
+/* ---------- Laden und Speichern ---------- */
+async function ladeStart() { const r = await api('/start'); if (r.ok) { S.ich = r.ich; S.start = r; } else S.ich = null; }
+async function oeffne(id, reiter) {
+  const r = await api('/kunden/' + id);
+  if (!r.ok) { toast(r.fehler || 'Kunde nicht gefunden.'); return; }
+  Object.assign(S, { ansicht: 'kunde', id, d: r, K: r.kunde, geaendert: false, fehler: {}, vorgaenge: null, auswertung: null, offen: {} }); if (S.testFuer !== id) { S.selbsttest = null; S.testFuer = id; }
+  if (reiter) S.reiter = reiter;
+  zeichne();
+}
+function zeigeFehler(liste) {
+  S.fehler = {}; for (const f of liste || []) S.fehler[f.feld] = f.text;
+  const erster = (liste || [])[0];
+  if (erster) { const r = { stammdaten: 'stammdaten', id: 'stammdaten', status: 'stammdaten', paket: 'stammdaten', testBis: 'stammdaten', notiz: 'stammdaten', aussehen: 'aussehen', ton: 'aussehen', wissen: 'wissen', module: 'module', benachrichtigungen: 'mails', rechtliches: 'recht', technik: 'recht', zugang: 'stammdaten' }[erster.feld.split('.')[0]]; if (r && S.ansicht === 'kunde') S.reiter = r; }
+}
+async function speichern(leise) {
+  const r = await api('/kunden/' + S.id, { method: 'PUT', body: { kunde: S.K, stand: S.d.geaendert } });
+  if (!r.ok) { zeigeFehler(Array.isArray(r.fehler) ? r.fehler : []); zeichne(); toast(Array.isArray(r.fehler) ? `Bitte ${r.fehler.length} Angabe(n) korrigieren (rot markiert).` : (r.fehler || 'Speichern hat nicht geklappt.')); return false; }
+  const reiter = S.reiter; await oeffne(S.id, reiter); if (!leise) toast('Gespeichert. Noch nicht live – dafür „Veröffentlichen“.');
+  return true;
+}
+async function ladeVorgaenge() { const r = await api(`/kunden/${S.id}/vorgaenge`); S.vorgaenge = r.vorgaenge || []; if (S.reiter === 'vorgaenge') zeichne(); }
+async function ladeAuswertung() { const r = await api(`/kunden/${S.id}/auswertung?tage=30`); S.auswertung = r.ok ? r : { tage: 30, zeilen: [] }; if (S.reiter === 'auswertung') zeichne(); }
+const verlassen = () => !S.geaendert || confirm('Es gibt ungespeicherte Änderungen. Trotzdem weiter?');
+function leererKunde() {
+  const in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+  return { id: '', status: 'test', paket: 'bewerber', testBis: in30, stammdaten: { firmenname: '', branche: '', brancheText: '', email: '', telefon: '', website: '', strasse: '', plz: '', ort: '', oeffnungszeiten: '', ansprechpartner: '' },
+    aussehen: { botName: 'Assistent', primaerfarbe: '#1f2a37' }, ton: { anrede: 'Sie' }, module: { kundenChat: { aktiv: false }, bewerberChat: { aktiv: true }, terminBot: { aktiv: false }, anfrageChat: { aktiv: false } }, benachrichtigungen: { anfragen: [], bewerbungen: [] }, rechtliches: { datenschutzUrl: '' } };
+}
+
+/* ---------- Klicks ---------- */
+const AKT = {
+  async anfordern() { const email = $('#email').value.trim(); if (!email) return; const r = await api('/anmelden', { body: { email } }); if (!r.ok) { $('#lf').textContent = r.fehler || 'Das hat nicht geklappt.'; return; } S.codeAn = email; zeichne(); },
+  async code() { const r = await api('/einloesen', { body: { email: S.codeAn, code: $('#code').value } }); if (!r.ok) { $('#lf').textContent = r.fehler || 'Der Code stimmt nicht.'; return; } await start(); },
+  async link(el) { const r = await api('/einloesen', { body: { token: el.dataset.t } }); history.replaceState(null, '', '/admin'); if (!r.ok) { zeichne(); $('#lf').textContent = 'Der Link ist abgelaufen oder wurde schon benutzt. Bitte einen neuen Code anfordern.'; return; } await start(); },
+  andere() { S.codeAn = null; zeichne(); },
+  async abmelden() { await api('/abmelden', { body: {} }); S.ich = null; S.codeAn = null; zeichne(); },
+  async liste() { if (!verlassen()) return; await ladeStart(); Object.assign(S, { ansicht: 'liste', d: null, geaendert: false, fehler: {} }); zeichne(); },
+  oeffnen(el) { oeffne(el.dataset.id, 'uebersicht'); },
+  reiter(el) { S.reiter = el.dataset.r; zeichne(); window.scrollTo(0, 0); },
+  async demos() {
+    const gibt = S.start.kunden.some(k => k.id.startsWith('demo-'));
+    if (!confirm(gibt ? 'Fehlende Beispielbetriebe ergänzen? Vorhandene bleiben unverändert.' : 'Für jede Branche einen erfundenen Beispielbetrieb anlegen und veröffentlichen? Damit lassen sich die Bots im Gespräch vorführen.')) return;
+    const r = await api('/demos', { body: {} });
+    if (!r.ok) { toast(r.fehler || 'Das hat nicht geklappt.'); return; }
+    await ladeStart(); zeichne(); toast(r.angelegt.length ? `${r.angelegt.length} Beispielbetriebe angelegt. Übersicht: /demos` : 'Alle Beispielbetriebe sind schon da.');
+  },
+  neu() { S.neu = { schritt: 0, k: leererKunde(), idSelbst: false }; S.fehler = {}; S.ansicht = 'neu'; zeichne(); },
+  async branche(el) {
+    const n = S.neu, r = await api('/vorlage/' + el.dataset.b);
+    n.k.stammdaten.branche = el.dataset.b;
+    if (r.ok) { const v = r.werte; n.k.stammdaten.brancheText = v.stammdaten.brancheText || ''; n.k.stammdaten.oeffnungszeiten = v.stammdaten.oeffnungszeiten || ''; if (v.ton && v.ton.anrede) n.k.ton.anrede = v.ton.anrede; }
+    zeichne();
+  },
+  nzurueck() { S.neu.schritt--; zeichne(); },
+  nweiter() {
+    const n = S.neu, k = n.k, f = {};
+    if (n.schritt === 1) { if (!k.stammdaten.firmenname.trim()) f['stammdaten.firmenname'] = 'Bitte den Firmennamen eintragen.'; if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(k.id) || k.id.length < 3) f.id = 'Mindestens 3 Zeichen: Kleinbuchstaben, Zahlen, Bindestriche.'; if (!k.stammdaten.brancheText.trim()) f['stammdaten.brancheText'] = 'Bitte ausfüllen.'; if (!/^\S+@\S+\.\S{2,}$/.test(k.stammdaten.email)) f['stammdaten.email'] = 'Bitte eine E-Mail-Adresse eintragen.'; if (k.stammdaten.website && !/^https:\/\//.test(k.stammdaten.website)) f['stammdaten.website'] = 'Adresse muss mit https:// anfangen.'; }
+    S.fehler = f; if (!Object.keys(f).length) n.schritt++; zeichne(); window.scrollTo(0, 0);
+  },
+  async nanlegen() {
+    const r = await api('/kunden', { body: { kunde: S.neu.k } });
+    if (!r.ok) { zeigeFehler(Array.isArray(r.fehler) ? r.fehler : [{ feld: 'Fehler', text: r.fehler || 'Anlegen hat nicht geklappt.' }]); zeichne(); return; }
+    S.neu = null; await ladeStart(); await oeffne(r.id, 'uebersicht'); toast('Kunde angelegt. Jetzt Leistungen und Stellen anpassen, dann testen.');
+  },
+  speichern() { speichern(); },
+  async websiteLesen() {
+    if (S.geaendert && !(await speichern(true))) return;
+    S.websiteLaeuft = true; zeichne();
+    const r = await api(`/kunden/${S.id}/website-lesen`, { body: {} });
+    S.websiteLaeuft = false;
+    if (r.ok) S.d.website = r.website;
+    zeichne(); toast(!r.ok ? (r.fehler || 'Das hat nicht geklappt.') : r.website.text ? `Gelesen: ${r.website.seiten.length} Seite(n). Klapp die Vorschau auf und lies kurz drüber.` : `Nichts gelesen: ${r.website.fehler}`);
+  },
+  async preiswunsch(el) {
+    const ja = el.dataset.ja === '1';
+    if (!confirm(ja ? 'Die neuen Preise übernehmen? Der Bot nennt sie ab sofort.' : 'Die Preisänderungen des Kunden ablehnen? Die bisherigen Preise bleiben.')) return;
+    if (S.geaendert && !(await speichern(true))) return;
+    const r = await api(`/kunden/${S.id}/preiswunsch`, { body: { annehmen: ja } });
+    if (!r.ok) { toast(r.fehler || 'Das hat nicht geklappt.'); return; }
+    await oeffne(S.id, 'uebersicht'); toast(ja ? 'Übernommen. Die neuen Preise sind live.' : 'Abgelehnt. Die bisherigen Preise bleiben.');
+  },
+  async live() {
+    if (S.geaendert && !(await speichern(true))) return;
+    let r = await api(`/kunden/${S.id}/veroeffentlichen`, { body: {} });
+    if (!r.ok && r.rot && confirm(r.fehler + '\n\nTrotzdem veröffentlichen? (Nur sinnvoll, wenn du weißt, warum.)')) r = await api(`/kunden/${S.id}/veroeffentlichen`, { body: { trotzdem: true } });
+    if (!r.ok) { toast(r.fehler || 'Veröffentlichen hat nicht geklappt.'); if (r.rot) { S.reiter = 'uebersicht'; zeichne(); } return; }
+    await oeffne(S.id, S.reiter); toast('Veröffentlicht. Die Bots beim Kunden nutzen jetzt diesen Stand.');
+  },
+  dazu(el) { const a = hol(S.K, el.dataset.pfad) || []; a.push(JSON.parse(el.dataset.neu)); setz(S.K, el.dataset.pfad, a); S.geaendert = true; zeichne(); },
+  raus(el) { const a = hol(S.K, el.dataset.pfad); a.splice(Number(el.dataset.i), 1); S.geaendert = true; S.fehler = {}; zeichne(); },
+  vorschau(el) { S.vorschau = el.dataset.v; zeichne(); },
+  async kopieren(el) { try { await navigator.clipboard.writeText(el.dataset.text); toast('Kopiert.'); } catch (e) { toast('Kopieren geht hier nicht. Bitte den Text markieren.'); } },
+  async testmail() { if (S.geaendert && !(await speichern(true))) return; const r = await api(`/kunden/${S.id}/testmail`, { body: {} }); toast(r.ok ? 'Test-Mail verschickt an: ' + r.ergebnis.filter(x => x.ok).map(x => x.an).join(', ') : 'Die Test-Mail ging nicht raus. Ist der Mailversand am Server eingerichtet?'); },
+  async selbsttest() { if (S.geaendert && !(await speichern(true))) return; S.testLaeuft = true; S.selbsttest = null; zeichne(); S.selbsttest = await api(`/kunden/${S.id}/selbsttest`, { body: {} }); S.testLaeuft = false; zeichne(); },
+  async kalendertest() { if (S.geaendert && !(await speichern(true))) return; const r = await api(`/kunden/${S.id}/kalendertest`, { body: {} }); alert(r.ok ? r.text : r.fehler); },
+  'vorgaenge-neu'() { S.vorgaenge = null; zeichne(); },
+  auf(el) { S.offen[el.dataset.v] = !S.offen[el.dataset.v]; zeichne(); },
+  async vweg(el) { if (!confirm('Diesen Eintrag endgültig löschen?')) return; await api(`/kunden/${S.id}/vorgaenge/${el.dataset.v}`, { body: { loeschen: true } }); S.vorgaenge = null; zeichne(); },
+  async zurueck(el) { if (!confirm(`Fassung ${el.dataset.nr} als Entwurf laden? Der jetzige Entwurf wird überschrieben.`)) return; const r = await api(`/kunden/${S.id}/wiederherstellen`, { body: { nr: Number(el.dataset.nr) } }); if (!r.ok) { toast(r.fehler); return; } await oeffne(S.id, 'uebersicht'); toast('Alte Fassung als Entwurf geladen. Zum Übernehmen: „Veröffentlichen“.'); },
+  async verwerfen() { if (!confirm('Entwurf verwerfen und zum Live-Stand zurück?')) return; await api(`/kunden/${S.id}/verwerfen`, { body: {} }); await oeffne(S.id, 'uebersicht'); },
+  async loeschen() { const r = await api('/kunden/' + S.id, { method: 'DELETE', body: { bestaetigung: $('#loeschText').value } }); if (!r.ok) { toast(r.fehler); return; } toast('Kunde gelöscht.'); S.geaendert = false; await AKT.liste(); },
+};
+document.addEventListener('click', e => { const el = e.target.closest('[data-akt]'); if (!el || el.disabled) return; if (el.tagName === 'A' || el.tagName === 'BUTTON') e.preventDefault(); const f = AKT[el.dataset.akt]; if (f) f(el); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('tr.klick')) AKT.oeffnen(e.target); if (e.key === 'Enter' && e.target.id === 'email') AKT.anfordern(); if (e.key === 'Enter' && e.target.id === 'code') AKT.code(); });
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.mehr) { const a = [...document.querySelectorAll(`[data-mehr="${el.dataset.mehr}"]:checked`)].map(x => x.value); setz(S.K, el.dataset.mehr, a); S.geaendert = true; }
+  else if (el.dataset.pfad) {
+    setz(S.K, el.dataset.pfad, leseFeld(el)); S.geaendert = true;
+    if (el.dataset.art === 'farbe' && el.nextElementSibling) el.nextElementSibling.textContent = el.value;
+    // Neuer Kunde: ID aus dem Firmennamen vorschlagen, solange sie niemand selbst getippt hat
+    if (S.ansicht === 'neu') { if (el.dataset.pfad === 'id') S.neu.idSelbst = true; if (el.dataset.pfad === 'stammdaten.firmenname' && !S.neu.idSelbst) { S.neu.k.id = slug(el.value); const i = $('[data-pfad="id"]'); if (i) i.value = S.neu.k.id; } }
+  }
+  const st = $('#stand'); if (st && S.geaendert) st.textContent = 'Ungespeicherte Änderungen';
+});
+document.addEventListener('change', async e => {
+  const el = e.target;
+  if (el.dataset.vstatus) { await api(`/kunden/${S.id}/vorgaenge/${el.dataset.vstatus}`, { body: { status: el.value } }); const v = S.vorgaenge.find(x => x.id === el.dataset.vstatus); if (v) v.status = el.value; toast('Status gespeichert.'); }
+  // Paket oder Modul-Schalter ändern, was sonst noch sichtbar oder erlaubt ist → neu zeichnen
+  if (el.dataset.pfad === 'paket' || (S.ansicht === 'neu' && el.dataset.pfad === 'paket') || (S.ansicht === 'neu' && el.dataset.pfad === 'status')) zeichne();
+  if (el.id === 'importDatei' && el.files[0]) {
+    try {
+      const k = JSON.parse(await el.files[0].text());
+      const id = prompt('Kunden-ID für den neuen Kunden (Kleinbuchstaben, Zahlen, Bindestriche):', (k.id || '') + '-kopie'); if (!id) return;
+      const name = prompt('Firmenname:', k.stammdaten && k.stammdaten.firmenname || ''); if (!name) return;
+      k.id = id.trim(); k.stammdaten.firmenname = name.trim(); k.status = 'test';
+      const r = await api('/kunden', { body: { kunde: k, import: true } });
+      if (!r.ok) { toast(Array.isArray(r.fehler) ? r.fehler.map(f => f.feld + ': ' + f.text).join(' · ') : r.fehler); return; }
+      await ladeStart(); await oeffne(r.id, 'uebersicht'); toast('Aus Datei angelegt (als Entwurf).');
+    } catch (x) { toast('Die Datei konnte nicht gelesen werden.'); }
+  }
+});
+window.addEventListener('beforeunload', e => { if (S.geaendert) { e.preventDefault(); e.returnValue = ''; } });
+
+async function start() { await ladeStart(); S.ansicht = 'liste'; zeichne(); }
+start();
+</script>
+</body>
+</html>

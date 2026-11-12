@@ -1,8 +1,11 @@
 // Sicherheitsschichten im Code. Sie greifen unabhängig davon, was das Modell
 // schreibt: Ein Prompt kann ausgetrickst werden, diese Prüfungen nicht.
-import { allePakete, canary, config, texte } from "./config.ts";
+import { allePakete, canary, texte } from "./config.ts";
+import { aktuell, jeKunde, sicht } from "./kontext.ts";
 
-export const katalogBetraege: number[] = allePakete.map((p) => p.preis).filter((x): x is number => x !== null);
+const _katalog = jeKunde((l) => l.allePakete.map((p) => p.preis).filter((x): x is number => x !== null));
+/** Alle Preise aus der Preisliste des aktuellen Kunden. */
+export const katalogBetraege: number[] = sicht(_katalog, true);
 
 // Beträge wie "59,99 €", "€ 59,99", "1.299,00 EUR", "60 Euro", "59.99€"
 const BETRAG = /(?:€|eur(?:o)?\b)\s*(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)|(\d{1,5}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)\s*(?:€|eur(?:o)?\b|,-)/gi;
@@ -37,14 +40,14 @@ const ZUSAGE = [
 ];
 const RABATT = /(rabatt|nachlass|skonto|preisnachlass|discount|günstiger machen|sonderpreis)/i;
 
-export type Pruefung = { ok: true } | { ok: false; grund: "betrag" | "zusage" | "rabatt" | "canary"; detail: string };
+export type Pruefung = { ok: true } | { ok: false; grund: "betrag" | "zusage" | "rabatt" | "canary" | "verboten"; detail: string };
 
-const ERLAUBTE_PHRASEN: RegExp[] = (config.pruefung?.erlaubtePhrasen || []).map(
-  (p: string) => new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi"));
+const erlaubtePhrasen = jeKunde((l): RegExp[] => (l.config.pruefung?.erlaubtePhrasen || []).map(
+  (p: string) => new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "gi")));
 
 export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
   if (text.includes(canary())) return { ok: false, grund: "canary", detail: "System-Prompt-Leak" };
-  const ohneErlaubte = ERLAUBTE_PHRASEN.reduce((t, re) => t.replace(re, " "), text);
+  const ohneErlaubte = erlaubtePhrasen().reduce((t, re) => t.replace(re, " "), text);
   for (const b of findeBetraege(text)) {
     if (!erlaubt.some((e) => Math.abs(e - b) < 0.006)) return { ok: false, grund: "betrag", detail: String(b) };
   }
@@ -55,10 +58,37 @@ export function pruefeAntwort(text: string, erlaubt: number[]): Pruefung {
   for (const satz of text.split(/(?<=[.!?\n])/)) {
     if (RABATT.test(satz) && /\d+\s?%/.test(satz)) return { ok: false, grund: "rabatt", detail: satz.trim() };
   }
+  // Wörter, die dieser Kunde in keiner Antwort sehen will
+  const klein = normText(text);
+  for (const w of verbotene()) if (klein.includes(w)) return { ok: false, grund: "verboten", detail: w };
   return { ok: true };
 }
 
-export const ERSATZ_ANTWORT = texte.ersatz;
+/** Einheitliche Schreibweise für den Wortvergleich: klein, ß → ss, Leerraum zusammengefasst. */
+export const normText = (s: string) => String(s || "").toLowerCase().replace(/ß/g, "ss").replace(/\s+/g, " ");
+const verbotene = jeKunde((l): string[] => (l.config.verboteneWoerter || []).map(normText).filter((w: string) => w.length >= 3));
+
+/**
+ * Feste Antworten: Kommt in der Nachricht ein hinterlegtes Stichwort vor, steht die
+ * Antwort Wort für Wort fest und die KI wird nicht gefragt. `liste` = eigene Liste
+ * (z. B. Bewerber-Chat), sonst die des Kunden-Chats.
+ */
+export function festeAntwort(nachricht: string, liste?: { stichworte: string[]; antwort: string }[]): string | null {
+  const t = normText(nachricht);
+  for (const f of liste || aktuell().config.festeAntworten || []) {
+    if (f.antwort && f.stichworte.some((w: string) => w.trim().length >= 3 && amWortanfang(t, normText(w.trim())))) return f.antwort;
+  }
+  return null;
+}
+
+/** Steht `wort` im Text und beginnt dort ein Wort? („Lohn“ trifft „Lohn“ und „Lohnzettel“, aber nicht „Stundenlohn“ oder „belohnt“.) */
+function amWortanfang(text: string, wort: string): boolean {
+  for (let i = text.indexOf(wort); i >= 0; i = text.indexOf(wort, i + 1)) if (i === 0 || !/[a-zäöü0-9]/.test(text[i - 1])) return true;
+  return false;
+}
+
+/** Ersatzantwort des Standard-Kunden (für Tests). Im Betrieb: texte.ersatz */
+export const ERSATZ_ANTWORT = aktuell().texte.ersatz;
 
 /**
  * Entfernt ein fälschlich vorangestelltes „ab“, wenn im selben Satz ein Paket
@@ -90,7 +120,8 @@ export function istInjection(text: string): boolean {
   return INJECTION.some((re) => re.test(text));
 }
 
-export const INJECTION_ANTWORT = texte.injection;
+/** Antwort des Standard-Kunden (für Tests). Im Betrieb: texte.injection */
+export const INJECTION_ANTWORT = aktuell().texte.injection;
 
 // Gibt beim Streamen nur vollständige Sätze frei, damit jeder Satz geprüft
 // werden kann, bevor der Kunde ihn sieht.

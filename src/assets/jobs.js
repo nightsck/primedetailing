@@ -31,6 +31,9 @@ const OPT = {
   praktikum_art: { text: 'Was für ein Praktikum suchst du?', label: 'Praktikum', opts: [['Schulpraktikum', 'Schulpraktikum'], ['Pflichtpraktikum (Ausbildung/Studium)', 'Für Ausbildung oder Studium'], ['freiwillig', 'Freiwillig, zum Reinschnuppern']] },
   zeitraum: { text: 'Wann soll das Praktikum sein?', label: 'Zeitraum', opts: [['in den nächsten Ferien', 'In den nächsten Ferien'], ['in den nächsten 3 Monaten', 'In den nächsten 3 Monaten'], ['später, nach Absprache', 'Später, nach Absprache']] }
 };
+// Andere Betriebe können eigene Fragen mitgeben (D.fragen); ohne Angabe gelten die oben.
+Object.assign(OPT, D.fragen || {});
+const FRIST = D.frist || '6 Monaten';
 const STELLEN = (D.stellen || []).map(s => Object.assign({}, s, { fragen: (s.fragen || []).filter(f => OPT[f]) }));
 const ERREICHBAR = ['vormittags', 'nachmittags', 'ab 17 Uhr', 'egal'];
 const MAX_DATEIEN = 5, MAX_GROESSE = 10 * 1048576;
@@ -163,11 +166,11 @@ function lokaleAntwort(t) {
   if (/gehalt|lohn|verdien|geld|bezahl|stundenlohn/.test(s)) return 'Das hängt von der Stelle ab. Das besprechen wir offen mit dir im ersten Gespräch.';
   if (/arbeitszeit|uhrzeit|wann arbeit|samstag|wochenende|stunden/.test(s) && D.zeiten) return D.zeiten;
   if (/lebenslauf|zeugnis|anschreiben|unterlagen|dokument/.test(s)) return 'Brauchst du nicht unbedingt. Wenn du magst, kannst du gleich Lebenslauf oder Zeugnisse anhängen, auch als Handyfoto.';
-  if (/wo |adresse|anfahrt|standort|wo seid|werkstatt/.test(s)) return `Wir sind mobil unterwegs und arbeiten direkt beim Kunden, in ${D.gebiet || 'der Region'}.`;
+  if (/wo |adresse|anfahrt|standort|wo seid|werkstatt/.test(s)) return D.ort ? D.ort : `Wir sind mobil unterwegs und arbeiten direkt beim Kunden, in ${D.gebiet || 'der Region'}.`;
   if (/\bki\b|bot|mensch|computer/.test(s)) return 'Ich bin ein Assistent mit KI. Deine Bewerbung lesen wir selbst, ich bewerte und sortiere niemanden.';
   if (/wie lange|wann melde|antwort|rückmeld|dauert|wie geht/.test(s) && D.ablauf) return D.ablauf;
   if (/bietet|vorteil|benefits|was gibt/.test(s) && D.bietet) return D.bietet;
-  if (/daten|lösch|datenschutz/.test(s)) return 'Deine Angaben bekommen nur wir. Sie werden nach 6 Monaten gelöscht, auf Wunsch auch früher.';
+  if (/daten|lösch|datenschutz/.test(s)) return 'Deine Angaben bekommen nur wir. Sie werden nach ' + FRIST + ' gelöscht, auf Wunsch auch früher.';
   if (st && /stelle|aufgabe|was mach|tätigkeit/.test(s)) return `${st.name}: ${st.text}`;
   return 'Gute Frage. Das beantworten wir dir am besten persönlich im Gespräch.';
 }
@@ -233,7 +236,7 @@ function mailFelder(links, linkFehler) {
   return f;
 }
 function klartext(f) {
-  return ['Hallo Prime Detailing, über die Website hat das Senden nicht geklappt. Hier meine Bewerbung:', ''].concat(Object.keys(f).filter(k => k !== 'Unterlagen' && k !== 'Fragen an den Assistenten').map(k => `${k}: ${f[k]}`)).join('\n');
+  return [`Hallo ${D.name}, über die Website hat das Senden nicht geklappt. Hier meine Bewerbung:`, ''].concat(Object.keys(f).filter(k => k !== 'Unterlagen' && k !== 'Fragen an den Assistenten').map(k => `${k}: ${f[k]}`)).join('\n');
 }
 async function abschicken(form, idx) {
   const ok = form.querySelector('[name=ok]').checked, err = form.querySelector('.jb-err');
@@ -254,10 +257,17 @@ async function abschicken(form, idx) {
   const st = stelle();
   let gesendet = false;
   try {
+    if (D.versand === 'server') {
+      // Bewerbung geht an den Chat-Server: Er speichert sie und schickt die Mail an den Betrieb.
+      const r = await mitFrist(API + '/api/jobs/bewerbung', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stelle: st ? st.id : '', name: S.a.name, telefon: S.a.telefon || '', email: S.a.email || '', felder, dateien: ids, einwilligung: true }) }, 20000);
+      const j = await r.json();
+      gesendet = !!(j && j.ok);
+    } else {
     const daten = Object.assign({ access_key: D.web3forms, subject: `Bewerbung: ${st ? st.name : 'Initiativ'} – ${S.a.name}`, from_name: 'Bewerber-Chat primedetailing.eu' }, S.a.email ? { replyto: S.a.email } : {}, felder);
     const r = await mitFrist('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(daten) }, 20000);
     const j = await r.json();
     gesendet = !!(j && (j.success === true || j.success === 'true'));
+    }
   } catch (e) { /* unten */ }
 
   S.busy = false; if (m) { m.sending = false; m.used = true; }
@@ -314,7 +324,7 @@ function karte(m, i) {
     const tab = `<dl class="jb-check">${z.map(([k, v, step]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd>${step && !m.used && !m.sending ? `<button type="button" class="jb-link" data-act="aendern" data-val="${esc(step)}" data-idx="${i}" aria-label="${esc(k)} ändern">Ändern</button>` : ''}</div>`).join('')}</dl>`;
     if (m.used) return `<div class="jb-card">${tab}</div>`;
     return `<form class="jb-card" data-pruefen="${i}" novalidate>${tab}
-      <label class="jb-checkbox"><input type="checkbox" name="ok" ${m.sending ? 'checked disabled' : ''}><span>${esc(D.name)} darf meine Angaben und Unterlagen für diese Bewerbung speichern. Sie werden nach 6 Monaten gelöscht, auf Wunsch früher. <a href="/datenschutz/#bewerbungen" target="_blank" rel="noopener">Datenschutz</a></span></label>
+      <label class="jb-checkbox"><input type="checkbox" name="ok" ${m.sending ? 'checked disabled' : ''}><span>${esc(D.name)} darf meine Angaben und Unterlagen für diese Bewerbung speichern. Sie werden nach ${esc(FRIST)} gelöscht, auf Wunsch früher. <a href="${esc(D.datenschutz || '/datenschutz/#bewerbungen')}" target="_blank" rel="noopener">Datenschutz</a></span></label>
       <div class="jb-err" role="alert"></div>
       <button class="btn btn-primary btn-sm" type="submit" ${m.sending ? 'disabled' : ''}>${m.sending ? 'Wird gesendet …' : 'Bewerbung abschicken'}</button>
     </form>`;

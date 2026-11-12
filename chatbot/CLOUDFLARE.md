@@ -8,6 +8,13 @@ Dauer: ca. 20 Minuten. Kosten: Cloudflare kostenlos (Free-Plan, 100.000 Anfragen
 - **Preise kommen aus dem CMS:** Beim Bauen liest der Bot `src/_data/preise.yml` und `rechner.yml`. Preis im CMS ändern → Website und Bot sind nach 1–2 Minuten aktuell.
 - Auf der Website eingebunden über `chatbot_url` in `src/_data/site.yml` (im CMS unter „Kontakt & Allgemein“). Feld leeren = Chat verschwindet von der Website.
 
+## Kunden-Bots und Admin-Panel
+Unter `/admin` liegt das Admin-Panel für alle weiteren Kunden (neue Kunden anlegen, einstellen, testen, veröffentlichen). Anleitung: [EINRICHTUNG-NEUER-KUNDE.md](EINRICHTUNG-NEUER-KUNDE.md), Aufbau: [ARCHITEKTUR.md](ARCHITEKTUR.md), Schlüssel: [SECRETS.md](SECRETS.md).
+- Die Datenbank dafür (Durable Object `KundenDaten`) legt Cloudflare beim nächsten Deploy selbst an. Zu tun ist nichts.
+- Einmalig in Cloudflare setzen: `ADMIN_LOGIN` (Text, eure Mail-Adressen kommagetrennt; ohne gilt `CRM_LOGIN`), `SESSION_SECRET` (Secret), dazu `BREVO_API_KEY` und `MAIL_ABSENDER` für die Mails an Betriebe und den Anmelde-Code.
+- Prime Detailing läuft unverändert über die alten Adressen und wird weiter über CMS und `config/bot.config.json` gepflegt.
+- Limits und Tagesbudget zählen jetzt je Kunde. Die Vorführseiten (`/api/demo/…`) haben ein eigenes Budget und bremsen Prime Detailing nicht mehr aus.
+
 ## 1. Anthropic API-Key (einmalig)
 1. **console.anthropic.com** → Zahlungsmittel, etwas Guthaben, unter **Limits** ein Ausgabenlimit (z. B. 10 €/Monat). **Das ist die harte Kostengrenze:** Ist es erreicht, verweist der Bot auf WhatsApp/Telefon. Mehr kann nie abgebucht werden.
 2. Unter **API Keys** einen Key erstellen (beginnt mit `sk-ant-`).

@@ -7,22 +7,34 @@
 // Auf Cloudflare zählt ein Durable Object (src/limit-do.ts) für alle Server
 // gemeinsam; unter Node zählt der Arbeitsspeicher (ein Prozess = exakt).
 // Die harte Obergrenze bleibt das Ausgabenlimit in der Anthropic Console.
-import { config, env, texte } from "./config.ts";
+import { env, texte } from "./config.ts";
+import { aktuell, jeKunde, sicht } from "./kontext.ts";
 
-export type Art = "chat" | "foto" | "anfrage" | "datei";
+export type Art = "chat" | "foto" | "anfrage" | "datei" | "login" | "aendern";
+/** Diese Arten rufen keine KI auf und zählen deshalb nicht zum Tagesbudget. */
+const OHNE_BUDGET: Art[] = ["anfrage", "datei", "login", "aendern"];
 type Fenster = { minute?: number; stunde?: number; tag?: number };
 export type Stand = { zeiten: Record<string, number[]>; budgetTag?: string; budget?: number };
 
-const L = config.limits || {};
-/** Grenzwerte je Art. Standardwerte = typische echte Nutzung mit viel Luft nach oben. */
-export const grenzen: Record<Art, Fenster> = {
-  chat: { minute: 8, stunde: L.anfragenProIpProStunde ?? 40, tag: 100, ...(L.proIp || {}) },
-  foto: { minute: 3, stunde: L.fotosProIpProStunde ?? 6, tag: 10, ...(L.fotosProIp || {}) },
-  anfrage: { minute: 2, stunde: 5, tag: 10, ...(L.anfragenFormularProIp || {}) },
-  // Bewerbungsunterlagen (kein KI-Aufruf, zählt nicht zum Tagesbudget)
-  datei: { minute: 10, stunde: 20, tag: 30 },
-};
-export const tagesbudget: number = L.tagesbudgetNachrichten ?? L.tagesbudgetAnfragen ?? 1500;
+/** Grenzwerte je Art für den aktuellen Kunden. Standardwerte = typische echte Nutzung mit viel Luft nach oben. */
+const _grenzen = jeKunde((l): Record<Art, Fenster> => {
+  const L = l.config.limits || {};
+  return {
+    chat: { minute: 8, stunde: L.anfragenProIpProStunde ?? 40, tag: 100, ...(L.proIp || {}) },
+    foto: { minute: 3, stunde: L.fotosProIpProStunde ?? 6, tag: 10, ...(L.fotosProIp || {}) },
+    anfrage: { minute: 2, stunde: 5, tag: 10, ...(L.anfragenFormularProIp || {}) },
+    // Bewerbungsunterlagen (kein KI-Aufruf, zählt nicht zum Tagesbudget)
+    datei: { minute: 10, stunde: 20, tag: 30 },
+    // Anmeldeversuche (Code anfordern, Code eintippen) im Admin-Panel und im Kunden-Zugang.
+    // Einen 6-stelligen Code kann man damit nicht durchprobieren.
+    login: { minute: 6, stunde: 15, tag: 30 },
+    // Speichern im Kunden-Zugang
+    aendern: { minute: 10, stunde: 60, tag: 200 },
+  };
+});
+export const grenzen: Record<Art, Fenster> = sicht(_grenzen);
+/** Tagesbudget des aktuellen Kunden (Nachrichten an die KI pro Tag, alle Besucher zusammen). */
+export const tagesbudget = (): number => { const L = aktuell().config.limits || {}; return L.tagesbudgetNachrichten ?? L.tagesbudgetAnfragen ?? 1500; };
 
 const MIN = 60_000, STD = 3_600_000, TAG = 86_400_000;
 
@@ -43,7 +55,7 @@ export function zaehle(stand: Stand, art: Art, jetzt = Date.now(), g: Fenster = 
 }
 
 /** Tagesbudget für alle Besucher zusammen (Kalendertag UTC). */
-export function zaehleBudget(stand: Stand, jetzt = Date.now(), max = tagesbudget): boolean {
+export function zaehleBudget(stand: Stand, jetzt = Date.now(), max = tagesbudget()): boolean {
   const tag = new Date(jetzt).toISOString().slice(0, 10);
   if (stand.budgetTag !== tag) { stand.budgetTag = tag; stand.budget = 0; }
   if ((stand.budget || 0) >= max) return false;
@@ -53,18 +65,23 @@ export function zaehleBudget(stand: Stand, jetzt = Date.now(), max = tagesbudget
 
 // --- Arbeitsspeicher (Node / Fallback) ---------------------------------------
 const speicher = new Map<string, Stand>();
-const global: Stand = { zeiten: {} };
+const budgets = new Map<string, Stand>();
 function imSpeicher(schluessel: string, art: Art) {
   if (speicher.size > 20_000) speicher.clear();
   const s = speicher.get(schluessel) || { zeiten: {} };
   speicher.set(schluessel, s);
   const grund = zaehle(s, art);
   if (grund) return grund;
-  if (art !== "anfrage" && art !== "datei" && !zaehleBudget(global)) return "budget";
+  if (!OHNE_BUDGET.includes(art)) {
+    const k = aktuell().kundeId;
+    const b = budgets.get(k) || { zeiten: {} };
+    budgets.set(k, b);
+    if (!zaehleBudget(b)) return "budget";
+  }
   return null;
 }
 /** Nur für Tests. */
-export function _reset() { speicher.clear(); global.zeiten = {}; global.budget = 0; }
+export function _reset() { speicher.clear(); budgets.clear(); }
 
 // --- IP nur als Hash (keine Klar-IP im Speicher) ------------------------------
 async function hashIp(ip: string) {
@@ -81,13 +98,16 @@ export const ipVon = (c: any): string =>
  */
 export async function pruefeLimit(c: any, art: Art): Promise<string | null> {
   if (env.killSwitch || c.env?.KILL_SWITCH === "1") return texte.pausiert;
-  const schluessel = await hashIp(ipVon(c));
+  const kunde = aktuell();
+  if (kunde.test) return null; // Test-Chat im Admin-Panel: nur für angemeldete Betreuer
+  // Jeder Kunde zählt für sich: eigener Zähler pro Besucher und eigenes Tagesbudget
+  const schluessel = kunde.kundeId + ":" + (await hashIp(ipVon(c)));
   let grund: string | null;
   const ns = c.env?.LIMITS;
   if (ns?.idFromName) {
     try {
       grund = await ns.get(ns.idFromName("ip:" + schluessel)).zaehle(art, grenzen[art]);
-      if (!grund && art !== "anfrage" && art !== "datei" && !(await ns.get(ns.idFromName("global")).budget(tagesbudget))) grund = "budget";
+      if (!grund && !OHNE_BUDGET.includes(art) && !(await ns.get(ns.idFromName("global:" + kunde.kundeId)).budget(tagesbudget()))) grund = "budget";
     } catch (e: any) {
       console.error("[limits]", e?.message || e);
       grund = imSpeicher(schluessel, art); // Zähler nicht erreichbar → lokal weiterzählen
@@ -95,7 +115,7 @@ export async function pruefeLimit(c: any, art: Art): Promise<string | null> {
   } else grund = imSpeicher(schluessel, art);
 
   if (!grund) return null;
-  console.warn(`[limit] ${art} ${grund} ${schluessel.slice(0, 8)}`);
+  console.warn(`[limit] ${art} ${grund} ${schluessel.slice(0, kunde.kundeId.length + 9)}`);
   if (grund === "budget") return texte.ausgelastet;
   if (art === "foto") return texte.zuVieleFotos;
   return grund === "minute" ? texte.zuViele : texte.zuVieleHeute;

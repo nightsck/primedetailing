@@ -4,3 +4,5 @@ data/anfragen.log
 tests/eval-ergebnis.json
 .wrangler/
 src/daten.generated.ts
+daten/
+tests/selbsttest-ergebnis.json

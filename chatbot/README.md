@@ -14,6 +14,8 @@ Website  ──<script>──▶  widget.js (Chat-Fenster)
                      └─ /api/anfrage  ──▶  E-Mail an support@ (optional WhatsApp)
 ```
 
+**Mehrere Kunden:** Seit dem Umbau bedient derselbe Server beliebig viele Betriebe. Neue Kunden werden im Admin-Panel unter `/admin` angelegt, ohne Code. Einstieg: [EINRICHTUNG-NEUER-KUNDE.md](EINRICHTUNG-NEUER-KUNDE.md) · [ARCHITEKTUR.md](ARCHITEKTUR.md) · [KONFIGURATION.md](KONFIGURATION.md) · [SECRETS.md](SECRETS.md) · [BETRIEB.md](BETRIEB.md). Der Rest dieser Datei beschreibt Prime Detailing (Kunde 1).
+
 **Live schalten mit Cloudflare Workers (kostenlos): siehe [CLOUDFLARE.md](CLOUDFLARE.md).**
 
 ## Schnellstart
@@ -72,10 +74,38 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Website des Kunden automatisch einlesen
+
+Pro Kunde einschaltbar: Admin-Panel → Reiter **Wissen** → Karte **Website automatisch einlesen**.
+
+- Der Server liest einmal am Tag die Website des Kunden (Startseite und die wichtigsten Unterseiten, höchstens 6) und speichert den Text. Der Kunden-Chat bekommt ihn als zusätzliches Wissen.
+- **Jetzt einlesen** liest sofort. Darunter steht aufklappbar genau der Text, den der Bot dadurch kennt. Einmal drüberlesen lohnt sich.
+- Vorrang hat immer, was in den Feldern eingetragen ist. Preise nennt der Bot weiter nur aus der Preisliste, auch wenn auf der Website andere stehen.
+- Gelesen werden nur die eigenen Adressen des Kunden, nur über https. Ist die Website nicht erreichbar, bleibt der letzte Stand bis zu 14 Tage gültig; der Einrichtungs-Check zeigt dann Gelb.
+- Grenzen: Seiten, die erst im Browser per JavaScript aufgebaut werden, liefern keinen Text. PDFs und Bilder werden nicht gelesen. Der Bewerber-Chat nutzt den Website-Text nicht.
+- Auf Cloudflare läuft das stündlich für bis zu 3 fällige Kunden, das reicht für rund 70 Kunden am Tag. Technik: `src/website.ts`.
+
+## Branchen-Demos für Vorführungen
+
+Im Admin-Panel legt **Branchen-Demos** (oben in der Kundenliste) für jede der 22 Branchen einen erfundenen Beispielbetrieb an und veröffentlicht ihn (Kunden-ID `demo-<branche>`, z. B. `demo-maler`).
+
+- `/demos`: Übersicht aller Beispielbetriebe. Diesen Link zeigt Giosuè im Gespräch.
+- `/k/demo-maler/`: Kunden-Chat, `/k/demo-maler/bewerben`: Bewerber-Chat, `/k/demo-maler/verwalten`: Kunden-Zugang (Anmeldung mit einer Admin-Adresse).
+- Die Betriebe sind normale Kunden: anpassen, pausieren oder löschen wie jeden anderen. Ein zweiter Klick ergänzt nur fehlende.
+- Anfragen und Bewerbungen aus den Demos gehen an die Adresse, mit der du sie angelegt hast. Das Budget ist klein gehalten (150 Nachrichten pro Tag je Demo).
+- Namen, Bot-Namen, Farben und Beispielpreise stehen in `src/kunde/demo-betriebe.ts`.
+
+## Kunden-Zugang und Sicherheit
+
+- `KUNDEN-ZUGANG.md`: Der Kunde ändert Kleinigkeiten selbst unter `/k/<kunde>/verwalten` (Öffnungszeiten, Hinweis, Leistungen, Fragen, Stellen). Preise gelten erst nach Freigabe im Admin-Panel.
+- `SICHERHEIT.md`: Was im Code schützt, was du selbst einstellen musst (alles kostenlos) und was im Ernstfall zu tun ist.
+- Ausprobieren ohne Einrichtung: `npm run beispiel` startet einen Server mit einem Beispielkunden.
+
 ## Tests
 
 ```bash
-npm test                  # 33 Tests ohne KI: Preise, Prüfungen, Filter, Werkzeuge, Spam-Limits, Foto-Check, Gesprächslogik
+npm test                  # alle Tests ohne KI: Preise, Prüfungen, Limits, Kunden-Trennung, Admin-Panel …
+npm run doku              # KONFIGURATION.md neu aus dem Schema erzeugen
 npm run evals             # 46 Testfragen gegen die echte KI (braucht ANTHROPIC_API_KEY)
 npm run evals -- --demo   # gleicher Ablauf im Demo-Modus
 ```

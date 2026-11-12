@@ -119,6 +119,15 @@ export function kalenderFuer(c: any, betrieb: string): Kalender | null {
   return sa && id ? googleKalender(sa, id) : null;
 }
 
+/** Kalender eines Kunden: ein Dienstkonto für alle (GOOGLE_SA_JSON), die Kalender-ID kommt aus seiner Konfiguration. */
+export function kalenderMitId(c: any, kalenderId: string): Kalender | null {
+  if (testKalender) return testKalender(kalenderId);
+  const sa = leseDienstkonto(wert(c, "GOOGLE_SA_JSON"));
+  return sa && kalenderId ? googleKalender(sa, kalenderId) : null;
+}
+/** E-Mail-Adresse des Dienstkontos – für diese Adresse gibt der Kunde seinen Kalender frei. */
+export const dienstkontoMail = (c: any): string => leseDienstkonto(wert(c, "GOOGLE_SA_JSON"))?.client_email || "";
+
 /* ---------- Absage-Schlüssel (nur wer gebucht hat, kann löschen) ---------- */
 let hmac: CryptoKey | null = null;
 async function hmacKey() {

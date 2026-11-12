@@ -3,11 +3,13 @@
 (() => {
   if (customElements.get("website-chat")) return;
   const SCRIPT = document.currentScript;
-  const API = (SCRIPT && SCRIPT.dataset.api) || (SCRIPT ? new URL(SCRIPT.src).origin : location.origin);
+  const V = /*VOREINSTELLUNG*/ null || { design: {}, maskottchen: null };
+  // Adresse des Chat-Servers: data-api am Script-Tag, sonst aus der Voreinstellung (Kunden-Widget), sonst Herkunft des Skripts
+  const API = (SCRIPT && SCRIPT.dataset.api) || V.api || (SCRIPT ? new URL(SCRIPT.src).origin : location.origin);
 
   // Beim Bauen eingesetzt (scripts/daten-bauen.mjs): Farben und Maskottchen,
   // damit der Button schon vor dem Klick richtig aussieht – ohne Serveranfrage.
-  const V = /*VOREINSTELLUNG*/ null || { design: {}, maskottchen: null };
+
   const M = V.maskottchen;
   const ICON_CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -154,7 +156,7 @@
         <div class="log" aria-live="polite"></div>
         <form class="send">${c.foto ? `<button type="button" class="cam" aria-label="Foto senden" title="${esc(c.foto.hinweis || "Foto senden")}">${ICON_CAM}</button><input type="file" accept="image/*" hidden>` : ""}<textarea rows="1" maxlength="${Number(c.maxZeichen) || 800}" placeholder="${this.du ? "Schreib" : "Schreiben Sie"} Ihre Frage …" aria-label="Nachricht"></textarea>
         <button type="submit" aria-label="Senden">${ICON_SEND}</button></form>
-        <div class="foot">KI-Antworten können Fehler enthalten. ${c.betrieb.datenschutzUrl ? `<a href="${esc(c.betrieb.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}</div>`;
+        <div class="foot">KI-Antworten können Fehler enthalten. ${c.betrieb.datenschutzUrl ? `<a href="${esc(c.betrieb.datenschutzUrl)}" target="_blank" rel="noopener">Datenschutz</a>` : ""}${c.poweredBy ? " · Powered by Claude (Anthropic)" : ""}</div>`;
       if (this.du) p.querySelector("textarea").placeholder = "Schreib deine Frage …";
       this.root.appendChild(p);
       this.panel = p;

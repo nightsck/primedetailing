@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "KI-Website-Chatbot (Prototyp Prime Detailing)",
+  "description": "KI-Bots für Betriebe: Kunden-Chat, Bewerber-Chat, Admin-Panel",
   "engines": {
     "node": ">=22.18"
   },
@@ -13,15 +13,20 @@
     "dev": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env --watch src/node.ts",
     "test": "node scripts/daten-bauen.mjs && node --test tests/*.test.ts",
     "evals": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/run-evals.ts",
+    "selbsttest": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/selbsttest-live.ts",
     "worker:dev": "node scripts/daten-bauen.mjs && wrangler dev",
-    "deploy": "node scripts/daten-bauen.mjs && wrangler deploy"
+    "deploy": "node scripts/daten-bauen.mjs && wrangler deploy",
+    "doku": "node scripts/konfig-doku.ts",
+    "beispiel": "node scripts/daten-bauen.mjs && node tests/_dev.ts"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.26.0",
     "@anthropic-ai/sdk": "^0.71.0",
     "@hono/node-server": "^1.19.0",
     "hono": "^4.10.0",
-    "nodemailer": "^7.0.0"
+    "nodemailer": "^10.5.0",
+    "qrcode-generator": "^2.0.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "js-yaml": "^4.3.2",

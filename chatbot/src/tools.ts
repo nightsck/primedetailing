@@ -1,6 +1,7 @@
 // Werkzeuge, die das Modell aufrufen darf. Alle Preise kommen ausschließlich
 // aus data/preise.json. Das Modell erfindet keine Beträge, es fragt sie hier ab.
 import { allePakete, preise, config, type Paket } from "./config.ts";
+import { jeKunde } from "./kontext.ts";
 
 export const fmtEuro = (n: number) =>
   n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
@@ -16,14 +17,13 @@ export function findePaket(idOderName: string): Paket | undefined {
   );
 }
 
-const aufschlaege = preise.aufschlaege;
-const kategorieVon = new Map(preise.kategorien.flatMap((k) => k.pakete.map((p) => [p.id, k.name] as const)));
+const kategorieVon = jeKunde((l) => new Map(l.preise.kategorien.flatMap((k) => k.pakete.map((p) => [p.id, k.name] as const))));
 /** gilt_fuer: Paket-IDs oder Kategorienamen. Fehlt es, gilt der Aufschlag für alle Pakete. */
 export function aufschlagGilt(p: Paket): boolean {
-  const g = aufschlaege?.gilt_fuer;
-  if (!aufschlaege) return false;
+  const g = preise.aufschlaege?.gilt_fuer;
+  if (!preise.aufschlaege) return false;
   if (!g || !g.length) return true;
-  return g.some((x) => norm(x) === norm(p.id) || norm(x) === norm(kategorieVon.get(p.id) || ""));
+  return g.some((x) => norm(x) === norm(p.id) || norm(x) === norm(kategorieVon().get(p.id) || ""));
 }
 
 function paketInfo(p: Paket) {
@@ -34,11 +34,12 @@ function paketInfo(p: Paket) {
     ...(p.beschreibung ? { beschreibung: p.beschreibung } : {}),
     leistungen: p.leistungen,
     empfohlen: !!p.empfohlen,
-    ...(aufschlaege ? { aufschlag_je: aufschlagGilt(p) ? aufschlaege.bezeichnung : "keiner" } : {}),
+    ...(preise.aufschlaege ? { aufschlag_je: aufschlagGilt(p) ? preise.aufschlaege.bezeichnung : "keiner" } : {}),
   };
 }
 
-export const toolDefinitions = [
+/** Werkzeug-Beschreibungen für die KI, je Kunde (Kategorien und Feldnamen kommen aus seiner Preisliste). */
+export const toolDefinitions = jeKunde(() => [
   {
     name: "liste_pakete",
     description:
@@ -53,12 +54,12 @@ export const toolDefinitions = [
   {
     name: "get_preis",
     description:
-      "Liefert den exakten Preis eines Pakets (optional mit Extras und Variante" + (aufschlaege ? ", z. B. " + aufschlaege.bezeichnung : "") + ") inkl. Summe. Einzige erlaubte Quelle für Beträge.",
+      "Liefert den exakten Preis eines Pakets (optional mit Extras und Variante" + (preise.aufschlaege ? ", z. B. " + preise.aufschlaege.bezeichnung : "") + ") inkl. Summe. Einzige erlaubte Quelle für Beträge.",
     input_schema: {
       type: "object",
       properties: {
         paket: { type: "string", description: "Paket-ID oder Name, z. B. innen-comfort" },
-        variante: { type: "string", description: aufschlaege ? `${aufschlaege.bezeichnung}: ${Object.keys(aufschlaege.optionen).join(", ")}` : "nicht verwendet" },
+        variante: { type: "string", description: preise.aufschlaege ? `${preise.aufschlaege.bezeichnung}: ${Object.keys(preise.aufschlaege.optionen).join(", ")}` : "nicht verwendet" },
         extras: { type: "array", items: { type: "string" }, description: "z. B. scheibenversiegelung, felgenversiegelung" },
       },
       required: ["paket"],
@@ -90,7 +91,7 @@ export const toolDefinitions = [
       required: ["grund", "zusammenfassung"],
     },
   },
-];
+]);
 
 export type ToolResult = { result: unknown; betraege: number[]; ui?: Record<string, unknown> };
 
@@ -111,13 +112,13 @@ export function runTool(name: string, input: any): ToolResult {
     const extras = (input?.extras || []).map((e: string) => findePaket(e)).filter(Boolean) as Paket[];
     const hinweise = [] as string[];
     let aufschlag = 0;
-    if (aufschlaege && !aufschlagGilt(p) && input?.variante) {
-      hinweise.push(`Für ${p.name} gibt es keinen Aufschlag je ${aufschlaege.bezeichnung}.`);
-    } else if (input?.variante && aufschlaege) {
-      const key = Object.keys(aufschlaege.optionen).find((k) => norm(k) === norm(input.variante) || norm(input.variante).includes(norm(k)));
-      if (aufschlaege.offen || key === undefined)
-        hinweise.push(`Aufschläge je ${aufschlaege.bezeichnung} sind noch nicht festgelegt – das klärt das Team persönlich. Keinen Aufschlag nennen.`);
-      else if (aufschlaege.optionen[key] > 0) { aufschlag = aufschlaege.optionen[key]; hinweise.push(`Aufschlag ${key}: ${fmtEuro(aufschlag)} (in der Summe enthalten).`); }
+    if (preise.aufschlaege && !aufschlagGilt(p) && input?.variante) {
+      hinweise.push(`Für ${p.name} gibt es keinen Aufschlag je ${preise.aufschlaege.bezeichnung}.`);
+    } else if (input?.variante && preise.aufschlaege) {
+      const key = Object.keys(preise.aufschlaege.optionen).find((k) => norm(k) === norm(input.variante) || norm(input.variante).includes(norm(k)));
+      if (preise.aufschlaege.offen || key === undefined)
+        hinweise.push(`Aufschläge je ${preise.aufschlaege.bezeichnung} sind noch nicht festgelegt – das klärt das Team persönlich. Keinen Aufschlag nennen.`);
+      else if (preise.aufschlaege.optionen[key] > 0) { aufschlag = preise.aufschlaege.optionen[key]; hinweise.push(`Aufschlag ${key}: ${fmtEuro(aufschlag)} (in der Summe enthalten).`); }
     }
     const summe = Math.round((p.preis + aufschlag + extras.reduce((s, e) => s + (e.preis || 0), 0)) * 100) / 100;
     const ab = p.ab || extras.some((e) => e.ab);
