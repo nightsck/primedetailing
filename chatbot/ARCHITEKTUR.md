@@ -36,7 +36,7 @@ flowchart TD
 |---|---|
 | `kontext.ts` | Kunden-Kontext: Welcher Kunde ist bei dieser Anfrage dran? |
 | `kunde/schema.ts` | **Alle Felder der Kunden-Konfiguration** mit Erklärung und Prüfregeln |
-| `kunde/vorlagen.ts` | Die 16 Branchen-Vorlagen |
+| `kunde/vorlagen.ts` | Die 22 Branchen-Vorlagen |
 | `kunde/umwandeln.ts` | Übersetzt die Konfiguration in das, was die einzelnen Bots brauchen |
 | `kunden-routen.ts` | Alle Adressen unter `/k/<kunde>/…` |
 | `kunden-termin.ts` | Termin-Bot und Anfrage-Chat je Kunde (`/k/<kunde>/termin`, `/k/<kunde>/anfrage`) |

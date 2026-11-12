@@ -16,7 +16,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 
 ## Branchen-Vorlagen
 
-`handwerk` Handwerk allgemein · `maler` Maler · `elektro` Elektro · `fahrzeugpflege` Fahrzeugpflege · `autohaus` Autohaus / Werkstatt · `gastro` Gastronomie · `friseur` Friseur · `arztpraxis` Arztpraxis · `makler` Immobilienmakler · `shk` Sanitär / Heizung · `dachdecker` Dachdecker · `gartenbau` Garten- und Landschaftsbau · `reinigung` Gebäudereinigung · `kosmetik` Kosmetikstudio · `physio` Physiotherapie · `steuerberater` Steuerkanzlei
+`handwerk` Handwerk allgemein · `maler` Maler · `elektro` Elektro · `fahrzeugpflege` Fahrzeugpflege · `autohaus` Autohaus / Werkstatt · `gastro` Gastronomie · `friseur` Friseur · `arztpraxis` Arztpraxis · `makler` Immobilienmakler · `shk` Sanitär / Heizung · `dachdecker` Dachdecker · `gartenbau` Garten- und Landschaftsbau · `reinigung` Gebäudereinigung · `kosmetik` Kosmetikstudio · `physio` Physiotherapie · `steuerberater` Steuerkanzlei · `schreiner` Schreinerei · `kfzwerkstatt` Kfz-Werkstatt · `zahnarzt` Zahnarztpraxis · `hotel` Hotel / Pension · `einzelhandel` Einzelhandel / Fachgeschäft · `fahrschule` Fahrschule
 
 ## Vertrag
 

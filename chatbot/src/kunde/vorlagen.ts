@@ -206,11 +206,88 @@ export const VORLAGEN: Record<string, Vorlage> = {
       terminBot: { termine: [T("erstgespraech", "Erstgespräch", "ca. 30 Minuten am Telefon", 30, "telefon"), T("besprechung", "Besprechung in der Kanzlei", "ca. 1 Stunde", 60)] },
       anfrageChat: { kategorien: ["Neuer Mandant", "Steuererklärung", "Buchhaltung oder Lohn", "Post vom Finanzamt", "Etwas anderes"], sicherheitsregeln: [R(["Frist läuft ab", "Einspruchsfrist", "Mahnung vom Finanzamt", "Vollstreckung", "Betriebsprüfung", "Steuerfahndung"], "", "dringend")] } },
   } },
+  schreiner: { name: "Schreinerei", werte: {
+    stammdaten: { brancheText: "Schreinerei", oeffnungszeiten: "Mo–Fr 7–16 Uhr" },
+    wissen: { leistungen: [L("Möbel", "Einbauschränke und Möbel nach Maß"), L("Küche", "Küchen"), L("Innenausbau", "Türen und Böden"), L("Fenster", "Fenster und Haustüren"), L("Reparatur", "Reparaturen und Einbruchschutz")],
+      faq: [F("Fertigen Sie auch Einzelstücke?", "Ja, nach Maß. Schildern Sie kurz, was Sie sich vorstellen, dann meldet sich das Team."), F("Kommen Sie zum Aufmaß vorbei?", "Ja, das Team nimmt vor Ort Maß und macht danach ein Angebot.")],
+      nieSagen: [...NIE_STANDARD, "Keine Lieferzeit und keinen Fertigstellungstermin nennen."] },
+    module: { kundenChat: { startKnoepfe: ["Möbel nach Maß", "Küche", "Reparatur", "Frage stellen"], objektLabel: "Vorhaben", objektPlatzhalter: "z. B. Einbauschrank unter der Dachschräge" },
+      bewerberChat: { arbeitszeiten: "Mo–Fr 7–16 Uhr", bietet: "Moderne Werkstatt, abwechslungsreiche Aufträge, festes Team.",
+        stellen: [S("geselle", "Schreiner Geselle (m/w/d)", "Vollzeit", "Möbelbau, Innenausbau und Montage beim Kunden. Führerschein Klasse B nötig."), S("monteur", "Monteur (m/w/d)", "Vollzeit", "Möbel, Türen und Küchen beim Kunden einbauen. Führerschein Klasse B nötig."), S("ausbildung", "Ausbildung Schreiner (m/w/d)", "3 Jahre, Start im September", "Praktikum vorher möglich.", ["start"])] },
+      terminBot: { termine: [T("aufmass", "Aufmaß vor Ort", "Wir nehmen Maß und besprechen Ihre Wünsche, ca. 1 Stunde", 60, "kunde"), T("beratung", "Beratung in der Werkstatt", "ca. 45 Minuten", 45)], fahrtMin: 30 },
+      anfrageChat: { kategorien: ["Möbel nach Maß", "Küche", "Türen oder Fenster", "Reparatur", "Etwas anderes"], sicherheitsregeln: [R(["Einbruch", "Tür aufgebrochen", "Fenster aufgebrochen"], "Bitte verändern Sie nichts und rufen Sie zuerst die Polizei unter 110. Danach sichern wir Tür oder Fenster.", "dringend")] } },
+  } },
+  kfzwerkstatt: { name: "Kfz-Werkstatt", werte: {
+    stammdaten: { brancheText: "Kfz-Werkstatt", oeffnungszeiten: "Mo–Fr 7:30–17 Uhr" },
+    wissen: { leistungen: [L("Service", "Inspektion"), L("Service", "Ölwechsel"), L("Prüfung", "HU und AU"), L("Reifen", "Reifenwechsel und Einlagerung"), L("Reparatur", "Bremsen"), L("Reparatur", "Klimaservice")],
+      faq: [F("Reparieren Sie alle Marken?", "Das klärt das Team gern. Bitte nennen Sie Marke, Modell und Baujahr."), F("Bekomme ich einen Ersatzwagen?", "Nach Absprache. Bitte geben Sie das bei der Terminanfrage an.")],
+      nieSagen: [...NIE_STANDARD, "Keine Ferndiagnose: nicht sagen, was kaputt ist oder ob man weiterfahren kann.", "Keine Aussage zu Kulanz oder Versicherung."] },
+    module: { kundenChat: { startKnoepfe: ["Werkstatt-Termin", "Reifen", "HU / AU", "Frage stellen"], objektLabel: "Fahrzeug", objektPlatzhalter: "z. B. VW Golf 7, Baujahr 2016" },
+      bewerberChat: { arbeitszeiten: "Mo–Fr 7:30–17 Uhr", bietet: "Moderne Werkstatt, Schulungen, festes Team.",
+        stellen: [S("mechatroniker", "Kfz-Mechatroniker (m/w/d)", "Vollzeit", "Wartung, Diagnose und Reparatur an Fahrzeugen aller Art."), S("ausbildung", "Ausbildung Kfz-Mechatroniker (m/w/d)", "3,5 Jahre, Start im September", "Praktikum vorher möglich.", ["start"])] },
+      terminBot: { termine: [T("inspektion", "Inspektion", "Das Auto bleibt ca. 2 Stunden bei uns", 120), T("reifen", "Reifenwechsel", "ca. 30 Minuten", 30), T("hu-au", "HU und AU", "ca. 1 Stunde", 60)] },
+      anfrageChat: { kategorien: ["Inspektion oder Service", "Reparatur", "Reifen", "HU / AU", "Unfall oder Panne", "Etwas anderes"], sicherheitsregeln: [R(["Bremse", "Bremsen", "Lenkung", "Öl-Warnleuchte", "raucht"], "Bitte nicht weiterfahren, wenn Bremsen, Lenkung oder eine rote Warnleuchte betroffen sind. Bei einer Panne an gefährlicher Stelle zuerst absichern.", "dringend")] } },
+  } },
+  zahnarzt: { name: "Zahnarztpraxis", werte: {
+    stammdaten: { brancheText: "Zahnarztpraxis", oeffnungszeiten: "Mo–Do 8–18 Uhr, Fr 8–13 Uhr" },
+    wissen: { leistungen: [L("Vorsorge", "Kontrolle und Vorsorge"), L("Vorsorge", "Professionelle Zahnreinigung"), L("Behandlung", "Füllungen"), L("Behandlung", "Zahnersatz")],
+      faq: [F("Nehmen Sie neue Patienten auf?", "Das beantwortet Ihnen das Praxisteam gern am Telefon."), F("Was muss ich zum ersten Termin mitbringen?", "Bitte bringen Sie Ihre Versichertenkarte und, falls vorhanden, Ihr Bonusheft mit.")],
+      nieSagen: ["Keine medizinische Einschätzung, Diagnose oder Behandlungsempfehlung.", "Nie nach Beschwerden, Diagnosen oder anderen Gesundheitsdaten fragen.", "Keine Termine zusagen oder bestätigen.", "Keine Aussage dazu, was die Krankenkasse übernimmt.", "Niemals Gesundheitsdaten im Chat erfragen oder wiederholen."] },
+    module: { kundenChat: { startKnoepfe: ["Termin anfragen", "Zahnreinigung", "Öffnungszeiten", "Frage stellen"], objektLabel: "Anliegen", objektPlatzhalter: "z. B. Kontrolltermin (bitte keine Gesundheitsdaten)" },
+      bewerberChat: { arbeitszeiten: "Mo–Fr zu den Praxiszeiten", bietet: "Fortbildungen, geregelte Arbeitszeiten, kein Wochenenddienst.",
+        stellen: [S("zfa", "Zahnmedizinische Fachangestellte (m/w/d)", "Vollzeit oder Teilzeit", "Assistenz am Stuhl, Empfang, Abrechnung.", ["erfahrung", "stunden", "start"]), S("prophylaxe", "Prophylaxe-Assistenz (m/w/d)", "Teilzeit", "Professionelle Zahnreinigung und Beratung.", ["erfahrung", "stunden", "start"]), S("ausbildung", "Ausbildung Zahnmedizinische Fachangestellte (m/w/d)", "3 Jahre, Start im August", "Praktikum vorher möglich.", ["start"])] },
+      terminBot: { termine: [T("kontrolle", "Kontrolltermin", "ca. 30 Minuten", 30), T("zahnreinigung", "Professionelle Zahnreinigung", "ca. 1 Stunde", 60)], pufferMin: 0, zeiten: { mo: "8-18", di: "8-18", mi: "8-18", do: "8-18", fr: "8-13", sa: "", so: "" } },
+      anfrageChat: { kategorien: ["Termin", "Zahnreinigung", "Zahnschmerzen", "Etwas anderes"],
+        sicherheitsregeln: [R(["starke Schmerzen", "Zahn ausgeschlagen", "Schwellung", "Blutung hört nicht auf", "Unfall"], "Bitte rufen Sie direkt in der Praxis an. Außerhalb der Sprechzeiten hilft der zahnärztliche Notdienst; bei Atemnot oder starker Schwellung im Gesicht die 112.")] } },
+  } },
+  hotel: { name: "Hotel / Pension", werte: {
+    stammdaten: { brancheText: "Hotel", oeffnungszeiten: "Rezeption täglich 7–21 Uhr" },
+    wissen: { leistungen: [L("Zimmer", "Einzelzimmer"), L("Zimmer", "Doppelzimmer"), L("Verpflegung", "Frühstück"), L("Extras", "Tagungsraum")],
+      faq: [F("Ab wann kann ich einchecken?", "Die Zeiten für An- und Abreise nennt Ihnen das Team bei der Buchung."), F("Sind Haustiere erlaubt?", "Das klärt das Team gern persönlich mit Ihnen.")],
+      nieSagen: [...NIE_STANDARD, "Keine Verfügbarkeit zusagen: Ob ein Zimmer frei ist, weiß nur das Team.", "Keine Buchung bestätigen, ändern oder stornieren."] },
+    module: { kundenChat: { startKnoepfe: ["Zimmer anfragen", "Frühstück", "Anreise", "Frage stellen"], objektLabel: "Aufenthalt", objektPlatzhalter: "z. B. 2 Nächte, 2 Personen, ab 14.3." },
+      bewerberChat: { arbeitszeiten: "Nach Dienstplan, auch am Wochenende", bietet: "Dienstplan mit Wunschfrei, Verpflegung im Dienst, festes Team.",
+        stellen: [S("rezeption", "Rezeptionist (m/w/d)", "Vollzeit oder Teilzeit", "Gäste empfangen, Buchungen betreuen, Telefon.", ["erfahrung", "wochenende", "start"]), S("housekeeping", "Zimmerreinigung (m/w/d)", "Teilzeit oder Minijob", "Zimmer und Flure reinigen, meist vormittags. Keine Erfahrung nötig.", ["erfahrung", "stunden", "wochenende", "start"]), S("service", "Servicekraft Frühstück (m/w/d)", "Teilzeit", "Frühstück vorbereiten und Gäste betreuen.", ["erfahrung", "wochenende", "start"])] },
+      terminBot: { termine: [T("rueckruf", "Rückruf", "Wir rufen zur vereinbarten Zeit an, ca. 15 Minuten", 15, "telefon")] },
+      anfrageChat: { kategorien: ["Zimmeranfrage", "Gruppe oder Feier", "Bestehende Buchung", "Etwas anderes"] } },
+  } },
+  einzelhandel: { name: "Einzelhandel / Fachgeschäft", werte: {
+    stammdaten: { brancheText: "Fachgeschäft", oeffnungszeiten: "Mo–Fr 9–18:30 Uhr, Sa 9–14 Uhr" },
+    wissen: { leistungen: [L("Im Geschäft", "Beratung"), L("Service", "Bestellung auf Wunsch"), L("Service", "Reparatur und Änderung"), L("Service", "Gutscheine")],
+      faq: [F("Haben Sie einen bestimmten Artikel da?", "Was gerade vorrätig ist, weiß das Team im Geschäft. Rufen Sie gern kurz an oder schicken Sie eine Anfrage."), F("Kann ich etwas zurücklegen lassen?", "Ja, nach Absprache mit dem Team.")],
+      nieSagen: [...NIE_STANDARD, "Keine Aussage, ob ein Artikel vorrätig ist.", "Keine Preise einzelner Artikel nennen, die nicht in der Preisliste stehen."] },
+    module: { kundenChat: { startKnoepfe: ["Öffnungszeiten", "Artikel anfragen", "Gutschein", "Frage stellen"], objektLabel: "Artikel", objektPlatzhalter: "z. B. Marke, Größe, Farbe" },
+      bewerberChat: { arbeitszeiten: "Mo–Sa nach Dienstplan", bietet: "Mitarbeiterrabatt, geregelte Arbeitszeiten, festes Team.",
+        stellen: [S("verkauf", "Verkäufer (m/w/d)", "Vollzeit oder Teilzeit", "Kunden beraten, Ware präsentieren, Kasse.", ["erfahrung", "wochenende", "start"]), S("aushilfe", "Aushilfe (m/w/d)", "Minijob", "Ware einräumen, Kasse, Kunden helfen. Keine Erfahrung nötig.", ["erfahrung", "stunden", "wochenende", "start"]), S("ausbildung", "Ausbildung Kaufmann im Einzelhandel (m/w/d)", "3 Jahre, Start im August", "Praktikum vorher möglich.", ["start"])] },
+      terminBot: { termine: [T("beratung", "Beratungstermin im Geschäft", "ca. 30 Minuten", 30)], zeiten: { mo: "9-18", di: "9-18", mi: "9-18", do: "9-18", fr: "9-18", sa: "9-14", so: "" } },
+      anfrageChat: { kategorien: ["Artikel anfragen", "Bestellung", "Umtausch", "Etwas anderes"] } },
+  } },
+  fahrschule: { name: "Fahrschule", werte: {
+    stammdaten: { brancheText: "Fahrschule", oeffnungszeiten: "Büro Mo–Do 16–19 Uhr" },
+    ton: { anrede: "du", stil: "locker, freundlich, kurz" },
+    wissen: { leistungen: [L("Auto", "Führerschein Klasse B"), L("Auto", "Begleitetes Fahren ab 17"), L("Zweirad", "Klassen AM, A1, A2 und A"), L("Extras", "Auffrischungsstunden")],
+      faq: [F("Wie melde ich mich an?", "Komm zu den Bürozeiten vorbei oder schick eine Anfrage, das Team meldet sich."), F("Wann ist Theorieunterricht?", "Die aktuellen Zeiten nennt dir das Team.")],
+      nieSagen: [...NIE_STANDARD, "Keine Aussage dazu, wie viele Fahrstunden jemand braucht oder was der Führerschein insgesamt kostet.", "Keine Prüfungstermine nennen oder zusagen."] },
+    module: { kundenChat: { startKnoepfe: ["Anmelden", "Führerschein Klasse B", "Bürozeiten", "Frage stellen"], objektLabel: "Führerscheinklasse", objektPlatzhalter: "z. B. Klasse B" },
+      bewerberChat: { arbeitszeiten: "Nachmittags und abends, nach Absprache", bietet: "Eigenes Fahrschulauto, flexible Zeiteinteilung, festes Team.",
+        stellen: [S("fahrlehrer", "Fahrlehrer (m/w/d)", "Vollzeit oder Teilzeit", "Theorie- und Fahrunterricht. Fahrlehrerlaubnis nötig.", ["erfahrung", "stunden", "start"]), S("buero", "Bürokraft (m/w/d)", "Teilzeit", "Anmeldungen, Telefon, Terminplanung.", ["erfahrung", "stunden", "start"])] },
+      terminBot: { termine: [T("anmeldung", "Anmeldung und Beratung", "ca. 30 Minuten im Büro", 30)], zeiten: { mo: "16-19", di: "16-19", mi: "16-19", do: "16-19", fr: "", sa: "", so: "" } },
+      anfrageChat: { kategorien: ["Anmeldung", "Fahrstunden", "Prüfung", "Etwas anderes"] } },
+  } },
 };
 
 // ---------- Mehr Wissen und feste Antworten je Branche ----------
 // Wird in ausVorlage zu den Werten oben dazugenommen (Fragen und Verbote werden angehängt).
 const A = (stichworte: string[], antwort: string) => ({ stichworte, antwort });
+// Krise und Gefahr für Menschen: stehen in jeder Vorlage GANZ VORN und gewinnen damit gegen alles andere.
+const ZUERST_FEST: { stichworte: string[]; sie: string; du: string }[] = [
+  { stichworte: ["Suizid", "Selbstmord", "umbringen", "nicht mehr leben", "mir das Leben nehmen"],
+    sie: "Das klingt nach einer sehr schweren Situation. Bitte sprechen Sie jetzt mit einem Menschen: Die Telefonseelsorge ist rund um die Uhr und kostenfrei erreichbar unter 0800 111 0 111. Bei akuter Gefahr rufen Sie bitte sofort die 112.",
+    du: "Das klingt nach einer sehr schweren Situation. Bitte sprich jetzt mit einem Menschen: Die Telefonseelsorge ist rund um die Uhr und kostenfrei erreichbar unter 0800 111 0 111. Bei akuter Gefahr ruf bitte sofort die 112." },
+  { stichworte: ["es brennt", "Brandgeruch", "Lebensgefahr", "bewusstlos", "Notruf"],
+    sie: "Bei Gefahr für Menschen rufen Sie bitte sofort die 112. Über diesen Chat kann ich keine Hilfe schicken.",
+    du: "Bei Gefahr für Menschen ruf bitte sofort die 112. Über diesen Chat kann ich keine Hilfe schicken." },
+];
 // Feste Antworten, die jede Branche mitbekommt (hinter den eigenen der Branche). Je einmal für „Sie“ und „du“.
 const IMMER_FEST: { stichworte: string[]; sie: string; du: string }[] = [
   { stichworte: ["Reklamation", "Beschwerde", "unzufrieden", "Geld zurück", "Anwalt", "Schadensersatz"],
@@ -270,7 +347,7 @@ const MEHR: Record<string, { faq?: any[]; feste?: any[]; nie?: string[]; zahlung
     feste: [A(["Kopfhaut", "Haarausfall", "allergisch", "Allergie", "Ausschlag"], "Dazu kann ich als KI-Assistent nichts sagen. Sprich das bitte direkt im Salon an; bei Beschwerden hilft dir ein Hautarzt weiter.")] },
   arztpraxis: { zahlung: "",
     faq: [F("Nehmen Sie neue Patienten auf?", "Das beantwortet Ihnen das Praxisteam gern am Telefon."), F("Brauche ich eine Überweisung?", "Das hängt vom Anliegen ab. Bitte fragen Sie beim Praxisteam nach."), F("Was muss ich zum Termin mitbringen?", "Bitte bringen Sie Ihre Versichertenkarte mit, bei Bedarf Überweisung und Vorbefunde."), F("Wie sage ich einen Termin ab?", "Bitte so früh wie möglich telefonisch beim Praxisteam.")],
-    feste: [A(["Notfall", "starke Schmerzen", "hohes Fieber", "Blutung", "Atemnot", "bewusstlos", "Suizid", "umbringen", "Brustschmerz"], "In einem Notfall rufen Sie bitte sofort die 112. Außerhalb der Sprechzeiten erreichen Sie den ärztlichen Bereitschaftsdienst unter 116 117. Als KI-Assistent kann ich keine medizinische Einschätzung geben – bitte rufen Sie in der Praxis an."),
+    feste: [A(["Notfall", "starke Schmerzen", "hohes Fieber", "Blutung", "Atemnot", "Brustschmerz"], "In einem Notfall rufen Sie bitte sofort die 112. Außerhalb der Sprechzeiten erreichen Sie den ärztlichen Bereitschaftsdienst unter 116 117. Als KI-Assistent kann ich keine medizinische Einschätzung geben – bitte rufen Sie in der Praxis an."),
       A(["Medikament", "Dosierung", "Nebenwirkung", "Diagnose", "Befund", "Laborwert", "Symptom", "Krankschreibung"], "Dazu darf und kann ich als KI-Assistent nichts sagen. Bitte besprechen Sie das direkt mit der Praxis – telefonisch oder in der Sprechstunde.")],
     nie: ["Niemals Gesundheitsdaten im Chat erfragen oder wiederholen.", "Keine Aussage dazu, ob ein Arztbesuch nötig ist oder warten kann."] },
   makler: { zahlung: "",
@@ -301,7 +378,7 @@ const MEHR: Record<string, { faq?: any[]; feste?: any[]; nie?: string[]; zahlung
     feste: [A(["Allergie", "allergisch", "Ausschlag", "Entzündung", "Akne", "Neurodermitis", "schwanger", "Schwangerschaft", "Medikament", "Diabetes", "Blutverdünner"], "Dazu kann ich als KI-Assistent nichts sagen. Bitte sprechen Sie das vor der Behandlung direkt im Studio an; bei Beschwerden hilft Ihnen eine Ärztin oder ein Arzt weiter.")] },
   physio: { zahlung: "",
     faq: [F("Wie sage ich einen Termin ab?", "Bitte so früh wie möglich telefonisch beim Praxisteam."), F("Machen Sie Hausbesuche?", "Hausbesuche sind mit entsprechender Verordnung möglich. Bitte fragen Sie beim Praxisteam nach."), F("Nehmen Sie neue Patienten auf?", "Das beantwortet Ihnen das Praxisteam gern."), F("Gibt es Parkplätze?", "Das beantwortet Ihnen das Praxisteam gern.")],
-    feste: [A(["Notfall", "Atemnot", "bewusstlos", "Brustschmerz", "Schlaganfall", "Suizid", "umbringen"], "In einem Notfall rufen Sie bitte sofort die 112. Außerhalb der Sprechzeiten erreichen Sie den ärztlichen Bereitschaftsdienst unter 116 117. Als KI-Assistent kann ich keine medizinische Einschätzung geben."),
+    feste: [A(["Notfall", "Atemnot", "Brustschmerz", "Schlaganfall"], "In einem Notfall rufen Sie bitte sofort die 112. Außerhalb der Sprechzeiten erreichen Sie den ärztlichen Bereitschaftsdienst unter 116 117. Als KI-Assistent kann ich keine medizinische Einschätzung geben."),
       A(["Schmerzen", "Übung", "Diagnose", "Befund", "Medikament", "Bandscheibe", "Operation", "Krankschreibung"], "Dazu darf und kann ich als KI-Assistent nichts sagen. Bitte besprechen Sie das direkt in der Praxis oder mit Ihrer Ärztin, Ihrem Arzt."),
       A(["Zuzahlung", "Krankenkasse zahlt", "übernimmt die Kasse", "Privatpreis"], "Was Ihre Krankenkasse übernimmt und wie hoch die Zuzahlung ist, klärt das Praxisteam mit Ihnen persönlich.")],
     nie: ["Niemals Gesundheitsdaten im Chat erfragen oder wiederholen."] },
@@ -310,6 +387,31 @@ const MEHR: Record<string, { faq?: any[]; feste?: any[]; nie?: string[]; zahlung
     feste: [A(["Steuerfahndung", "Selbstanzeige", "Steuerstrafverfahren", "Durchsuchung"], "Bitte rufen Sie dazu sofort direkt in der Kanzlei an – die Nummer steht unten. Schreiben Sie dazu bitte nichts in diesen Chat."),
       A(["absetzen", "absetzbar", "Steuerklasse", "Steuer sparen", "Freibetrag", "Abgabefrist", "wie viel Steuer", "Erbschaftsteuer", "Schenkung", "Umsatzsteuer", "Kleinunternehmer"], "Das ist eine steuerliche Einzelfrage. Dazu darf ich als KI-Assistent nichts sagen. Die Kanzlei berät Sie persönlich – gern bereite ich eine Anfrage für ein Erstgespräch vor."),
       A(["Honorar", "Gebühren", "Stundensatz"], "Zum Honorar informiert Sie die Kanzlei persönlich im Erstgespräch. Als KI-Assistent nenne ich dazu keine Zahlen.")] },
+  schreiner: { zahlung: "Auf Rechnung nach Abschluss der Arbeit, per Überweisung.",
+    faq: [F("Bekomme ich ein Angebot vorab?", "Ja, nach dem Aufmaß bekommen Sie ein schriftliches Angebot."), F("Wie lange dauert die Anfertigung?", "Das hängt vom Auftrag ab. Das Team nennt Ihnen den Zeitrahmen im Angebot."), F("Welche Hölzer verwenden Sie?", "Das Team berät Sie in der Werkstatt und zeigt Ihnen Muster."), F("Bauen Sie die Möbel auch ein?", "Ja, Lieferung und Einbau übernimmt das Team.")],
+    feste: [A(["Einbruch", "aufgebrochen"], "Bitte verändern Sie nichts und rufen Sie zuerst die Polizei unter 110. Für die Sicherung von Tür oder Fenster rufen Sie uns bitte direkt an – die Nummer steht unten.")] },
+  kfzwerkstatt: { zahlung: "Bar, EC-Karte oder Überweisung.",
+    faq: [F("Kann ich auf das Auto warten?", "Bei kurzen Arbeiten ja. Bei längeren bringen Sie das Auto morgens und holen es später ab."), F("Lagern Sie Reifen ein?", "Ja, Einlagerung ist möglich."), F("Bekomme ich vorher einen Kostenvoranschlag?", "Ja. Vor größeren Arbeiten meldet sich das Team mit den Kosten bei Ihnen."), F("Kann ich eigene Teile mitbringen?", "Das klärt das Team gern persönlich mit Ihnen.")],
+    feste: [A(["Warnleuchte", "Kontrollleuchte", "Motorleuchte", "weiterfahren", "Bremse geht nicht", "Bremsen quietschen"], "Ob Sie weiterfahren können, kann ich als KI-Assistent nicht beurteilen. Im Zweifel bitte nicht weiterfahren und direkt bei uns anrufen – die Nummer steht unten."),
+      A(["Unfall", "Panne", "liegen geblieben", "abschleppen"], "Sichern Sie bitte zuerst die Unfall- oder Pannenstelle und rufen Sie bei Verletzten die 112. Für Abschleppen und Hilfe rufen Sie uns bitte direkt an – die Nummer steht unten.")] },
+  zahnarzt: { zahlung: "",
+    faq: [F("Wie sage ich einen Termin ab?", "Bitte so früh wie möglich telefonisch beim Praxisteam."), F("Behandeln Sie Angstpatienten?", "Sprechen Sie das Praxisteam gern darauf an, es nimmt sich Zeit für Sie."), F("Behandeln Sie auch Kinder?", "Das beantwortet Ihnen das Praxisteam gern."), F("Was kostet eine Zahnreinigung?", "Den Preis nennt Ihnen das Praxisteam. Manche Krankenkassen beteiligen sich.")],
+    feste: [A(["Zahn ausgeschlagen", "Zahnschmerzen", "starke Schmerzen", "Schwellung", "dicke Backe", "Notfall", "Zahnunfall"], "Bei starken Schmerzen, einer Schwellung oder einem ausgeschlagenen Zahn rufen Sie bitte direkt in der Praxis an. Außerhalb der Sprechzeiten hilft der zahnärztliche Notdienst, bei Atemnot die 112. Als KI-Assistent kann ich keine medizinische Einschätzung geben."),
+      A(["Medikament", "Schmerzmittel", "Antibiotika", "Diagnose", "Befund", "Röntgen", "Betäubung", "Narkose"], "Dazu darf und kann ich als KI-Assistent nichts sagen. Bitte besprechen Sie das direkt mit der Praxis."),
+      A(["Heil- und Kostenplan", "Kostenplan", "Zuzahlung", "übernimmt die Kasse", "Krankenkasse zahlt"], "Was Ihre Krankenkasse übernimmt, klärt das Praxisteam mit Ihnen persönlich, bei größeren Behandlungen mit einem Heil- und Kostenplan.")] },
+  hotel: { zahlung: "Bar und mit Karte.",
+    faq: [F("Gibt es Parkplätze?", "Das beantwortet Ihnen das Team gern."), F("Bieten Sie Frühstück an?", "Ja. Einzelheiten und Zeiten nennt Ihnen das Team."), F("Kann ich mit einer Gruppe kommen?", "Ja. Schicken Sie eine Anfrage mit Datum und Personenzahl, das Team meldet sich."), F("Kann ich früher anreisen oder später abreisen?", "Das klärt das Team gern mit Ihnen, je nach Belegung.")],
+    feste: [A(["stornieren", "Stornierung", "umbuchen", "Buchung ändern"], "Stornierungen und Änderungen kann nur das Team vornehmen. Bitte melden Sie sich direkt mit Ihrer Buchungsnummer – die Kontaktdaten finden Sie unten."),
+      A(["Zimmer frei", "noch frei", "Verfügbarkeit", "ausgebucht"], "Ob zu Ihrem Zeitraum ein Zimmer frei ist, weiß nur das Team. Schicken Sie gern eine Anfrage mit Datum und Personenzahl, dann meldet es sich bei Ihnen.")] },
+  einzelhandel: { zahlung: "Bar und mit Karte.",
+    faq: [F("Liefern Sie auch?", "Das klärt das Team gern mit Ihnen."), F("Gibt es Gutscheine?", "Ja, Gutscheine gibt es direkt im Geschäft."), F("Gibt es Parkplätze?", "Das beantwortet Ihnen das Team gern."), F("Können Sie etwas für mich bestellen?", "Ja, das Team bestellt gern für Sie. Schicken Sie eine Anfrage mit dem gewünschten Artikel.")],
+    feste: [A(["Umtausch", "umtauschen", "Rückgabe", "zurückgeben", "Kassenbon"], "Zu Umtausch und Rückgabe berät Sie das Team direkt im Geschäft. Bitte bringen Sie den Kassenbon mit. Als KI-Assistent kann ich dazu nichts zusagen."),
+      A(["vorrätig", "auf Lager", "noch da", "lieferbar"], "Was gerade vorrätig ist, weiß nur das Team im Geschäft. Rufen Sie gern kurz an oder schicken Sie eine Anfrage – die Kontaktdaten finden Sie unten.")] },
+  fahrschule: { zahlung: "Bar, EC-Karte oder Überweisung.",
+    faq: [F("Was brauche ich für die Anmeldung?", "Das Team gibt dir eine Liste mit, zum Beispiel Sehtest, Erste-Hilfe-Kurs und Passfoto."), F("Kann ich mit 17 anfangen?", "Ja, begleitetes Fahren ab 17 ist möglich. Die Einzelheiten erklärt dir das Team."), F("Wie lange dauert der Führerschein?", "Das ist bei jedem anders. Das Team plant es mit dir."), F("Kann ich die Fahrschule wechseln?", "Ja. Meld dich beim Team, es erklärt dir den Ablauf.")],
+    feste: [A(["durchgefallen", "nicht bestanden", "Prüfungsangst"], "Das passiert vielen. Meld dich direkt beim Team, dann besprecht ihr in Ruhe, wie es weitergeht."),
+      A(["wie viele Fahrstunden", "Gesamtkosten", "was kostet der Führerschein", "Führerschein kostet"], "Was dein Führerschein am Ende kostet, hängt davon ab, wie viele Fahrstunden du brauchst. Das kann ich als KI-Assistent nicht einschätzen. Die Preisliste und eine ehrliche Einschätzung bekommst du direkt vom Team."),
+      A(["Führerschein entzogen", "MPU", "Punkte in Flensburg", "Fahrverbot"], "Dazu berät dich das Team persönlich. Als KI-Assistent kann ich dazu nichts sagen.")] },
 };
 
 function mische(ziel: any, quelle: any): any {
@@ -329,7 +431,8 @@ export function ausVorlage(branche: string, eigene: Teil<Kunde>): any {
   const m = MEHR[basis.stammdaten.branche] || {}, w = (basis.wissen ||= {});
   w.faq = [...(w.faq || []), ...(m.faq || [])];
   const du = basis.ton?.anrede === "du";
-  w.festeAntworten = [...JSON.parse(JSON.stringify(m.feste || [])), ...IMMER_FEST.map((f) => A([...f.stichworte], du ? f.du : f.sie))];
+  const fest = (liste: typeof IMMER_FEST) => liste.map((f) => A([...f.stichworte], du ? f.du : f.sie));
+  w.festeAntworten = [...fest(ZUERST_FEST), ...JSON.parse(JSON.stringify(m.feste || [])), ...fest(IMMER_FEST)];
   if (basis.module?.bewerberChat) basis.module.bewerberChat.festeAntworten = JSON.parse(JSON.stringify(BEWERBER_FEST));
   w.nieSagen = [...(w.nieSagen || []), ...(m.nie || []), ...IMMER_NIE];
   if (m.zahlung) w.zahlung = m.zahlung;

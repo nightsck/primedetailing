@@ -84,7 +84,7 @@ export function botConfigVon(k: Kunde): any {
     },
     pruefung: { erlaubtePhrasen: k.wissen.erlaubtePhrasen },
     nieSagen: k.wissen.nieSagen,
-    festeAntworten: k.wissen.festeAntworten, verboteneWoerter: k.wissen.verboteneWoerter, nurWissensbasis: k.wissen.nurWissensbasis,
+    festeAntworten: k.wissen.festeAntworten, verboteneWoerter: k.wissen.verboteneWoerter, nurWissensbasis: k.wissen.nurWissensbasis, kundenRegeln: true,
     poweredBy: k.rechtliches.poweredBy,
   };
 }

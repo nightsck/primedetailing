@@ -99,7 +99,7 @@ test("Neuer Kunde aus Branchen-Vorlage: Entwurf ist nicht live, Check zeigt, was
   const liste: any = await (await ruf("/admin/api/start", { cookie })).json();
   assert.equal(liste.kunden.length, 1);
   assert.deepEqual(liste.kunden[0].module, ["kundenChat", "bewerberChat"]);
-  assert.equal(liste.vorlagen.length, 16);
+  assert.equal(liste.vorlagen.length, 22);
 });
 
 test("Entwurf ändern lässt den Live-Stand in Ruhe; Test-Vorschau zeigt den Entwurf; Verlauf holt alte Fassung zurück", async () => {

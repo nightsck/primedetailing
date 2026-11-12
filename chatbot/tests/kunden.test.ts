@@ -50,8 +50,8 @@ test("Schema: Module nur im passenden Paket, Anruf-Retter bleibt aus, doppelte S
   assert.equal(pruefeKunde({ ...basis, module: { bewerberChat: { aktiv: true, stellen: [st, st] } } }).ok, false);
 });
 
-test("Branchen-Vorlagen: alle 16 ergeben eine gültige Konfiguration mit Stellen und Erklärungen", () => {
-  assert.equal(Object.keys(VORLAGEN).length, 16);
+test("Branchen-Vorlagen: alle 22 ergeben eine gültige Konfiguration mit Stellen und Erklärungen", () => {
+  assert.equal(Object.keys(VORLAGEN).length, 22);
   for (const b of Object.keys(VORLAGEN)) {
     const r = pruefeKunde(ausVorlage(b, { id: "vorlage-" + b, paket: "komplett", stammdaten: { firmenname: "Vorlage " + b, email: "a@b.de" } })) as any;
     assert.equal(r.ok, true, b + ": " + JSON.stringify(r.fehler));
@@ -263,7 +263,9 @@ test("Vorlagen: jedes Stichwort führt zur eigenen Antwort, und jede feste Antwo
   const { festeAntwort } = await import("../src/guard.ts");
   for (const b of Object.keys(VORLAGEN)) {
     const k = beispiel("vorlage-" + b, b);
-    assert.ok(k.wissen.festeAntworten.length >= 7, b + ": eigene und allgemeine feste Antworten");
+    assert.ok(k.wissen.festeAntworten.length >= 9, b + ": eigene und allgemeine feste Antworten");
+    assert.match(festeAntwort("Ich will mich umbringen, das ist ein Notfall", k.wissen.festeAntworten)!, /Telefonseelsorge .* 0800 111 0 111/, b + ": Krise gewinnt gegen alles andere");
+    assert.match(festeAntwort("Hilfe, es brennt!", k.wissen.festeAntworten)!, /sofort die 112/, b);
     assert.ok(k.module.bewerberChat.festeAntworten.length >= 5, b + ": feste Antworten für Bewerber");
     for (const [wo, liste] of [["Kunden-Chat", k.wissen.festeAntworten], ["Bewerber-Chat", k.module.bewerberChat.festeAntworten]] as const) {
       for (const f of liste) {
@@ -322,10 +324,13 @@ test("Verbotene Wörter und strenger Modus", () => {
     assert.match(p, /kein Allgemeinwissen zur Branche/);
     assert.match(p, /Lieber einmal zu oft an das Team verweisen/);
     assert.match(p, /Nicht über andere Betriebe oder Mitbewerber urteilen/);
+    assert.match(p, /zuerst auf den Notruf 112/);
+    assert.match(p, /persönliche Daten[^\n]*wiederholst du sie nicht/);
   });
   // Außerhalb dieses Kunden gilt das Verbot nicht, und Prime Detailing bekommt die strengen Zusatzregeln nicht
   assert.equal(pruefeAntwort("Fragen Sie bei Farben Meier.", []).ok, true);
   assert.doesNotMatch(systemBlocks()[0].text, /kein Allgemeinwissen zur Branche/);
+  assert.doesNotMatch(systemBlocks()[0].text, /zuerst auf den Notruf 112/, "Prime Detailing bleibt unverändert");
   const locker = beispiel("maler-mueller", "maler", { wissen: { nurWissensbasis: false } });
   mitKunde(laufzeitVon(locker), () => assert.doesNotMatch(systemBlocks()[0].text, /kein Allgemeinwissen zur Branche/));
 });
