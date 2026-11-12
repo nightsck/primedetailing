@@ -189,3 +189,44 @@ test("Chef-Übersicht und Auswertung je Kunde im Admin-Panel", async () => {
   const zahl = (art: string) => a.zeilen.filter((z: any) => z.art === art).reduce((n: number, z: any) => n + z.n, 0);
   assert.equal(zahl("chat"), 1); assert.equal(zahl("anfrage"), 1);
 });
+
+test("Branchen-Demos: ein Klick legt für jede Vorlage einen erfundenen Beispielbetrieb an, /demos zeigt sie", async () => {
+  const s = await neuerSpeicher(); _reset();
+  const cookie = await anmelden();
+  assert.match(await (await app.request(B + "/demos")).text(), /keine Beispielbetriebe eingerichtet/);
+  const r: any = await (await ruf("/admin/api/demos", { cookie, body: {} })).json();
+  assert.equal(r.ok, true); assert.equal(r.angelegt.length, 22); assert.equal(r.uebersicht, B + "/demos");
+  // Sie sind ganz normale, veröffentlichte Kunden ohne rote Punkte in ihrer eigenen Einrichtung
+  const maler = (await s.kundeLesen("demo-maler"))!.veroeffentlicht!;
+  assert.equal(maler.stammdaten.firmenname, "Malerbetrieb Muster");
+  assert.equal(maler.aussehen.botName, "Lena");
+  assert.deepEqual([maler.wissen.leistungen[0].preis, maler.wissen.leistungen[0].ab], [290, true]);
+  assert.equal(maler.technik.tagesbudget, 150, "kleines Budget, damit die Demo keine Kosten treibt");
+  assert.equal(maler.zugang.aktiv, true);
+  assert.deepEqual([...maler.zugang.adressen].sort(), ["giosue@test.de", "tom@test.de"], "beide Betreuer können den Kunden-Zugang vorführen");
+  const d: any = await (await ruf("/admin/api/kunden/demo-maler", { cookie })).json();
+  assert.deepEqual(d.check.filter((p: any) => p.reiter && p.farbe === "rot"), []);
+  // Chat, Bewerber-Chat und Startseite laufen
+  const cfg: any = await (await app.request(B + "/k/demo-maler/api/config")).json();
+  assert.match(cfg.start.begruessung, /^Hallo! Hier ist Lena, Ihr persönlicher KI-Assistent von Malerbetrieb Muster\./);
+  assert.match(await (await app.request(B + "/k/demo-friseur/")).text(), /Beispielbetrieb für Vorführungen/);
+  assert.equal((await app.request(B + "/k/demo-zahnarzt/bewerben")).status, 200);
+  // Übersicht: alle 22, mit Links, ohne Skript, nicht für Suchmaschinen
+  const seite = await app.request(B + "/demos"), html = await seite.text();
+  assert.equal((html.match(/<article/g) || []).length, 22);
+  assert.ok(html.includes(`${B}/k/demo-kfzwerkstatt/bewerben`) && html.includes("Fahrschule Muster"));
+  assert.ok(!html.includes("<script"));
+  assert.match(seite.headers.get("content-security-policy") || "", /default-src 'none'/);
+  assert.match(html, /noindex/);
+  // Zweiter Klick ändert nichts; angepasste Demos bleiben
+  await s.kundeSpeichern({ ...maler, notiz: "angepasst" }, "tom@test.de");
+  const r2: any = await (await ruf("/admin/api/demos", { cookie, body: {} })).json();
+  assert.equal(r2.angelegt.length, 0); assert.equal(r2.vorhanden.length, 22);
+  assert.equal((await s.kundeLesen("demo-maler"))!.entwurf.notiz, "angepasst");
+  // Ohne Anmeldung geht nichts
+  assert.equal((await ruf("/admin/api/demos", { body: {} })).status, 401);
+  // Wieder entfernen
+  const weg: any = await (await ruf("/admin/api/demos/loeschen", { cookie, body: {} })).json();
+  assert.equal(weg.geloescht.length, 22);
+  assert.equal((await app.request(B + "/k/demo-maler/")).status, 404);
+});

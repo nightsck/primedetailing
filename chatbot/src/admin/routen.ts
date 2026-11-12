@@ -6,6 +6,8 @@
 //   POST /admin/api/kunden                   neuen Kunden anlegen (aus Branchen-Vorlage)
 //   GET/PUT/DELETE /admin/api/kunden/:id     lesen, Entwurf speichern, löschen
 //   POST …/:id/veroeffentlichen | verwerfen | wiederherstellen | testmail
+//   POST /admin/api/demos                  Beispielbetriebe für alle Branchen anlegen (…/demos/loeschen entfernt sie)
+//   GET  /demos                            öffentliche Übersicht der Beispielbetriebe für Vorführungen
 //   POST …/:id/preiswunsch                   Preise aus dem Kunden-Zugang freigeben oder ablehnen
 //   GET  …/:id/vorgaenge  …/auswertung  …/qr  …/export
 //   POST …/:id/test/chat  …/test/bewerber    Test-Chat mit dem ENTWURF (geht nicht live)
@@ -31,12 +33,14 @@ import { pruefeLimit } from "../limits.ts";
 import { festeAntwort } from "../guard.ts";
 import { selbsttest } from "./selbsttest.ts";
 import { ADMIN_HTML } from "../daten.generated.ts";
-import { angemeldet, schickeCode, loeseEin, ABMELDE_COOKIE } from "./anmeldung.ts";
+import { angemeldet, schickeCode, loeseEin, ABMELDE_COOKIE, erlaubteAdressen } from "./anmeldung.ts";
 import { pruefeEinrichtung, ampel, serverStand } from "./check.ts";
 import { seitenKoepfe, mitNonce, zufallsToken, eigeneHerkunft } from "../sicherheit.ts";
 import { speichereLive } from "../zugang/routen.ts";
 import { entscheideWuensche } from "../zugang/aenderung.ts";
 import { zugangsAdressen } from "../zugang/anmeldung.ts";
+import { DEMO_BETRIEBE, DEMO_WEBSITE, demoKunde, demoId, istDemo } from "../kunde/demo-betriebe.ts";
+import { demosSeite } from "../seiten/demos.ts";
 
 // Anmeldeversuche pro Besucher: 6 pro Minute, 15 pro Stunde, 30 pro Tag (limits.ts).
 // Einen 6-stelligen Code kann man damit nicht durchprobieren.
@@ -140,6 +144,34 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     if (await speicherVon(c).kundeLesen(r.kunde.id)) return c.json({ ok: false, fehler: [{ feld: "id", text: "Diese Kunden-ID gibt es schon." }] }, 409);
     await speicherVon(c).kundeSpeichern(r.kunde, c.get("wer"));
     return c.json({ ok: true, id: r.kunde.id });
+  });
+
+  // --- Beispielbetriebe für Vorführungen: je Branche ein erfundener Betrieb als normaler Kunde „demo-<branche>“ ---
+  const DEMO_DATENSCHUTZ = DEMO_WEBSITE + "/datenschutz";
+  app.post("/admin/api/demos", async (c: any) => {
+    const b: any = await c.req.json().catch(() => ({}));
+    const sp = speicherVon(c), wer = c.get("wer") as string, angelegt: string[] = [], vorhanden: string[] = [];
+    const datenschutzUrl = /^https:\/\/[^\s"<>]{4,200}$/.test(String(b.datenschutzUrl || "")) ? String(b.datenschutzUrl) : DEMO_DATENSCHUTZ;
+    for (const branche of Object.keys(DEMO_BETRIEBE)) {
+      const id = demoId(branche);
+      // Vorhandene bleiben, wie sie sind (vielleicht hast du sie angepasst) – außer mit „neu“
+      if (!b.neu && (await sp.kundeLesen(id))) { vorhanden.push(id); continue; }
+      await sp.kundeSpeichern(demoKunde(branche, { kontakt: wer, zugang: erlaubteAdressen(c), datenschutzUrl }), wer);
+      await sp.kundeVeroeffentlichen(id, wer);
+      vergissKunde(id);
+      angelegt.push(id);
+    }
+    return c.json({ ok: true, angelegt, vorhanden, uebersicht: `${basisVon(c)}/demos` });
+  });
+  app.post("/admin/api/demos/loeschen", async (c: any) => {
+    const sp = speicherVon(c), weg: string[] = [];
+    for (const z of await sp.kundenListe()) if (istDemo(z.id)) { await sp.kundeLoeschen(z.id); vergissKunde(z.id); weg.push(z.id); }
+    return c.json({ ok: true, geloescht: weg });
+  });
+  // Öffentliche Übersicht für Vorführungen (kein Skript auf der Seite, nicht für Suchmaschinen)
+  app.get("/demos", async (c: any) => {
+    const liste = (await speicherVon(c).kundenListe()).filter((z) => istDemo(z.id) && z.live && (z.status === "aktiv" || z.status === "test"));
+    return c.html(demosSeite(liste, basisVon(c)), 200, { ...seitenKoepfe(zufallsToken(16)), "Cache-Control": "public, max-age=60" });
   });
 
   app.get("/admin/api/vorlage/:branche", (c: any) => c.json({ ok: true, werte: ausVorlage(c.req.param("branche"), {}) }));

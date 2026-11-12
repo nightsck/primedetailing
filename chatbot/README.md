@@ -74,6 +74,16 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Branchen-Demos für Vorführungen
+
+Im Admin-Panel legt **Branchen-Demos** (oben in der Kundenliste) für jede der 22 Branchen einen erfundenen Beispielbetrieb an und veröffentlicht ihn (Kunden-ID `demo-<branche>`, z. B. `demo-maler`).
+
+- `/demos`: Übersicht aller Beispielbetriebe. Diesen Link zeigt Giosuè im Gespräch.
+- `/k/demo-maler/`: Kunden-Chat, `/k/demo-maler/bewerben`: Bewerber-Chat, `/k/demo-maler/verwalten`: Kunden-Zugang (Anmeldung mit einer Admin-Adresse).
+- Die Betriebe sind normale Kunden: anpassen, pausieren oder löschen wie jeden anderen. Ein zweiter Klick ergänzt nur fehlende.
+- Anfragen und Bewerbungen aus den Demos gehen an die Adresse, mit der du sie angelegt hast. Das Budget ist klein gehalten (150 Nachrichten pro Tag je Demo).
+- Namen, Bot-Namen, Farben und Beispielpreise stehen in `src/kunde/demo-betriebe.ts`.
+
 ## Kunden-Zugang und Sicherheit
 
 - `KUNDEN-ZUGANG.md`: Der Kunde ändert Kleinigkeiten selbst unter `/k/<kunde>/verwalten` (Öffnungszeiten, Hinweis, Leistungen, Fragen, Stellen). Preise gelten erst nach Freigabe im Admin-Panel.

@@ -101,6 +101,7 @@ export function kundenStartseite(k: Kunde, basis: string): string {
   return rahmen(k, `${s.firmenname} – Assistent`, `
 <div class="page-head"><div class="wrap"><span class="eyebrow">${esc(s.brancheText)}</span><h1>${esc(s.firmenname)}</h1>
 <p class="lead">${chat ? "Fragen zu Leistungen oder eine Anfrage? Der Chat unten rechts hilft sofort weiter." : "Hier finden Sie unsere digitalen Assistenten."}</p>
+${k.id.startsWith("demo-") ? `<p><b>Beispielbetrieb für Vorführungen.</b> Firma, Preise und Stellen sind erfunden. <a href="${basis}/demos">Alle Branchen ansehen</a></p>` : ""}
 <p>${k.module.terminBot.aktiv ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/termin">Termin buchen</a> ` : ""}${k.module.anfrageChat.aktiv ? `<a class="btn btn-primary" href="${basis}/k/${k.id}/anfrage">Anfrage stellen</a> ` : ""}${jobs ? `<a class="btn ${k.module.terminBot.aktiv || k.module.anfrageChat.aktiv ? "btn-ghost" : "btn-primary"}" href="${basis}/k/${k.id}/bewerben">Jetzt bewerben</a> ` : ""}${s.website ? `<a class="btn btn-ghost" href="${esc(s.website)}" rel="noopener">Zur Website</a>` : ""}</p></div></div>
 ${chat ? `<script src="${basis}/k/${k.id}/widget.js" defer></script>` : ""}`);
 }

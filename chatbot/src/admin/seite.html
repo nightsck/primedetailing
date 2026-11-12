@@ -320,10 +320,11 @@ function vListe() {
   const s = S.start, sv = s.server;
   const warn = [!sv.ki && 'KI-Schlüssel fehlt', !sv.mail && 'Mailversand nicht eingerichtet', !sv.sitzung && 'SESSION_SECRET nicht gesetzt', sv.pausiert && 'Notbremse aktiv: alle Bots pausiert'].filter(Boolean);
   return `<div class="wrap"><div class="zeile" style="margin-bottom:16px"><h1 style="margin:0">Kunden</h1><span class="spacer"></span>
-    <label class="btn">Aus Datei anlegen<input type="file" id="importDatei" accept="application/json,.json" hidden></label><button class="btn haupt" data-akt="neu">+ Neuer Kunde</button></div>
+    <button class="btn" data-akt="demos">Branchen-Demos</button><label class="btn">Aus Datei anlegen<input type="file" id="importDatei" accept="application/json,.json" hidden></label><button class="btn haupt" data-akt="neu">+ Neuer Kunde</button></div>
+    ${s.kunden.some(k => k.id.startsWith('demo-')) ? `<div class="karte" style="margin-bottom:14px"><b style="color:var(--h)">Beispielbetriebe für Vorführungen:</b> ${s.kunden.filter(k => k.id.startsWith('demo-')).length} Branchen. <a href="/demos" target="_blank" rel="noopener">Übersicht öffnen</a> – diesen Link kann Giosuè im Gespräch zeigen. Die Betriebe stehen unten in der Liste und lassen sich wie jeder Kunde anpassen.</div>` : ''}
     ${warn.length ? `<div class="karte" style="border-color:var(--gelb);margin-bottom:14px"><b style="color:var(--gelb)">Am Server fehlt noch etwas:</b> ${warn.map(esc).join(' · ')}. Anleitung in SECRETS.md.</div>` : ''}
     <div class="karte" style="padding:6px 8px"><div class="tabelle"><table><thead><tr><th>Kunde</th><th>Status</th><th>Paket</th><th>Module</th><th>Test bis</th><th>Letzte Aktivität</th><th>Einrichtung</th></tr></thead><tbody>
-    ${s.kunden.map(k => `<tr class="klick" data-akt="oeffnen" data-id="${k.id}" tabindex="0"><td><b style="color:var(--h)">${esc(k.firmenname)}</b><div class="neben klein">${k.id}</div></td>
+    ${[...s.kunden.filter(k => !k.id.startsWith('demo-')), ...s.kunden.filter(k => k.id.startsWith('demo-'))].map(k => `<tr class="klick" data-akt="oeffnen" data-id="${k.id}" tabindex="0"><td><b style="color:var(--h)">${esc(k.firmenname)}</b><div class="neben klein">${k.id}</div></td>
       <td><span class="marker">${esc(s.status[k.status])}</span>${k.live ? (k.offen ? '<div class="neben klein">Änderungen offen</div>' : '') : '<div class="neben klein">nur Entwurf</div>'}</td>
       <td>${esc((s.pakete.find(p => p.id === k.paket) || {}).name)}</td><td>${k.module.map(m => esc(s.modulNamen[m])).join(', ') || '<span class="neben">keins</span>'}</td>
       <td>${k.testBis ? esc(k.testBis.split('-').reverse().join('.')) : '–'}</td><td>${tag(k.letzteAktivitaet)}</td>
@@ -415,6 +416,13 @@ const AKT = {
   async liste() { if (!verlassen()) return; await ladeStart(); Object.assign(S, { ansicht: 'liste', d: null, geaendert: false, fehler: {} }); zeichne(); },
   oeffnen(el) { oeffne(el.dataset.id, 'uebersicht'); },
   reiter(el) { S.reiter = el.dataset.r; zeichne(); window.scrollTo(0, 0); },
+  async demos() {
+    const gibt = S.start.kunden.some(k => k.id.startsWith('demo-'));
+    if (!confirm(gibt ? 'Fehlende Beispielbetriebe ergänzen? Vorhandene bleiben unverändert.' : 'Für jede Branche einen erfundenen Beispielbetrieb anlegen und veröffentlichen? Damit lassen sich die Bots im Gespräch vorführen.')) return;
+    const r = await api('/demos', { body: {} });
+    if (!r.ok) { toast(r.fehler || 'Das hat nicht geklappt.'); return; }
+    await ladeStart(); zeichne(); toast(r.angelegt.length ? `${r.angelegt.length} Beispielbetriebe angelegt. Übersicht: /demos` : 'Alle Beispielbetriebe sind schon da.');
+  },
   neu() { S.neu = { schritt: 0, k: leererKunde(), idSelbst: false }; S.fehler = {}; S.ansicht = 'neu'; zeichne(); },
   async branche(el) {
     const n = S.neu, r = await api('/vorlage/' + el.dataset.b);
