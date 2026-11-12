@@ -33,11 +33,16 @@ export const zufallsToken = (bytes = 24) => b64u(crypto.getRandomValues(new Uint
 // --- Signierte Werte (Sitzungs-Cookies) --------------------------------------
 const schluessel = new Map<string, Promise<CryptoKey>>();
 // Ohne SESSION_SECRET gilt ein Zufallswert bis zum Neustart: sicher, aber Sitzungen überleben keinen Neustart.
-const ersatzGeheimnis = [...crypto.getRandomValues(new Uint8Array(32))].join(",");
+// Wichtig: erst beim ersten Gebrauch erzeugen. Beim Laden des Moduls verbietet Cloudflare
+// Zufallswerte („Disallowed operation called within global scope“), der Upload schlägt sonst fehl.
+let ersatzGeheimnis = "";
 function key(zweck: string): Promise<CryptoKey> {
   let k = schluessel.get(zweck);
   // Jeder Zweck bekommt einen eigenen Schlüssel: Ein Admin-Cookie gilt nie als Kunden-Cookie und umgekehrt.
-  if (!k) schluessel.set(zweck, k = crypto.subtle.importKey("raw", enc.encode(zweck + "|" + (env.sessionSecret || ersatzGeheimnis)), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]));
+  if (!k) {
+    if (!env.sessionSecret && !ersatzGeheimnis) ersatzGeheimnis = [...crypto.getRandomValues(new Uint8Array(32))].join(",");
+    schluessel.set(zweck, k = crypto.subtle.importKey("raw", enc.encode(zweck + "|" + (env.sessionSecret || ersatzGeheimnis)), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]));
+  }
   return k;
 }
 /** Daten signieren → "inhalt.unterschrift". Der Inhalt ist lesbar, aber nicht fälschbar. */
