@@ -74,6 +74,12 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Kunden-Zugang und Sicherheit
+
+- `KUNDEN-ZUGANG.md`: Der Kunde ändert Kleinigkeiten selbst unter `/k/<kunde>/verwalten` (Öffnungszeiten, Hinweis, Leistungen, Fragen, Stellen). Preise gelten erst nach Freigabe im Admin-Panel.
+- `SICHERHEIT.md`: Was im Code schützt, was du selbst einstellen musst (alles kostenlos) und was im Ernstfall zu tun ist.
+- Ausprobieren ohne Einrichtung: `npm run beispiel` startet einen Server mit einem Beispielkunden.
+
 ## Tests
 
 ```bash

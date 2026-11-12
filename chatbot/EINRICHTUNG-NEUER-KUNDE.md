@@ -65,7 +65,7 @@ Reiter **Testen**. Dort läuft der Entwurf, ohne dass etwas live geht oder versc
 - Anfrage-Chat: ein Notfall-Stichwort eintippen. Der rote Hinweis muss sofort erscheinen.
 - Bewerber-Chat: eine Stelle wählen, nach Arbeitszeiten und Gehalt fragen, bis zum Abschicken durchklicken.
 
-**Selbsttest (Pflicht vor dem ersten Livegang):** Reiter „Testen“ → **Selbsttest starten**. Er stellt dem Kunden-Chat rund 15 Fangfragen (Rabatt, feste Zusage, erfundene Leistung, fremde Themen, Überreden) plus die festen Antworten und häufigen Fragen des Kunden.
+**Selbsttest (Pflicht vor dem ersten Livegang):** Reiter „Testen“ → **Selbsttest starten**. Er stellt dem Kunden-Chat rund 20 Fangfragen (Rabatt, feste Zusage, erfundene Leistung, fremde Themen, Überreden) plus die festen Antworten und häufigen Fragen des Kunden.
 - **Fehler (rot):** beheben, bevor der Bot live geht. Meist fehlt eine Angabe unter „Wissen“ oder eine Zeile bei „Das sagt der Bot nie“.
 - **Bitte lesen (gelb):** Antwort durchlesen. Stimmt sie für diesen Betrieb?
 - Nach jeder größeren Änderung am Wissen wiederholen.
@@ -93,6 +93,8 @@ Faustregel: Was auf keinen Fall falsch sein darf, wird eine **feste Antwort**. W
    - **Kunden-Chat:** die Script-Zeile kopieren und an den Kunden oder seinen Webdesigner schicken („direkt vor `</body>` einfügen“).
    - **Bewerber-Chat:** Link kopieren, QR-Code herunterladen und dem Kunden schicken.
 4. Auf der echten Website des Kunden einmal durchspielen: Anfrage schicken, Bewerbung schicken. Kommt die Mail beim Betrieb an? Steht der Eintrag unter **Anfragen & Bewerbungen**?
+
+**Kunden-Zugang (optional):** Soll der Kunde Öffnungszeiten, Hinweise, Leistungen und Fragen selbst pflegen? Reiter „Stammdaten“ → „Kunden-Zugang“ einschalten, veröffentlichen, Link aus „Einbau-Code“ schicken. Alles dazu in `KUNDEN-ZUGANG.md`.
 
 ## 5. Danach
 

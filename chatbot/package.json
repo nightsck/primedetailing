@@ -16,7 +16,8 @@
     "selbsttest": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/selbsttest-live.ts",
     "worker:dev": "node scripts/daten-bauen.mjs && wrangler dev",
     "deploy": "node scripts/daten-bauen.mjs && wrangler deploy",
-    "doku": "node scripts/konfig-doku.ts"
+    "doku": "node scripts/konfig-doku.ts",
+    "beispiel": "node scripts/daten-bauen.mjs && node tests/_dev.ts"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.26.0",

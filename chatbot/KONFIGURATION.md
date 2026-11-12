@@ -16,7 +16,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 
 ## Branchen-Vorlagen
 
-`handwerk` Handwerk allgemein · `maler` Maler · `elektro` Elektro · `fahrzeugpflege` Fahrzeugpflege · `autohaus` Autohaus / Werkstatt · `gastro` Gastronomie · `friseur` Friseur · `arztpraxis` Arztpraxis · `makler` Immobilienmakler
+`handwerk` Handwerk allgemein · `maler` Maler · `elektro` Elektro · `fahrzeugpflege` Fahrzeugpflege · `autohaus` Autohaus / Werkstatt · `gastro` Gastronomie · `friseur` Friseur · `arztpraxis` Arztpraxis · `makler` Immobilienmakler · `shk` Sanitär / Heizung · `dachdecker` Dachdecker · `gartenbau` Garten- und Landschaftsbau · `reinigung` Gebäudereinigung · `kosmetik` Kosmetikstudio · `physio` Physiotherapie · `steuerberater` Steuerkanzlei
 
 ## Vertrag
 
@@ -68,8 +68,10 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `wissen.leistungen[].kategorie` | Überschrift, unter der die Leistung einsortiert wird, z. B. „Innenanstrich“. |
 | `wissen.leistungen[].preis` | Preis in Euro. Leer lassen = „auf Anfrage“. Der Bot nennt nur Preise, die hier stehen. |
 | `wissen.leistungen[].ab` | Ankreuzen, wenn es ein „ab“-Preis ist (Richtpreis). |
+| `wissen.leistungen[].wunsch` | Preis, den der Kunde über seinen Kunden-Zugang eingetragen hat. Der Bot nennt ihn noch nicht: Er gilt erst nach der Freigabe hier im Admin-Panel. |
 | `wissen.faq` | Häufige Fragen mit der richtigen Antwort. |
 | `wissen.freitext` | Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten. |
+| `wissen.hinweis` | Aktueller Hinweis, z. B. „Betriebsferien vom 23.12. bis 6.1.“ oder „Im August nur Notdienst“. Der Bot nennt ihn, wenn es zur Frage passt. Leer = kein Hinweis. |
 | `wissen.zahlung` | Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“ |
 | `wissen.anfahrt` | Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet. |
 | `wissen.wartezeit` | Wie schnell gibt es üblicherweise einen Termin? z. B. „Meist innerhalb von zwei Wochen.“ Leer = der Bot sagt dazu nichts. |
@@ -142,6 +144,13 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `benachrichtigungen.bewerbungen` | Wer Bewerbungen bekommt. |
 | `benachrichtigungen.termine` | Wer neue und abgesagte Termine bekommt. |
 | `benachrichtigungen.notfall` | Zusätzliche Empfänger bei Dringlichkeit „Notfall“. |
+
+## Kunden-Zugang
+
+| Feld | Wofür ist das? |
+|---|---|
+| `zugang.aktiv` | Kunden-Zugang einschalten. Der Kunde kann dann unter …/verwalten Kleinigkeiten selbst ändern: Öffnungszeiten, aktueller Hinweis, Leistungen, häufige Fragen, Stellen. Das geht sofort live. Preise gelten erst nach der Freigabe hier im Admin-Panel. Alles andere (feste Antworten, Verbote, Module, Technik) bleibt gesperrt. |
+| `zugang.adressen` | Wer sich anmelden darf: E-Mail-Adressen des Kunden, eine pro Zeile. Leer = die Kontakt-Adresse aus den Stammdaten. Angemeldet wird mit einem Code per E-Mail, ohne Passwort. |
 
 ## Rechtliches
 

@@ -50,8 +50,8 @@ test("Schema: Module nur im passenden Paket, Anruf-Retter bleibt aus, doppelte S
   assert.equal(pruefeKunde({ ...basis, module: { bewerberChat: { aktiv: true, stellen: [st, st] } } }).ok, false);
 });
 
-test("Branchen-Vorlagen: alle neun ergeben eine gültige Konfiguration mit Stellen und Erklärungen", () => {
-  assert.equal(Object.keys(VORLAGEN).length, 9);
+test("Branchen-Vorlagen: alle 16 ergeben eine gültige Konfiguration mit Stellen und Erklärungen", () => {
+  assert.equal(Object.keys(VORLAGEN).length, 16);
   for (const b of Object.keys(VORLAGEN)) {
     const r = pruefeKunde(ausVorlage(b, { id: "vorlage-" + b, paket: "komplett", stammdaten: { firmenname: "Vorlage " + b, email: "a@b.de" } })) as any;
     assert.equal(r.ok, true, b + ": " + JSON.stringify(r.fehler));
@@ -257,6 +257,34 @@ test("Vorlagen bringen feste Antworten, viele Fragen und Verbote mit", () => {
     assert.ok(r.kunde.wissen.nieSagen.length >= 5, b + " hat Verbote");
     assert.equal(r.kunde.wissen.nurWissensbasis, true);
   }
+});
+
+test("Vorlagen: jedes Stichwort führt zur eigenen Antwort, und jede feste Antwort besteht die Prüfregeln", async () => {
+  const { festeAntwort } = await import("../src/guard.ts");
+  for (const b of Object.keys(VORLAGEN)) {
+    const k = beispiel("vorlage-" + b, b);
+    assert.ok(k.wissen.festeAntworten.length >= 7, b + ": eigene und allgemeine feste Antworten");
+    assert.ok(k.module.bewerberChat.festeAntworten.length >= 5, b + ": feste Antworten für Bewerber");
+    for (const [wo, liste] of [["Kunden-Chat", k.wissen.festeAntworten], ["Bewerber-Chat", k.module.bewerberChat.festeAntworten]] as const) {
+      for (const f of liste) {
+        // Steht ein Stichwort schon (als Wortanfang) bei einer früheren Antwort, käme die falsche
+        for (const w of f.stichworte) assert.equal(festeAntwort(w, liste), f.antwort, `${b}, ${wo}: „${w}“ trifft eine andere feste Antwort`);
+        // Der Selbsttest prüft auch feste Antworten auf Zusagen, Rabatte und erfundene Beträge
+        mitKunde(laufzeitVon(k), () => assert.deepEqual(pruefeAntwort(f.antwort, []), { ok: true }, `${b}, ${wo}: „${f.antwort.slice(0, 50)}…“`));
+      }
+    }
+    // Wer geduzt wird, bekommt auch die allgemeinen Antworten in der Du-Form
+    const text = k.wissen.festeAntworten.map((f) => f.antwort).join(" ");
+    if (k.ton.anrede === "du") assert.doesNotMatch(text, /\bSie\b|\bIhnen\b|\bIhre[nrm]?\b/, b + ": Du-Form durchgehend");
+    else assert.doesNotMatch(text, /\b(du|dich|dir|deine[nrm]?)\b/, b + ": Sie-Form durchgehend");
+  }
+  // Alltägliche Sätze dürfen keine feste Antwort auslösen
+  const maler = beispiel("vorlage-maler", "maler");
+  for (const harmlos of ["Haben Sie eine Kiste Farbe übrig?", "Streichen Sie eine Kita?", "Ich brauche einen Termin für ein Botox-freies Wochenende", "Was kostet ein Zimmer?", "Kann ich auf Rechnung zahlen?"]) {
+    assert.equal(festeAntwort(harmlos, maler.wissen.festeAntworten), null, harmlos);
+  }
+  assert.match(festeAntwort("Spreche ich hier mit einem Menschen?", maler.wissen.festeAntworten)!, /KI-Assistent und kein Mensch/);
+  assert.match(festeAntwort("Bin ich zu alt für die Stelle?", maler.module.bewerberChat.festeAntworten)!, /ob du zur Stelle passt/);
 });
 
 test("Feste Antwort: kommt Wort für Wort, ohne dass die KI gefragt wird", async () => {

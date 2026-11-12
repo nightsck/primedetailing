@@ -8,7 +8,7 @@ const BEREICHE: [string, string][] = [
   ["", "Vertrag"], ["stammdaten", "Stammdaten"], ["aussehen", "Aussehen"], ["ton", "Ton"], ["wissen", "Wissen"],
   ["module.kundenChat", "Modul Kunden-Chat"], ["module.bewerberChat", "Modul Bewerber-Chat"], ["module.terminBot", "Modul Termin-Bot (kommt bald)"],
   ["module.anfrageChat", "Modul Anfrage-Chat (kommt bald)"], ["module.anrufRetter", "Modul Anruf-Retter (kommt bald)"],
-  ["benachrichtigungen", "Benachrichtigungen"], ["rechtliches", "Rechtliches"], ["technik", "Technik"],
+  ["benachrichtigungen", "Benachrichtigungen"], ["zugang", "Kunden-Zugang"], ["rechtliches", "Rechtliches"], ["technik", "Technik"],
 ];
 const hilfen = Object.entries(feldHilfen());
 const bereichVon = (pfad: string) => [...BEREICHE].reverse().find(([p]) => p && (pfad === p || pfad.startsWith(p + "."))) || BEREICHE[0];

@@ -36,12 +36,14 @@ flowchart TD
 |---|---|
 | `kontext.ts` | Kunden-Kontext: Welcher Kunde ist bei dieser Anfrage dran? |
 | `kunde/schema.ts` | **Alle Felder der Kunden-Konfiguration** mit Erklärung und Prüfregeln |
-| `kunde/vorlagen.ts` | Die neun Branchen-Vorlagen |
+| `kunde/vorlagen.ts` | Die 16 Branchen-Vorlagen |
 | `kunde/umwandeln.ts` | Übersetzt die Konfiguration in das, was die einzelnen Bots brauchen |
 | `kunden-routen.ts` | Alle Adressen unter `/k/<kunde>/…` |
 | `kunden-termin.ts` | Termin-Bot und Anfrage-Chat je Kunde (`/k/<kunde>/termin`, `/k/<kunde>/anfrage`) |
 | `seiten/` | Die Seiten eines Kunden: Bewerben, Termin, Anfrage, kleine Startseite |
 | `speicher/` | Speicher-Schnittstelle, SQL-Befehle, je eine dünne Schicht für Cloudflare und Node |
+| `zugang/` | Kunden-Zugang `/k/<kunde>/verwalten`: Anmeldung, freigegebene Felder, Oberfläche (siehe `KUNDEN-ZUGANG.md`) |
+| `sicherheit.ts` | Gemeinsamer Schutz: Codes, Sitzungs-Cookies, Herkunftsprüfung, Antwort-Köpfe (siehe `SICHERHEIT.md`) |
 | `admin/` | Admin-Panel: Anmeldung, Schnittstellen, Einrichtungs-Check, Oberfläche (`seite.html`) |
 | `app.ts`, `llm.ts`, `prompt.ts`, `tools.ts`, `guard.ts`, `limits.ts`, `foto.ts` | Kunden-Chat (für alle Kunden gleich) |
 | `bewerber.ts`, `jobs.ts` | Bewerber-Chat |

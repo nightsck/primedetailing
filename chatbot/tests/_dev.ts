@@ -1,4 +1,6 @@
-// Nur lokal zum Ansehen: Server mit einem Beispielkunden im Arbeitsspeicher.
+// Nur lokal zum Ansehen (npm run beispiel): Server mit einem Beispielkunden im Arbeitsspeicher.
+// Admin: http://localhost:8799/admin (tom@test.de) · Kunden-Zugang: http://localhost:8799/k/maler-mueller/verwalten (info@maler-mueller.de)
+// Die Anmelde-Codes stehen in der Konsole.
 process.env.LLM_PROVIDER = "demo"; process.env.SESSION_SECRET = "dev"; process.env.ADMIN_LOGIN = "tom@test.de";
 const { serve } = await import("@hono/node-server");
 const { app } = await import("../src/app.ts");
