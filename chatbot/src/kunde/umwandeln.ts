@@ -66,8 +66,8 @@ export function botConfigVon(k: Kunde): any {
     },
     start: {
       begruessung: a.begruessung || (du
-        ? `Hallo! Ich bin ${a.botName}, der digitale Assistent von ${s.firmenname}. Ich beantworte Fragen zu unseren Leistungen und bereite gern eine Anfrage für dich vor.`
-        : `Hallo! Ich bin ${a.botName}, der digitale Assistent von ${s.firmenname}. Ich beantworte Fragen zu unseren Leistungen und bereite gern eine Anfrage für Sie vor.`),
+        ? `Hallo! Ich bin ${a.botName}, der KI-Assistent von ${s.firmenname}. Ich beantworte Fragen zu unseren Leistungen und bereite gern eine Anfrage für dich vor.`
+        : `Hallo! Ich bin ${a.botName}, der KI-Assistent von ${s.firmenname}. Ich beantworte Fragen zu unseren Leistungen und bereite gern eine Anfrage für Sie vor.`),
       kiHinweis: `${du ? "Du schreibst" : "Sie schreiben"} mit einer KI. Termine und endgültige Preise bestätigt ${wer} persönlich.`,
       buttons: c.startKnoepfe.length ? c.startKnoepfe : ["Frage stellen"],
     },
