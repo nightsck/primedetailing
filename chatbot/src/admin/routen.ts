@@ -41,6 +41,7 @@ import { entscheideWuensche } from "../zugang/aenderung.ts";
 import { zugangsAdressen } from "../zugang/anmeldung.ts";
 import { DEMO_BETRIEBE, DEMO_WEBSITE, demoKunde, demoId, istDemo } from "../kunde/demo-betriebe.ts";
 import { demosSeite } from "../seiten/demos.ts";
+import { websiteWissen, leseUndMerke } from "../website.ts";
 
 // Anmeldeversuche pro Besucher: 6 pro Minute, 15 pro Stunde, 30 pro Tag (limits.ts).
 // Einen 6-stelligen Code kann man damit nicht durchprobieren.
@@ -113,7 +114,7 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
   const zeile = async (c: any, id: string) => {
     const e = await speicherVon(c).kundeLesen(id);
     if (!e) return null;
-    const punkte = pruefeEinrichtung(c, e.entwurf, { live: !!e.veroeffentlicht, offen: e.offen });
+    const punkte = pruefeEinrichtung(c, e.entwurf, { live: !!e.veroeffentlicht, offen: e.offen, website: e.entwurf.wissen.websiteLesen?.aktiv ? await speicherVon(c).websiteLesen(e.id) : null });
     return { e, punkte };
   };
 
@@ -184,6 +185,8 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
       check: z.punkte, ampel: ampel(z.punkte), versionen: await speicherVon(c).versionen(z.e.id),
       einbau: einbau(z.e.veroeffentlicht || z.e.entwurf, basisVon(c)),
       // Preise aus dem Kunden-Zugang, die auf Freigabe warten (aus der Live-Fassung)
+      // Was der Server zuletzt von der Website des Kunden gelesen hat (nur wenn das eingeschaltet ist oder war)
+      website: await speicherVon(c).websiteLesen(z.e.id),
       preiswuensche: (z.e.veroeffentlicht?.wissen.leistungen || []).filter((l) => l.wunsch).map((l) => ({ name: l.name, preis: l.preis, ab: l.ab, wunsch: l.wunsch })),
     });
   });
@@ -212,6 +215,15 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     await speicherVon(c).kundeVeroeffentlichen(z.e.id, c.get("wer"));
     vergissKunde(z.e.id);
     return c.json({ ok: true });
+  });
+
+  // Website des Kunden jetzt einlesen (mit den Einstellungen aus dem Entwurf) und zeigen, was der Bot dadurch weiß
+  app.post("/admin/api/kunden/:id/website-lesen", async (c: any) => {
+    const sp = speicherVon(c), e = await sp.kundeLesen(c.req.param("id"));
+    if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
+    const stand = await leseUndMerke(sp, e.entwurf);
+    vergissKunde(e.id);
+    return c.json({ ok: true, website: stand });
   });
 
   // Preise, die der Kunde über seinen Zugang eingetragen hat: übernehmen (gehen sofort live) oder ablehnen
@@ -316,7 +328,7 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
   const mitEntwurf = async (c: any, fn: (k: Kunde) => any) => {
     const e = await speicherVon(c).kundeLesen(c.req.param("id"));
     if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
-    return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }), () => fn(e.entwurf));
+    return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }, websiteWissen(e.entwurf, await speicherVon(c).websiteLesen(e.id))), () => fn(e.entwurf));
   };
   // Selbsttest: stellt dem Kunden-Chat mit dem Entwurf die typischen Fangfragen und prüft die Antworten
   app.post("/admin/api/kunden/:id/selbsttest", (c: any) => mitEntwurf(c, async (k) => {
@@ -356,7 +368,7 @@ export function adminRouten(app: Hono, alt: { chatRoute: any; configRoute: any }
     if (!e) return c.json({ ok: false, fehler: "Diesen Kunden gibt es nicht." }, 404);
     c.set("kunde", e.entwurf);
     c.header("Cache-Control", "no-store");
-    return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }), () => next());
+    return mitKunde(laufzeitVon(e.entwurf, standardKunde().config.llm, { test: true }, websiteWissen(e.entwurf, await speicherVon(c).websiteLesen(e.id))), () => next());
   }]);
   app.post(`${T}/api/jobs/absenden`, (c: any) => c.json({ ok: true, dateien: [] }));
   app.post(`${T}/api/jobs/bewerbung`, (c: any) => c.json({ ok: true, test: true }));

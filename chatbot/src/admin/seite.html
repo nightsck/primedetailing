@@ -173,6 +173,11 @@ const T = {
   wissen: () => `<div class="karte">${liste('wissen.leistungen', 'Leistungen', { kategorie: 'Leistungen', name: '', preis: null, ab: false, beschreibung: '' },
       p => `<div class="raster drei">${feld(p + '.name', 'Name')}${feld(p + '.kategorie', 'Kategorie')}${feld(p + '.preis', 'Preis in €', 'preis')}</div>${feld(p + '.ab', '„ab“-Preis (Richtpreis)', 'haken')}${feld(p + '.beschreibung', 'Beschreibung')}${(hol(S.K, p) || {}).wunsch ? '<p style="color:var(--gelb);margin:0 0 12px">Der Kunde möchte diesen Preis ändern. Freigeben oder ablehnen: Reiter „Übersicht“.</p>' : ''}`, e => e.name)}</div>
     <div class="karte">${liste('wissen.faq', 'Häufige Fragen', { frage: '', antwort: '' }, p => `${feld(p + '.frage', 'Frage')}${feld(p + '.antwort', 'Antwort', 'lang', { zeilen: 2 })}`, e => e.frage)}</div>
+    <div class="karte"><h2>Website automatisch einlesen</h2>
+      <p class="hilfe" style="margin-bottom:12px">Der Server liest einmal am Tag die Website des Kunden und gibt dem Kunden-Chat den Text als zusätzliches Wissen mit. So bleibt der Bot aktuell, ohne dass jemand etwas eintippt. Was eingetragen ist, hat Vorrang. Preise nennt der Bot weiter nur aus der Preisliste oben.</p>
+      ${feld('wissen.websiteLesen.aktiv', 'Website jeden Tag einlesen und dem Bot mitgeben', 'haken')}${feld('wissen.websiteLesen.seiten', 'Nur diese Seiten lesen (leer = selbst finden)', 'zeilen', { zeilen: 3 })}
+      <div class="zeile" style="margin-bottom:10px"><button class="btn" data-akt="websiteLesen" ${S.websiteLaeuft ? 'disabled' : ''}>${S.websiteLaeuft ? 'Liest …' : 'Jetzt einlesen'}</button><span class="neben klein">${websiteStatus()}</span></div>
+      ${S.d.website && S.d.website.text ? `<details><summary style="cursor:pointer;color:var(--akzent)">Das weiß der Bot von der Website (${S.d.website.text.length.toLocaleString('de-DE')} Zeichen)</summary><pre style="white-space:pre-wrap;word-break:break-word;font:inherit;font-size:13.5px;max-height:420px;overflow:auto;margin:10px 0 0;padding:12px;border:1px solid var(--linie);border-radius:10px">${esc(S.d.website.text)}</pre></details>` : ''}</div>
     <div class="karte"><h2>Weiteres Wissen</h2>${feld('wissen.hinweis', 'Aktueller Hinweis')}<div class="raster zwei">${feld('wissen.zahlung', 'Bezahlung')}${feld('wissen.wartezeit', 'Wie schnell gibt es einen Termin?')}</div>${feld('wissen.anfahrt', 'Anfahrt und Parken')}${feld('wissen.freitext', 'Weitere Informationen', 'lang', { zeilen: 8 })}</div>
     <div class="karte"><h2>Was der Bot darf und was nicht</h2><p class="hilfe" style="margin-bottom:14px">Drei Stufen, von fest bis frei: <b>Feste Antworten</b> kommen Wort für Wort und ohne KI. <b>„Das sagt der Bot nie“</b> und <b>verbotene Wörter</b> sind Grenzen für alles andere. Zusätzlich prüft der Code jede Antwort auf erfundene Preise, Zusagen und Rabatte – das lässt sich nicht abschalten.</p>
       ${feld('wissen.nurWissensbasis', 'Streng: nur antworten, was hier eingetragen ist', 'haken')}
@@ -304,6 +309,13 @@ function selbsttestHtml() {
     <div class="tabelle"><table><thead><tr><th>Ergebnis</th><th>Frage und Antwort</th></tr></thead><tbody>${sortiert.map(e => `<tr><td style="white-space:nowrap"><span class="marker"><span class="punkt ${F[e.urteil]}"></span>${W[e.urteil]}</span><div class="neben klein" style="margin-top:4px">${esc(e.gruppe)}</div></td>
       <td><b style="color:var(--h)">${esc(e.frage)}</b><div style="margin:4px 0;white-space:pre-wrap">${esc(e.antwort) || '<span class="neben">(keine Antwort)</span>'}</div>${e.zeigt.length ? `<div class="neben klein">Zeigt dazu: ${e.zeigt.map(z => ({ uebergabe: 'Kontakt-Knöpfe', anfrage_formular: 'Anfrageformular', buttons: 'Auswahl-Knöpfe' }[z] || z)).join(', ')}</div>` : ''}<div class="neben klein">${esc(e.hinweis)}</div></td></tr>`).join('')}</tbody></table></div>
     <p class="hilfe" style="margin-top:8px">„Fehler“ beheben: meist fehlt eine Angabe unter „Wissen“ oder eine Zeile bei „Das sagt der Bot nie“. Für Antworten, die immer gleich sein müssen: „Feste Antworten“. Danach speichern und den Test wiederholen.</p>`;
+}
+
+function websiteStatus() {
+  const w = S.d.website;
+  if (!w) return 'Noch nie gelesen.';
+  const wann = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return (w.text ? `Zuletzt gelesen: ${wann(w.zeit)} · ${w.seiten.length} ${w.seiten.length === 1 ? 'Seite' : 'Seiten'}` : 'Noch kein Text gelesen') + (w.fehler ? ` · Hinweis: ${esc(w.fehler)}` : '');
 }
 
 /* ---------- Ansichten ---------- */
@@ -442,6 +454,14 @@ const AKT = {
     S.neu = null; await ladeStart(); await oeffne(r.id, 'uebersicht'); toast('Kunde angelegt. Jetzt Leistungen und Stellen anpassen, dann testen.');
   },
   speichern() { speichern(); },
+  async websiteLesen() {
+    if (S.geaendert && !(await speichern(true))) return;
+    S.websiteLaeuft = true; zeichne();
+    const r = await api(`/kunden/${S.id}/website-lesen`, { body: {} });
+    S.websiteLaeuft = false;
+    if (r.ok) S.d.website = r.website;
+    zeichne(); toast(!r.ok ? (r.fehler || 'Das hat nicht geklappt.') : r.website.text ? `Gelesen: ${r.website.seiten.length} Seite(n). Klapp die Vorschau auf und lies kurz drüber.` : `Nichts gelesen: ${r.website.fehler}`);
+  },
   async preiswunsch(el) {
     const ja = el.dataset.ja === '1';
     if (!confirm(ja ? 'Die neuen Preise übernehmen? Der Bot nennt sie ab sofort.' : 'Die Preisänderungen des Kunden ablehnen? Die bisherigen Preise bleiben.')) return;

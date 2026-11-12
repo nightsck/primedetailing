@@ -94,6 +94,8 @@ Faustregel: Was auf keinen Fall falsch sein darf, wird eine **feste Antwort**. W
    - **Bewerber-Chat:** Link kopieren, QR-Code herunterladen und dem Kunden schicken.
 4. Auf der echten Website des Kunden einmal durchspielen: Anfrage schicken, Bewerbung schicken. Kommt die Mail beim Betrieb an? Steht der Eintrag unter **Anfragen & Bewerbungen**?
 
+**Website einlesen (optional):** Reiter „Wissen“ → „Website automatisch einlesen“ einschalten und „Jetzt einlesen“ klicken. Der Bot kennt dann zusätzlich den Text der Website und liest ihn jeden Tag neu. Vorschau aufklappen und einmal drüberlesen.
+
 **Kunden-Zugang (optional):** Soll der Kunde Öffnungszeiten, Hinweise, Leistungen und Fragen selbst pflegen? Reiter „Stammdaten“ → „Kunden-Zugang“ einschalten, veröffentlichen, Link aus „Einbau-Code“ schicken. Alles dazu in `KUNDEN-ZUGANG.md`.
 
 ## 5. Danach

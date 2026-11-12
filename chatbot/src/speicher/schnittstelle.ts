@@ -18,6 +18,8 @@ export type KundeEintrag = {
   offen: boolean; geaendert: number; geaendertVon: string;
 };
 export type KundeZeile = { id: string; firmenname: string; status: string; paket: string; testBis: string; module: string[]; live: boolean; offen: boolean; geaendert: number; letzteAktivitaet: number | null };
+/** Zuletzt gelesener Text der Kunden-Website. `zeit` = letzter erfolgreicher Abruf, `versucht` = letzter Versuch. */
+export type WebsiteStand = { text: string; zeit: number; versucht: number; seiten: { url: string; zeichen: number }[]; fehler: string };
 export type Version = { nr: number; zeit: number; wer: string };
 
 export type VorgangArt = "anfrage" | "bewerbung" | "termin";
@@ -61,6 +63,10 @@ export interface Speicher {
   /** Code oder Link prüfen. `verbrauchen` = danach ungültig machen. Gibt die E-Mail zurück oder null. */
   loginPruefen(hash: string, verbrauchen: boolean): Promise<string | null>;
 
+  /** Gelesenen Text der Kunden-Website ablegen bzw. holen (siehe website.ts). */
+  websiteMerken(kunde: string, stand: WebsiteStand): Promise<void>;
+  websiteLesen(kunde: string): Promise<WebsiteStand | null>;
+
   /** Alle offenen Codes und Links einer Adresse ungültig machen (neuer Code angefordert oder erfolgreich angemeldet). */
   loginLoeschen(email: string): Promise<void>;
 
@@ -75,7 +81,7 @@ export function setzeSpeicher(s: Speicher | null) { lokal = s; }
 
 const METHODEN = ["kundenListe", "kundeLesen", "kundeSpeichern", "kundeVeroeffentlichen", "kundeLoeschen", "versionen", "versionLesen",
   "vorgangAnlegen", "vorgaenge", "vorgangStatus", "vorgangLoeschen", "dateiAblegen", "dateiHolen", "dateienBehalten",
-  "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "loginLoeschen", "aufraeumen"] as const;
+  "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "loginLoeschen", "websiteMerken", "websiteLesen", "aufraeumen"] as const;
 
 /** Der Speicher für diese Anfrage. Auf Cloudflare über die Bindung KUNDEN, sonst der lokal gesetzte. */
 export function speicherVon(c: any): Speicher {

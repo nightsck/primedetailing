@@ -74,6 +74,17 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Website des Kunden automatisch einlesen
+
+Pro Kunde einschaltbar: Admin-Panel → Reiter **Wissen** → Karte **Website automatisch einlesen**.
+
+- Der Server liest einmal am Tag die Website des Kunden (Startseite und die wichtigsten Unterseiten, höchstens 6) und speichert den Text. Der Kunden-Chat bekommt ihn als zusätzliches Wissen.
+- **Jetzt einlesen** liest sofort. Darunter steht aufklappbar genau der Text, den der Bot dadurch kennt. Einmal drüberlesen lohnt sich.
+- Vorrang hat immer, was in den Feldern eingetragen ist. Preise nennt der Bot weiter nur aus der Preisliste, auch wenn auf der Website andere stehen.
+- Gelesen werden nur die eigenen Adressen des Kunden, nur über https. Ist die Website nicht erreichbar, bleibt der letzte Stand bis zu 14 Tage gültig; der Einrichtungs-Check zeigt dann Gelb.
+- Grenzen: Seiten, die erst im Browser per JavaScript aufgebaut werden, liefern keinen Text. PDFs und Bilder werden nicht gelesen. Der Bewerber-Chat nutzt den Website-Text nicht.
+- Auf Cloudflare läuft das stündlich für bis zu 3 fällige Kunden, das reicht für rund 70 Kunden am Tag. Technik: `src/website.ts`.
+
 ## Branchen-Demos für Vorführungen
 
 Im Admin-Panel legt **Branchen-Demos** (oben in der Kundenliste) für jede der 22 Branchen einen erfundenen Beispielbetrieb an und veröffentlicht ihn (Kunden-ID `demo-<branche>`, z. B. `demo-maler`).

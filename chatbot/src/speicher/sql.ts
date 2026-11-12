@@ -22,6 +22,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
   sql(`CREATE TABLE IF NOT EXISTS datei (kunde TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, typ TEXT NOT NULL, groesse INTEGER NOT NULL, ablauf INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
   sql(`CREATE TABLE IF NOT EXISTS datei_teil (kunde TEXT NOT NULL, id TEXT NOT NULL, nr INTEGER NOT NULL, daten BLOB NOT NULL, PRIMARY KEY (kunde, id, nr))`);
   sql(`CREATE TABLE IF NOT EXISTS zaehler (kunde TEXT NOT NULL, tag TEXT NOT NULL, art TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (kunde, tag, art))`);
+  sql(`CREATE TABLE IF NOT EXISTS website (kunde TEXT PRIMARY KEY, stand TEXT NOT NULL)`);
   sql(`CREATE TABLE IF NOT EXISTS login (hash TEXT PRIMARY KEY, email TEXT NOT NULL, bis INTEGER NOT NULL)`);
 
   const lies = (s: string | null): Kunde | null => (s ? JSON.parse(s) : null);
@@ -61,7 +62,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       return true;
     },
     async kundeLoeschen(id) {
-      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
+      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler", "website"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
       sql(`DELETE FROM kunde WHERE id = ?`, id);
     },
     async versionen(id) {
@@ -135,6 +136,9 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       if (verbrauchen) sql(`DELETE FROM login WHERE hash = ?`, hash);
       return r.email;
     },
+
+    async websiteMerken(kunde, stand) { sql(`INSERT INTO website (kunde, stand) VALUES (?, ?) ON CONFLICT(kunde) DO UPDATE SET stand = excluded.stand`, kunde, JSON.stringify(stand)); },
+    async websiteLesen(kunde) { const z = sql(`SELECT stand FROM website WHERE kunde = ?`, kunde)[0] as any; return z ? JSON.parse(z.stand) : null; },
 
     async loginLoeschen(email) { sql(`DELETE FROM login WHERE email = ?`, email); },
 

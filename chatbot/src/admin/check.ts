@@ -3,6 +3,7 @@
 //   rot  = so nicht veröffentlichen (wird beim Veröffentlichen geprüft)
 //   gelb = läuft, sollte man sich aber ansehen
 //   gruen = passt
+import type { WebsiteStand } from "../speicher/schnittstelle.ts";
 import type { Kunde } from "../kunde/schema.ts";
 import { MODULE, MODUL_NAMEN, NOCH_NICHT } from "../kunde/schema.ts";
 import { betriebsStatus, terminBetriebVon } from "../kunde/umwandeln.ts";
@@ -23,7 +24,7 @@ export function serverStand(c: any) {
   };
 }
 
-export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offen: boolean }): Punkt[] {
+export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offen: boolean; website?: WebsiteStand | null }): Punkt[] {
   const p: Punkt[] = [], s = serverStand(c);
   const dazu = (ok: boolean, sonst: "gelb" | "rot", titel: string, hilfe: string, reiter?: string) => p.push({ farbe: ok ? "gruen" : sonst, titel, hilfe: ok ? "" : hilfe, reiter });
   const aktiv = MODULE.filter((m) => k.module[m].aktiv);
@@ -74,6 +75,12 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
     dazu(a.kategorien.length > 0, "gelb", "Anfrage-Chat: Anliegen zum Antippen", "Ohne Kategorien gibt es nur „Allgemeine Anfrage“. Unter „Module → Anfrage-Chat“ eintragen.", "module");
     dazu(a.sicherheitsregeln.length > 0, "gelb", "Anfrage-Chat: Sicherheitsregeln", "Es gibt keine feste Regel für Notfälle (z. B. Brandgeruch, Wasser tritt aus). Wenn im Betrieb Gefahr entstehen kann: unter „Module → Anfrage-Chat“ eintragen.", "module");
     dazu(!!k.stammdaten.telefon, "rot", "Anfrage-Chat: Telefonnummer für Notfälle", "Bei einem Notfall verweist die Seite auf die Telefonnummer. Unter „Stammdaten“ eintragen.", "stammdaten");
+  }
+  // Website automatisch einlesen
+  if (k.wissen.websiteLesen?.aktiv) {
+    const w = stand.website, alt = w?.zeit ? Math.floor((Date.now() - w.zeit) / 86_400_000) : -1;
+    dazu(!!w?.text && alt <= 3, "gelb", "Website wurde in den letzten Tagen gelesen",
+      !w ? "Die Website wurde noch nie gelesen. Unter „Wissen“ auf „Jetzt einlesen“ klicken." : !w.text ? `Das Einlesen hat nicht geklappt: ${w.fehler || "unbekannter Fehler"}` : `Der letzte gelesene Stand ist ${alt} Tage alt${w.fehler ? ` (${w.fehler})` : ""}. Nach 14 Tagen benutzt der Bot ihn nicht mehr.`, "wissen");
   }
   // Kunden-Zugang
   const wuensche = k.wissen.leistungen.filter((l) => l.wunsch).length;

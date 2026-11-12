@@ -71,6 +71,8 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `wissen.leistungen[].wunsch` | Preis, den der Kunde über seinen Kunden-Zugang eingetragen hat. Der Bot nennt ihn noch nicht: Er gilt erst nach der Freigabe hier im Admin-Panel. |
 | `wissen.faq` | Häufige Fragen mit der richtigen Antwort. |
 | `wissen.freitext` | Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten. |
+| `wissen.websiteLesen.aktiv` | Der Server liest einmal am Tag die Website des Kunden und gibt dem Kunden-Chat den Text als zusätzliches Wissen mit. Was der Bot dadurch weiß, siehst du hier unter dem Knopf „Jetzt einlesen“. Bei Widerspruch gilt, was in den Feldern eingetragen ist. Preise nennt der Bot weiter nur aus der Preisliste. |
+| `wissen.websiteLesen.seiten` | Welche Seiten gelesen werden, eine Adresse pro Zeile (höchstens 6). Leer = die Startseite und die wichtigsten Unterseiten werden selbst gefunden. Es gehen nur Adressen der Website aus den Stammdaten. |
 | `wissen.hinweis` | Aktueller Hinweis, z. B. „Betriebsferien vom 23.12. bis 6.1.“ oder „Im August nur Notdienst“. Der Bot nennt ihn, wenn es zur Frage passt. Leer = kein Hinweis. |
 | `wissen.zahlung` | Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“ |
 | `wissen.anfahrt` | Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet. |

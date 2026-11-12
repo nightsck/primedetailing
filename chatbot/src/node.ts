@@ -1,5 +1,6 @@
 // Start unter Node (lokal oder eigener Server, z. B. Hetzner): npm start
 // Kundendaten liegen in einer SQLite-Datei: DATEN_PFAD (Standard ./daten/kunden.sqlite).
+import { leseFaellige } from "./website.ts";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { serve } from "@hono/node-server";
@@ -16,6 +17,10 @@ setzeSpeicher(speicher);
 const aufraeumen = () => speicher.aufraeumen().then((n) => n && console.log(`[aufraeumen] ${n} abgelaufene Einträge gelöscht`)).catch((e) => console.error("[aufraeumen]", e?.message || e));
 setTimeout(aufraeumen, 10_000).unref();
 setInterval(aufraeumen, 86_400_000).unref();
+// Einmal pro Stunde: Websites der Kunden einlesen, deren letzter Versuch länger als 24 Stunden her ist (website.ts)
+const websites = () => leseFaellige(speicher, 10).then((b) => (b.gelesen.length || b.fehler.length) && console.log("[website-lesen]", JSON.stringify(b))).catch((e) => console.error("[website-lesen]", e?.message || e));
+setTimeout(websites, 30_000).unref();
+setInterval(websites, 3_600_000).unref();
 
 serve({ fetch: app.fetch, port: env.port }, (i) => {
   const modus = env.provider === "anthropic" && !env.anthropicKey ? "demo (kein ANTHROPIC_API_KEY)" : env.provider;

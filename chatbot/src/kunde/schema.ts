@@ -111,6 +111,12 @@ export const KundeSchema = z.object({
     leistungen: z.array(Leistung).max(80).default([]).describe("Was der Betrieb anbietet. Einzige Preisquelle des Bots."),
     faq: z.array(Frage).max(60).default([]).describe("Häufige Fragen mit der richtigen Antwort."),
     freitext: text(6000).default("").describe("Alles Weitere, was der Bot wissen darf: Ablauf, Zahlung, Anfahrt, Besonderheiten."),
+    websiteLesen: z.object({
+      aktiv: z.boolean().default(false)
+        .describe("Der Server liest einmal am Tag die Website des Kunden und gibt dem Kunden-Chat den Text als zusätzliches Wissen mit. Was der Bot dadurch weiß, siehst du hier unter dem Knopf „Jetzt einlesen“. Bei Widerspruch gilt, was in den Feldern eingetragen ist. Preise nennt der Bot weiter nur aus der Preisliste."),
+      seiten: z.array(url).max(6).default([])
+        .describe("Welche Seiten gelesen werden, eine Adresse pro Zeile (höchstens 6). Leer = die Startseite und die wichtigsten Unterseiten werden selbst gefunden. Es gehen nur Adressen der Website aus den Stammdaten."),
+    }).prefault({}),
     hinweis: text(300).default("").describe("Aktueller Hinweis, z. B. „Betriebsferien vom 23.12. bis 6.1.“ oder „Im August nur Notdienst“. Der Bot nennt ihn, wenn es zur Frage passt. Leer = kein Hinweis."),
     zahlung: text(200).default("").describe("Wie kann bezahlt werden? z. B. „Bar, EC-Karte, Überweisung. Rechnung nach der Arbeit.“"),
     anfahrt: text(300).default("").describe("Anfahrt und Parken, oder ob und was die Anfahrt zum Kunden kostet."),

@@ -24,6 +24,7 @@ import { pruefeLimit } from "./limits.ts";
 import { festeAntwort } from "./guard.ts";
 import { sendeMail, gueltigeMail } from "./mail.ts";
 import { WIDGET_JS } from "./daten.generated.ts";
+import { websiteWissen } from "./website.ts";
 import { bewerbenSeite, kundenStartseite } from "./seiten/bewerben.ts";
 
 type Geladen = { kunde: Kunde; laufzeit: Laufzeit };
@@ -36,8 +37,10 @@ export async function ladeKunde(c: any, id: string): Promise<Geladen | null> {
   if (!/^[a-z0-9-]{3,40}$/.test(id) || !speicherDa(c)) return null;
   const z = zwischenspeicher.get(id);
   if (z && z.bis > Date.now()) return z.g;
-  const e = await speicherVon(c).kundeLesen(id);
-  const g = e?.veroeffentlicht ? { kunde: e.veroeffentlicht, laufzeit: laufzeitVon(e.veroeffentlicht, standardKunde().config.llm) } : null;
+  const e = await speicherVon(c).kundeLesen(id), k = e?.veroeffentlicht;
+  // Ist „Website automatisch einlesen“ an, bekommt der Kunden-Chat den zuletzt gelesenen Text dazu
+  const website = k?.wissen.websiteLesen?.aktiv ? websiteWissen(k, await speicherVon(c).websiteLesen(id)) : null;
+  const g = k ? { kunde: k, laufzeit: laufzeitVon(k, standardKunde().config.llm, {}, website) } : null;
   if (zwischenspeicher.size > 500) zwischenspeicher.clear();
   zwischenspeicher.set(id, { bis: Date.now() + 30_000, g });
   return g;
