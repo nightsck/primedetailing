@@ -58,10 +58,13 @@ const einwilligung = (k: Kunde, wofuer: string) =>
 
 export function terminSeite(k: Kunde, api: string): string {
   const t = k.module.terminBot, s = k.stammdaten;
-  const daten = { api, name: s.firmenname, telefon: s.telefon, termine: t.termine.map((x) => ({ id: x.id, name: x.name, kurz: x.kurz, ort: x.ort })) };
-  return rahmen(k, `Termin bei ${s.firmenname}`, `${CSS}${kopf(k, "Termin", `Termin bei ${s.firmenname}`, "Wählen Sie, worum es geht, und suchen Sie sich eine freie Zeit aus. Der Termin steht sofort fest.")}
+  const fragen = t.bestaetigen;
+  const daten = { api, name: s.firmenname, telefon: s.telefon, fragen, termine: t.termine.map((x) => ({ id: x.id, name: x.name, kurz: x.kurz, ort: x.ort })) };
+  return rahmen(k, `Termin bei ${s.firmenname}`, `${CSS}${kopf(k, "Termin", fragen ? `Termin anfragen bei ${s.firmenname}` : `Termin bei ${s.firmenname}`,
+    fragen ? "Wählen Sie, worum es geht, und suchen Sie sich eine Wunschzeit aus. Wir sehen im Kalender nach und bestätigen den Termin per E-Mail." : "Wählen Sie, worum es geht, und suchen Sie sich eine freie Zeit aus. Der Termin steht sofort fest.")}
 <main class="ta">
   <section class="ta-karte" id="absage" hidden><h2>Termin absagen</h2><p id="absageText"></p><p class="ta-fehler" id="absageFehler" role="alert"></p><div class="ta-zeile"><button class="btn btn-primary" id="absageKnopf">Ja, Termin absagen</button><a class="btn btn-ghost" href="?">Doch nicht</a></div></section>
+  <section class="ta-karte" id="entscheid" hidden><h2>Terminanfrage</h2><dl class="ta-daten" id="entscheidDaten"></dl><p id="entscheidText"></p><p class="ta-fehler" id="entscheidFehler" role="alert"></p><div class="ta-zeile" id="entscheidKnoepfe"><button class="btn btn-primary" id="jaKnopf">Termin bestätigen</button><button class="btn btn-ghost" id="neinKnopf">Geht leider nicht</button></div></section>
   <section class="ta-karte" id="s1"><h2>1. Worum geht es?</h2><div class="ta-wahl" id="arten"></div></section>
   <section class="ta-karte" id="s2" hidden><h2>2. Wann passt es?</h2><div id="tage" aria-live="polite"></div><p style="margin:12px 0 0"><button class="btn btn-ghost btn-sm" id="mehr" hidden>Spätere Tage zeigen</button></p></section>
   <section class="ta-karte" id="s3" hidden><h2>3. Ihre Angaben</h2><p id="gewaehlt" style="font-weight:650"></p>
@@ -71,10 +74,10 @@ export function terminSeite(k: Kunde, api: string): string {
       <div id="adresse" hidden><label class="ta-feld"><span>Straße und Hausnummer</span><input id="strasse" autocomplete="street-address" maxlength="100"></label>
         <div class="ta-zwei"><label class="ta-feld"><span>PLZ</span><input id="plz" inputmode="numeric" autocomplete="postal-code" maxlength="5"></label><label class="ta-feld"><span>Ort</span><input id="ort" autocomplete="address-level2" maxlength="60"></label></div></div>
       <label class="ta-feld"><span>Möchten Sie uns noch etwas mitteilen? (freiwillig)</span><textarea id="notiz" maxlength="500"></textarea></label>
-      ${einwilligung(k, "für diesen Termin")}
-      <p class="ta-fehler" id="fehler" role="alert"></p><button class="btn btn-primary" id="buchen">Termin fest buchen</button>
+      ${einwilligung(k, fragen ? "für diese Terminanfrage" : "für diesen Termin")}
+      <p class="ta-fehler" id="fehler" role="alert"></p><button class="btn btn-primary" id="buchen">${fragen ? "Termin anfragen" : "Termin fest buchen"}</button>
     </form></section>
-  <section class="ta-karte ta-ok" id="fertig" hidden><h2>Ihr Termin steht</h2><dl class="ta-daten" id="fertigDaten"></dl><p id="fertigText"></p></section>
+  <section class="ta-karte ta-ok" id="fertig" hidden><h2>${fragen ? "Ihre Anfrage ist angekommen" : "Ihr Termin steht"}</h2><dl class="ta-daten" id="fertigDaten"></dl><p id="fertigText"></p></section>
 </main>
 <script type="application/json" id="daten">${json(daten)}</script>
 <script>${JS_HELFER}
@@ -120,14 +123,44 @@ $('#form').addEventListener('submit', async e => {
   if (!v('#name')) { f.textContent = 'Bitte den Namen eintragen.'; return; }
   if (!v('#telefon') && !v('#email')) { f.textContent = 'Bitte Telefon oder E-Mail eintragen.'; return; }
   if (!$('#ok').checked) { f.textContent = 'Bitte das Häkchen zur Speicherung setzen.'; return; }
-  knopf.disabled = true; knopf.textContent = 'Wird gebucht …'; f.textContent = '';
+  knopf.disabled = true; knopf.textContent = D.fragen ? 'Wird angefragt …' : 'Wird gebucht …'; f.textContent = '';
   const r = await rufe('/api/termin/buchen', { termin: S.art.id, datum: S.datum, zeit: S.zeit, name: v('#name'), telefon: v('#telefon'), email: v('#email'), adresse: { strasse: v('#strasse'), plz: v('#plz'), ort: v('#ort') }, notiz: v('#notiz'), einwilligung: true });
-  knopf.disabled = false; knopf.textContent = 'Termin fest buchen';
+  knopf.disabled = false; knopf.textContent = D.fragen ? 'Termin anfragen' : 'Termin fest buchen';
   if (!r.ok) { f.textContent = r.fehler || 'Das hat nicht geklappt.'; if (r.belegt) { zeig('#s3', false); ladeTage(false); zeig('#s2', true); } return; }
-  $('#fertigDaten').innerHTML = '<dt>Termin</dt><dd>' + esc(S.art.name) + '</dd><dt>Wann</dt><dd>' + esc(r.wann) + '</dd><dt>Wo</dt><dd>' + esc(r.ort) + '</dd>';
-  $('#fertigText').textContent = r.test ? 'Vorschau: Im Test wird nichts in den Kalender eingetragen und nichts verschickt.' : (r.mailAnKunde ? 'Die Bestätigung mit Kalender-Datei und Link zum Absagen ist unterwegs an ' + v('#email') + '.' : 'Bitte notieren Sie sich den Termin.' + (D.telefon ? ' Wenn Sie doch nicht können: ' + D.telefon : ''));
+  $('#fertigDaten').innerHTML = '<dt>Termin</dt><dd>' + esc(S.art.name) + '</dd><dt>' + (r.angefragt ? 'Wunschzeit' : 'Wann') + '</dt><dd>' + esc(r.wann) + '</dd><dt>Wo</dt><dd>' + esc(r.ort) + '</dd>';
+  $('#fertigText').textContent = r.test ? 'Vorschau: Im Test wird nichts eingetragen und nichts verschickt.'
+    : r.angefragt ? 'Wir sehen im Kalender nach und bestätigen den Termin per E-Mail. Noch steht er nicht fest.' + (r.mailAnKunde ? ' Eine Eingangsbestätigung ist unterwegs an ' + v('#email') + '.' : D.telefon ? ' Rückfragen: ' + D.telefon : '')
+    : (r.mailAnKunde ? 'Die Bestätigung mit Kalender-Datei und Link zum Absagen ist unterwegs an ' + v('#email') + '.' : 'Bitte notieren Sie sich den Termin.' + (D.telefon ? ' Wenn Sie doch nicht können: ' + D.telefon : ''));
   ['#s1', '#s2', '#s3'].forEach(x => zeig(x, false)); zeig('#fertig', true);
 });
+// Link aus der Anfrage-Mail an den Betrieb: erst die Anfrage zeigen, dann entscheiden.
+// Zwei Schritte, damit kein Mail-Scanner beim Vorab-Laden des Links etwas bestätigt.
+const anfrage = new URLSearchParams(location.search).get('anfrage');
+if (anfrage) (async () => {
+  ['#s1'].forEach(x => zeig(x, false)); zeig('#entscheid', true);
+  // Diese Seite sieht der Betrieb, nicht der Kunde – also auch der Kopf.
+  const h = document.querySelector('.page-head h1'), l = document.querySelector('.page-head .lead');
+  if (h) h.textContent = 'Terminanfrage';
+  if (l) l.textContent = 'Eine Anfrage über Ihren Termin-Bot. Bitte in Ihrem Kalender nachsehen und dann entscheiden.';
+  const zeile = (a, b) => b ? '<dt>' + esc(a) + '</dt><dd>' + esc(b) + '</dd>' : '';
+  const r = await rufe('/api/termin/entscheiden', { token: anfrage, nurZeigen: true });
+  if (!r.ok) { $('#entscheidFehler').textContent = r.fehler || 'Dieser Link ist ungültig.'; $('#entscheidKnoepfe').hidden = true; return; }
+  const a = r.anfrage;
+  // Die Wunschzeit ist die Entscheidung – deshalb steht sie als Überschrift.
+  $('#entscheid').querySelector('h2').textContent = a.wann;
+  $('#entscheidDaten').innerHTML = zeile('Termin', a.terminart) + zeile('Name', a.name) + zeile('Telefon', a.telefon) + zeile('E-Mail', a.email) + zeile('Notiz', a.notiz);
+  $('#entscheidText').textContent = 'Mit „Termin bestätigen“ bekommt der Kunde die Zusage mit Kalender-Datei. „Geht leider nicht“ gibt die Zeit wieder frei.';
+  const entscheide = async (was, kn) => {
+    $('#jaKnopf').disabled = true; $('#neinKnopf').disabled = true; $('#entscheidFehler').textContent = '';
+    const x = await rufe('/api/termin/entscheiden', { token: anfrage, entscheidung: was });
+    if (!x.ok) { $('#entscheidFehler').textContent = x.fehler || 'Das hat nicht geklappt.'; $('#jaKnopf').disabled = false; $('#neinKnopf').disabled = false; return; }
+    $('#entscheid').innerHTML = was === 'ja'
+      ? '<h2>Termin bestätigt</h2><p>' + esc(a.terminart) + ', ' + esc(a.wann) + ' steht im Kalender.' + (a.email ? ' Der Kunde hat die Zusage per E-Mail.' : '') + '</p>'
+      : '<h2>Anfrage abgelehnt</h2><p>Die Zeit ist wieder frei.' + (a.email ? ' Der Kunde hat Bescheid bekommen und kann eine andere Zeit aussuchen.' : '') + '</p>';
+  };
+  $('#jaKnopf').onclick = () => entscheide('ja');
+  $('#neinKnopf').onclick = () => entscheide('nein');
+})();
 // Link aus der Bestätigungs-Mail: erst zeigen, um welchen Termin es geht, dann auf Klick absagen
 const absage = new URLSearchParams(location.search).get('absagen');
 if (absage) (async () => {

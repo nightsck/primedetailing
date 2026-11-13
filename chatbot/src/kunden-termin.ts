@@ -16,7 +16,7 @@ import { terminArt, terminZeitraum, freieZeiten, istDatum, plusTage, zeitpunkt, 
 import { feiertagAm } from "./feiertage.ts";
 import type { Kunde } from "./kunde/schema.ts";
 import { terminBetriebVon, pruefeSicherheitsregeln } from "./kunde/umwandeln.ts";
-import { kalenderMitId, eigenerKalender, absageToken, leseAbsageToken, wannText, icsDatei } from "./termin.ts";
+import { kalenderMitId, eigenerKalender, absageToken, leseAbsageToken, entscheidToken, leseEntscheidToken, wannText, icsDatei } from "./termin.ts";
 import { AUSWERTUNG_ANWEISUNG, leseAuswertung } from "./betrieb.ts";
 import { kurzeAnfrage } from "./llm.ts";
 import { istInjection } from "./guard.ts";
@@ -36,6 +36,7 @@ const TEXT = {
   belegt: "Diese Zeit ist gerade weg. Bitte eine andere wählen.",
   kalender: "Der Kalender ist gerade nicht erreichbar. Bitte später noch einmal versuchen oder direkt beim Betrieb melden.",
   fehler: "Das hat nicht geklappt. Bitte noch einmal versuchen.",
+  anfrageWeg: "Diese Anfrage ist nicht mehr offen – sie wurde schon entschieden oder ist abgelaufen.",
 };
 
 /**
@@ -46,6 +47,17 @@ const TEXT = {
 function terminKalender(c: any, k: Kunde) {
   const id = k.module.terminBot.kalenderId;
   return id ? kalenderMitId(c, id) : eigenerKalender(speicherVon(c), k.id, Math.max(60, k.rechtliches.aufbewahrungTage));
+}
+
+/**
+ * Belegte Zeiten: was im Kalender steht, plus die Vormerkungen aus offenen
+ * Terminanfragen. Sonst könnten zwei Leute dieselbe Zeit anfragen.
+ */
+async function mitVormerkungen(c: any, k: Kunde, kal: { belegt(von: number, bis: number): Promise<{ start: number; ende: number }[]> }, von: number, bis: number) {
+  const belegt = await kal.belegt(von, bis);
+  if (!k.module.terminBot.bestaetigen) return belegt;
+  const vor = await speicherVon(c).vormerkungen(k.id, von, bis).catch((e: any) => { console.error("[vormerkungen]", e?.message || e); return []; });
+  return [...belegt, ...vor.map((v) => ({ start: v.start, ende: v.ende }))];
 }
 
 /**
@@ -73,6 +85,48 @@ export function pruefeTerminAngaben(betrieb: any, e: any, land?: string): { ok: 
   if (!z) return { ok: false, fehler: "Diese Uhrzeit gibt es nicht." };
   const ort = t.ort === "kunde" ? `${adresse.strasse}, ${adresse.plz} ${adresse.ort}` : t.ort === "telefon" ? `Rückruf unter ${telefon}` : `${betrieb.name}${betrieb.adresse ? ", " + betrieb.adresse : ""}`;
   return { ok: true, d: { t, z, datum: e.datum, name, telefon, email, adresse, ort, notiz: kurz(e.notiz, 500) } };
+}
+
+/**
+ * Mails im Modus „Anfrage statt Buchung“. Wichtig: Der Kunde bekommt hier keine
+ * Zusage, sondern nur die Bestätigung, dass seine Anfrage angekommen ist.
+ */
+function anfrageMails(k: Kunde, betrieb: any, d: any, link: string): Mail[] {
+  const wann = wannText(d.t, d.z), farbe = k.aussehen.primaerfarbe;
+  const stunden = k.module.terminBot.bestaetigenStunden;
+  const fuerBetrieb: [string, string][] = [["Termin", d.t.name], ["Wunschzeit", wann], ["Wo", d.ort], ["Name", d.name]];
+  if (d.telefon) fuerBetrieb.push(["Telefon", d.telefon]);
+  if (d.email) fuerBetrieb.push(["E-Mail", d.email]);
+  if (d.notiz) fuerBetrieb.push(["Notiz", d.notiz]);
+  const kontakt = [k.stammdaten.telefon, k.stammdaten.email].filter(Boolean).join(" · ");
+  const schluss = `Die Zeit ist ${stunden} Stunden für diese Anfrage vorgemerkt. Ohne Antwort wird sie wieder frei.`;
+  const mails: Mail[] = an(k, "termine").map((adresse) => ({
+    an: adresse, absenderName: `${betrieb.name} · Termin-Bot`, antwortAn: d.email || undefined,
+    betreff: `Terminanfrage: ${d.t.name} – ${d.name}, ${wann}`,
+    text: ["Neue Terminanfrage über den Termin-Bot:", "", ...fuerBetrieb.map(([a, b]) => `${a}: ${b}`), "",
+      "Bitte im Kalender nachsehen und hier entscheiden:", link, "", schluss].join("\n"),
+    html: mailRahmen("#1b1d1f", `Terminanfrage: ${d.t.name}`, `${tabelle(fuerBetrieb)}<p style="margin:0 0 14px">Bitte im Kalender nachsehen und dann entscheiden:</p><p style="margin:0 0 14px"><a href="${esc(link)}" style="background:${esc(farbe)};color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;display:inline-block;font-weight:700">Anfrage ansehen und entscheiden</a></p><p style="margin:0;color:#667;font-size:13px">${esc(schluss)}${d.email ? " Mit „Antworten“ schreiben Sie direkt dem Kunden." : ""}</p>`),
+  }));
+  if (d.email) mails.push({
+    an: d.email, anName: d.name, absenderName: betrieb.name, antwortAn: k.stammdaten.email,
+    betreff: `Ihre Terminanfrage bei ${betrieb.name}: ${wann}`,
+    text: [`Guten Tag ${d.name},`, "", `Ihre Anfrage ist angekommen. ${betrieb.name} sieht im Kalender nach und bestätigt den Termin per E-Mail – noch steht er nicht fest.`, "",
+      ...[["Termin", d.t.name], ["Wunschzeit", wann], ["Wo", d.ort]].map(([a, b]) => `${a}: ${b}`), "", `${betrieb.name} · ${kontakt}`].join("\n"),
+    html: mailRahmen(farbe, "Ihre Anfrage ist angekommen", `<p style="margin:0 0 4px">Guten Tag ${esc(d.name)},</p><p style="margin:0">${esc(betrieb.name)} sieht im Kalender nach und bestätigt den Termin per E-Mail. <b>Noch steht er nicht fest.</b></p>${tabelle([["Termin", d.t.name], ["Wunschzeit", wann], ["Wo", d.ort]])}<p style="margin:0;color:#667;font-size:13px">${esc(betrieb.name)} · ${esc(kontakt)}</p>`),
+  });
+  return mails;
+}
+
+/** Mail an den Kunden, wenn der Betrieb die Wunschzeit nicht bestätigen kann. */
+function absageAnKunden(k: Kunde, betrieb: any, v: any, wann: string, neuLink: string): Mail | null {
+  if (!v.daten.email) return null;
+  const kontakt = [k.stammdaten.telefon, k.stammdaten.email].filter(Boolean).join(" · ");
+  return {
+    an: String(v.daten.email), anName: String(v.daten.name || ""), absenderName: betrieb.name, antwortAn: k.stammdaten.email,
+    betreff: `Terminanfrage bei ${betrieb.name}: ${wann} geht leider nicht`,
+    text: [`Guten Tag ${v.daten.name || ""},`, "", `leider ist ${wann} bei uns nicht frei. Eine andere Zeit finden Sie hier: ${neuLink}`, "", `${betrieb.name} · ${kontakt}`].join("\n"),
+    html: mailRahmen(k.aussehen.primaerfarbe, "Die Wunschzeit ist leider nicht frei", `<p style="margin:0 0 4px">Guten Tag ${esc(v.daten.name || "")},</p><p style="margin:0 0 12px">leider ist <b>${esc(wann)}</b> bei uns nicht frei.</p><p style="margin:0 0 14px"><a href="${esc(neuLink)}">Andere Zeit aussuchen</a></p><p style="margin:0;color:#667;font-size:13px">${esc(betrieb.name)} · ${esc(kontakt)}</p>`),
+  };
 }
 
 function terminMails(k: Kunde, betrieb: any, d: any, eventId: string, absageLink: string): Mail[] {
@@ -146,7 +200,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     const tage = Math.max(1, Math.min(21, Number(q.tage) || 14));
     const ab = von || new Date().toISOString().slice(0, 10);
     try {
-      const belegt = await kal.belegt(zeitpunkt(plusTage(ab, -1), 0), zeitpunkt(plusTage(ab, tage + 4), 0));
+      const belegt = await mitVormerkungen(c, k, kal, zeitpunkt(plusTage(ab, -1), 0), zeitpunkt(plusTage(ab, tage + 4), 0));
       return c.json({ ok: true, tage: freieZeiten(betrieb, t.id, { von, tage, belegt, feiertag: (d: string) => feiertagAm(d, k.stammdaten.bundesland) }) });
     } catch (e: any) { console.error("[termin-zeiten]", e?.message || e); return c.json({ ok: false, fehler: TEXT.kalender }, 502); }
   });
@@ -164,11 +218,26 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     if (sperre) return c.json({ ok: false, fehler: sperre }, 429);
     const kal = terminKalender(c, k);
     if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
+    const t = k.module.terminBot;
     try {
       // Kurz vor dem Eintragen noch einmal prüfen: Ist die Zeit wirklich noch frei?
-      const belegt = await kal.belegt(d.z.blockVon - 86_400_000, d.z.blockBis + 86_400_000);
+      const belegt = await mitVormerkungen(c, k, kal, d.z.blockVon - 86_400_000, d.z.blockBis + 86_400_000);
       const frei = freieZeiten(betrieb, d.t.id, { von: d.datum, tage: 1, belegt })[0];
       if (!frei || !frei.slots.includes(d.z.zeit)) return c.json({ ok: false, belegt: true, fehler: TEXT.belegt }, 409);
+
+      // Modus „Anfrage statt Buchung“: nichts zusagen, erst den Betrieb fragen.
+      if (t.bestaetigen) {
+        const wann = wannText(d.t, d.z);
+        const sp = speicherVon(c);
+        const vorgang = await sp.vorgangAnlegen(k.id, { art: "termin", status: "angefragt", titel: `Angefragt: ${d.t.name} – ${d.name}, ${wann}`, daten: { terminart: d.t.name, wann, ort: d.ort, name: d.name, telefon: d.telefon, email: d.email, notiz: d.notiz }, tage: k.rechtliches.aufbewahrungTage })
+          .catch((e: any) => { console.error("[anfrage-speichern]", e?.message || e); return ""; });
+        const vId = await sp.vormerkungAnlegen(k.id, { start: d.z.start, ende: d.z.ende, stunden: t.bestaetigenStunden,
+          daten: { termin: d.t.id, datum: d.datum, zeit: d.z.zeit, name: d.name, telefon: d.telefon, email: d.email, adresse: d.adresse, notiz: d.notiz, vorgang } });
+        const link = `${basisVon(c)}/termin?anfrage=${encodeURIComponent(await entscheidToken({ b: k.id, v: vId }))}`;
+        zaehleEreignis(c, "termin-anfrage");
+        const gemailt = await Promise.all(anfrageMails(k, betrieb, d, link).map((m) => sendeMail(c, m)));
+        return c.json({ ok: true, angefragt: true, wann, ort: d.ort, bisStunden: t.bestaetigenStunden, mailAnKunde: !!d.email && gemailt[gemailt.length - 1] });
+      }
       const text = [`${d.t.name} · gebucht über den Termin-Bot`, `Name: ${d.name}`, d.telefon && `Telefon: ${d.telefon}`, d.email && `E-Mail: ${d.email}`, d.t.ort === "kunde" && `Adresse: ${d.ort}`, d.notiz && `Notiz vom Kunden: ${d.notiz}`].filter(Boolean).join("\n");
       const id = await kal.eintragen({ titel: `${d.t.name} – ${d.name}`.slice(0, 120), text, ort: d.ort, start: d.z.start, ende: d.z.ende, privat: { quelle: "termin-bot", kunde: k.id, termin: d.t.id } });
       const token = await absageToken({ b: k.id, e: id, s: d.z.start, t: d.t.id, n: d.name.slice(0, 40), m: d.email || undefined });
@@ -180,6 +249,51 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
       const gemailt = await Promise.all(terminMails(k, betrieb, d, id, absageLink).map((m) => sendeMail(c, m)));
       return c.json({ ok: true, wann, ort: d.ort, start: isoBerlin(d.z.start), ende: isoBerlin(d.z.ende), token, mailAnKunde: !!d.email && gemailt[gemailt.length - 1] });
     } catch (e: any) { console.error("[termin-buchen]", e?.message || e); return c.json({ ok: false, fehler: TEXT.kalender }, 502); }
+  });
+
+  // Der Betrieb entscheidet über eine Terminanfrage. Der Link aus der Mail zeigt
+  // erst nur die Anfrage (nurZeigen) – damit kein Mail-Scanner versehentlich bestätigt.
+  app.post(`${wurzel}/api/termin/entscheiden`, ...vorher, braucht("terminBot"), async (c: any) => {
+    const k = c.get("kunde") as Kunde, betrieb = terminBetriebVon(k);
+    const b: any = await c.req.json().catch(() => ({}));
+    const tok = await leseEntscheidToken(b.token);
+    if (!betrieb || !tok || tok.b !== k.id) return c.json({ ok: false, fehler: "Dieser Link ist ungültig." }, 400);
+    const sp = speicherVon(c);
+    const v = await sp.vormerkungLesen(k.id, tok.v);
+    if (!v) return c.json({ ok: false, fehler: TEXT.anfrageWeg }, 410);
+    const art = terminArt(betrieb, v.daten.termin);
+    const wann = art ? wannText(art, { start: v.start, ende: v.ende }) : "";
+    const uebersicht = { terminart: art ? art.name : "Termin", wann, name: String(v.daten.name || ""), telefon: String(v.daten.telefon || ""), email: String(v.daten.email || ""), notiz: String(v.daten.notiz || "") };
+    if (b.nurZeigen) return c.json({ ok: true, anfrage: uebersicht });
+    if (aktuell().test) return c.json({ ok: true, test: true, anfrage: uebersicht });
+
+    const neuLink = `${basisVon(c)}/termin`;
+    // Abgelehnt: Vormerkung weg, Zeit wieder frei, Kunde bekommt Bescheid.
+    if (b.entscheidung !== "ja") {
+      await sp.vormerkungLoeschen(k.id, tok.v);
+      if (v.daten.vorgang) await sp.vorgangStatus(k.id, String(v.daten.vorgang), "abgelehnt").catch(() => false);
+      const mail = absageAnKunden(k, betrieb, v, wann, neuLink);
+      if (mail) await sendeMail(c, mail);
+      return c.json({ ok: true, entscheidung: "nein", anfrage: uebersicht });
+    }
+
+    // Bestätigt: jetzt erst in den Kalender, dann die Zusage an den Kunden.
+    const p = pruefeTerminAngaben(betrieb, { ...v.daten, adresse: v.daten.adresse || {}, einwilligung: true }, k.stammdaten.bundesland);
+    if (!p.ok) return c.json({ ok: false, fehler: p.fehler }, 400);
+    const d = p.d;
+    const kal = terminKalender(c, k);
+    if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
+    try {
+      const text = [`${d.t.name} · bestätigte Terminanfrage`, `Name: ${d.name}`, d.telefon && `Telefon: ${d.telefon}`, d.email && `E-Mail: ${d.email}`, d.t.ort === "kunde" && `Adresse: ${d.ort}`, d.notiz && `Notiz vom Kunden: ${d.notiz}`].filter(Boolean).join("\n");
+      const id = await kal.eintragen({ titel: `${d.t.name} – ${d.name}`.slice(0, 120), text, ort: d.ort, start: d.z.start, ende: d.z.ende, privat: { quelle: "termin-bot", kunde: k.id, termin: d.t.id } });
+      // Erst wenn der Termin wirklich steht, geben wir die Vormerkung frei.
+      await sp.vormerkungLoeschen(k.id, tok.v);
+      if (v.daten.vorgang) await sp.vorgangStatus(k.id, String(v.daten.vorgang), "bestätigt").catch(() => false);
+      zaehleEreignis(c, "termin");
+      const absageLink = `${basisVon(c)}/termin?absagen=${encodeURIComponent(await absageToken({ b: k.id, e: id, s: d.z.start, t: d.t.id, n: d.name.slice(0, 40), m: d.email || undefined }))}`;
+      await Promise.all(terminMails(k, betrieb, d, id, absageLink).map((m) => sendeMail(c, m)));
+      return c.json({ ok: true, entscheidung: "ja", anfrage: uebersicht });
+    } catch (e: any) { console.error("[termin-entscheiden]", e?.message || e); return c.json({ ok: false, fehler: TEXT.kalender }, 502); }
   });
 
   app.post(`${wurzel}/api/termin/absagen`, ...vorher, braucht("terminBot"), async (c: any) => {

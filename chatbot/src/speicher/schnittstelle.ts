@@ -31,6 +31,8 @@ export type Vorgang = {
 export type DateiMeta = { id: string; name: string; typ: string; groesse: number };
 /** Belegte Zeit im eigenen Kalender (ohne Google). */
 export type TerminBlock = { id: string; start: number; ende: number; titel: string };
+/** Vorgemerkte Zeit: angefragt, aber noch nicht vom Betrieb bestätigt. */
+export type Vormerkung = { id: string; start: number; ende: number; daten: Record<string, unknown>; ablauf: number };
 
 export interface Speicher {
   kundenListe(): Promise<KundeZeile[]>;
@@ -44,7 +46,7 @@ export interface Speicher {
   versionen(id: string): Promise<Version[]>;
   versionLesen(id: string, nr: number): Promise<Kunde | null>;
 
-  vorgangAnlegen(kunde: string, v: { art: VorgangArt; dringlichkeit?: Dringlichkeit; titel: string; daten: Record<string, unknown>; tage: number }): Promise<string>;
+  vorgangAnlegen(kunde: string, v: { art: VorgangArt; dringlichkeit?: Dringlichkeit; status?: string; titel: string; daten: Record<string, unknown>; tage: number }): Promise<string>;
   vorgaenge(kunde: string, filter?: { art?: VorgangArt; limit?: number }): Promise<Vorgang[]>;
   vorgangStatus(kunde: string, id: string, status: string): Promise<boolean>;
   vorgangLoeschen(kunde: string, id: string): Promise<void>;
@@ -62,6 +64,16 @@ export interface Speicher {
   /** Blöcke, die sich mit [von, bis) überschneiden. */
   terminBelegt(kunde: string, von: number, bis: number): Promise<TerminBlock[]>;
   terminLoeschen(kunde: string, id: string): Promise<boolean>;
+
+  /**
+   * Vormerkungen für den Modus „Anfrage statt Buchung“: Die Zeit ist blockiert,
+   * solange der Betrieb noch nicht entschieden hat, und wird nach Ablauf wieder frei.
+   */
+  vormerkungAnlegen(kunde: string, v: { start: number; ende: number; daten: Record<string, unknown>; stunden: number }): Promise<string>;
+  /** Gültige Vormerkungen, die sich mit [von, bis) überschneiden. */
+  vormerkungen(kunde: string, von: number, bis: number): Promise<Vormerkung[]>;
+  vormerkungLesen(kunde: string, id: string): Promise<Vormerkung | null>;
+  vormerkungLoeschen(kunde: string, id: string): Promise<boolean>;
 
   /** Zählt ein Ereignis für die Auswertung (ohne Personenbezug): z. B. "chat", "anfrage", "bewerbung". */
   zaehle(kunde: string, art: string, n?: number): Promise<void>;
@@ -92,6 +104,7 @@ export function setzeSpeicher(s: Speicher | null) { lokal = s; }
 
 const METHODEN = ["kundenListe", "kundeLesen", "kundeSpeichern", "kundeVeroeffentlichen", "kundeLoeschen", "versionen", "versionLesen",
   "vorgangAnlegen", "vorgaenge", "vorgangStatus", "vorgangLoeschen", "dateiAblegen", "dateiHolen", "dateienBehalten", "terminEintragen", "terminBelegt", "terminLoeschen",
+  "vormerkungAnlegen", "vormerkungen", "vormerkungLesen", "vormerkungLoeschen",
   "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "loginLoeschen", "websiteMerken", "websiteLesen", "aufraeumen"] as const;
 
 /** Der Speicher für diese Anfrage. Auf Cloudflare über die Bindung KUNDEN, sonst der lokal gesetzte. */

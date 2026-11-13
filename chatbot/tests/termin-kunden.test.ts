@@ -13,7 +13,7 @@ const { terminBetriebVon, leseZeitfenster, pruefeSicherheitsregeln } = await imp
 const { stufeEin } = await import("../src/kunden-termin.ts");
 const { kommendeFeiertage } = await import("../src/feiertage.ts");
 // @ts-ignore
-const { freieZeiten, zeitpunkt } = await import("../../src/assets/betriebe.js");
+const { freieZeiten, zeitpunkt, plusTage } = await import("../../src/assets/betriebe.js");
 
 const B = "http://chat.test";
 const post = (pfad: string, body: any, ip = "4.4.4.4") => app.request(B + pfad, { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": ip }, body: JSON.stringify(body) });
@@ -168,6 +168,74 @@ test("Ohne Google Kalender: der Bot verwaltet die Zeiten selbst (Outlook, Apple,
   assert.deepEqual(await s.terminBelegt("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000), []);
   z = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${mo}&tage=1`)).json();
   assert.ok(z.tage[0].slots.includes("09:00"), "wieder frei");
+});
+
+test("Anfrage statt Buchung: der Betrieb bestätigt, erst dann steht der Termin", async () => {
+  const s = await neuerSpeicher(); _reset(); const kal = testKalender();
+  await anlegen(s, maler({ bestaetigen: true, bestaetigenStunden: 48 }));
+  const mo = naechsterMontag();
+  const KAL = "maler@group.calendar.google.com";
+
+  // Die Seite fragt an statt zu buchen
+  const seite = await (await app.request(`${B}/k/maler-mueller/termin`)).text();
+  assert.match(seite, /Termin anfragen/);
+  assert.match(seite, /bestätigen den Termin per E-Mail/);
+
+  const r: any = await (await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: mo })).json();
+  assert.equal(r.ok, true);
+  assert.equal(r.angefragt, true, "keine Zusage");
+  assert.equal((kal.get(KAL) || []).length, 0, "noch nichts im Kalender");
+
+  // Die Zeit ist vorgemerkt: niemand kann sie ein zweites Mal anfragen
+  const vor = await s.vormerkungen("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000);
+  assert.equal(vor.length, 1);
+  let z: any = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${mo}&tage=1`)).json();
+  assert.ok(!z.tage[0].slots.includes("09:00"), "vorgemerkte Zeit ist weg");
+  assert.equal((await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: mo, name: "Zweiter" }, "4.4.4.7")).status, 409);
+  // In der Chef-Übersicht steht die Anfrage als solche
+  const v = await s.vorgaenge("maler-mueller", { art: "termin" });
+  assert.equal(v[0].status, "angefragt");
+  assert.match(v[0].titel, /^Angefragt: Farbberatung/);
+
+  // Der Entscheid-Link: fremde Kunden und kaputte Links kommen nicht durch
+  const { entscheidToken, absageToken } = await import("../src/termin.ts");
+  const token = await entscheidToken({ b: "maler-mueller", v: vor[0].id });
+  await anlegen(s, beispiel("elektro-schmidt", "elektro", { module: { kundenChat: { aktiv: true }, terminBot: { aktiv: true, kalenderId: "elektro@group.calendar.google.com" } } }));
+  assert.equal((await post("/k/elektro-schmidt/api/termin/entscheiden", { token })).status, 400, "fremder Kunde");
+  assert.equal((await post("/k/maler-mueller/api/termin/entscheiden", { token: token + "x" })).status, 400, "veränderter Link");
+  // Ein Absage-Link kann keine Anfrage bestätigen (eigener Schlüssel je Zweck)
+  const fremd = await absageToken({ b: "maler-mueller", e: vor[0].id, s: Date.now() + 86_400_000 });
+  assert.equal((await post("/k/maler-mueller/api/termin/entscheiden", { token: fremd })).status, 400, "falscher Zweck");
+
+  // Erst zeigen (damit kein Mail-Scanner bestätigt), dann bestätigen
+  const zeigen: any = await (await post("/k/maler-mueller/api/termin/entscheiden", { token, nurZeigen: true })).json();
+  assert.equal(zeigen.anfrage.name, "Eva Beispiel");
+  assert.match(zeigen.anfrage.wann, /Montag/);
+  assert.equal((kal.get(KAL) || []).length, 0, "Ansehen trägt nichts ein");
+
+  const ja: any = await (await post("/k/maler-mueller/api/termin/entscheiden", { token, entscheidung: "ja" })).json();
+  assert.equal(ja.entscheidung, "ja");
+  assert.equal(kal.get(KAL)!.length, 1, "jetzt steht er im Kalender");
+  assert.equal(kal.get(KAL)![0].titel, "Farbberatung – Eva Beispiel");
+  assert.equal((await s.vorgaenge("maler-mueller", { art: "termin" }))[0].status, "bestätigt");
+  assert.deepEqual(await s.vormerkungen("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000), [], "Vormerkung ist aufgelöst");
+  // Zweimal bestätigen geht nicht
+  assert.equal((await post("/k/maler-mueller/api/termin/entscheiden", { token, entscheidung: "ja" })).status, 410);
+
+  // Ablehnen gibt die Zeit wieder frei
+  const di = plusTage(mo, 2);
+  const r2: any = await (await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: di, zeit: "10:00", name: "Zweite Anfrage" }, "4.4.4.8")).json();
+  assert.equal(r2.angefragt, true);
+  const vor2 = await s.vormerkungen("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000);
+  assert.equal(vor2.length, 1);
+  const nein: any = await (await post("/k/maler-mueller/api/termin/entscheiden", { token: await entscheidToken({ b: "maler-mueller", v: vor2[0].id }), entscheidung: "nein" })).json();
+  assert.equal(nein.entscheidung, "nein");
+  assert.equal(kal.get(KAL)!.length, 1, "nichts dazugekommen");
+  assert.deepEqual(await s.vormerkungen("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000), []);
+  z = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${di}&tage=1`)).json();
+  assert.ok(z.tage[0].slots.includes("10:00"), "wieder frei");
+  assert.equal((await s.vorgaenge("maler-mueller", { art: "termin" }))[0].status, "abgelehnt");
+  _setKalender(null);
 });
 
 test("Ohne erreichbaren Kalender: klare Meldung statt falscher Zeiten", async () => {

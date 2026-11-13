@@ -148,27 +148,43 @@ export function kalenderMitId(c: any, kalenderId: string): Kalender | null {
 /** E-Mail-Adresse des Dienstkontos – für diese Adresse gibt der Kunde seinen Kalender frei. */
 export const dienstkontoMail = (c: any): string => leseDienstkonto(wert(c, "GOOGLE_SA_JSON"))?.client_email || "";
 
-/* ---------- Absage-Schlüssel (nur wer gebucht hat, kann löschen) ---------- */
-let hmac: CryptoKey | null = null;
-async function hmacKey() {
-  if (hmac) return hmac;
-  const geheim = env.sessionSecret || "termin|" + [...crypto.getRandomValues(new Uint8Array(24))].join(",");
-  hmac = await crypto.subtle.importKey("raw", enc.encode("termin-absage|" + geheim), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
-  return hmac;
+/* ---------- Signierte Links (nur wer den Link hat, darf handeln) ---------- */
+// Je Zweck ein eigener Schlüssel: Ein Absage-Link kann nie eine Anfrage bestätigen.
+const schluessel = new Map<string, Promise<CryptoKey>>();
+let zufall = "";
+function hmacKey(zweck: string) {
+  if (!schluessel.has(zweck)) {
+    if (!zufall) zufall = "termin|" + [...crypto.getRandomValues(new Uint8Array(24))].join(",");
+    const geheim = env.sessionSecret || zufall;
+    schluessel.set(zweck, crypto.subtle.importKey("raw", enc.encode(zweck + "|" + geheim), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]));
+  }
+  return schluessel.get(zweck)!;
 }
-type AbsageDaten = { b: string; e: string; s: number; t?: string; n?: string; m?: string };
-export async function absageToken(daten: AbsageDaten) {
+async function signiertesToken(zweck: string, daten: unknown) {
   const body = b64u(JSON.stringify(daten));
-  return body + "." + b64u(new Uint8Array(await crypto.subtle.sign("HMAC", await hmacKey(), enc.encode(body))));
+  return body + "." + b64u(new Uint8Array(await crypto.subtle.sign("HMAC", await hmacKey(zweck), enc.encode(body))));
 }
-export async function leseAbsageToken(token: unknown): Promise<AbsageDaten | null> {
+async function leseToken(zweck: string, token: unknown): Promise<any | null> {
   if (typeof token !== "string" || token.length > 900 || !token.includes(".")) return null;
   const [body, sig] = token.split(".");
   try {
-    if (!(await crypto.subtle.verify("HMAC", await hmacKey(), unb64u(sig), enc.encode(body)))) return null;
-    const d = JSON.parse(new TextDecoder().decode(unb64u(body)));
-    return typeof d?.b === "string" && typeof d?.e === "string" && typeof d?.s === "number" ? d : null;
+    if (!(await crypto.subtle.verify("HMAC", await hmacKey(zweck), unb64u(sig), enc.encode(body)))) return null;
+    return JSON.parse(new TextDecoder().decode(unb64u(body)));
   } catch { return null; }
+}
+
+/** Link für den Betrieb: Terminanfrage bestätigen oder ablehnen. `v` = Vormerkung. */
+export type EntscheidDaten = { b: string; v: string };
+export const entscheidToken = (d: EntscheidDaten) => signiertesToken("termin-entscheid", d);
+export async function leseEntscheidToken(token: unknown): Promise<EntscheidDaten | null> {
+  const d = await leseToken("termin-entscheid", token);
+  return typeof d?.b === "string" && typeof d?.v === "string" ? d : null;
+}
+type AbsageDaten = { b: string; e: string; s: number; t?: string; n?: string; m?: string };
+export const absageToken = (daten: AbsageDaten) => signiertesToken("termin-absage", daten);
+export async function leseAbsageToken(token: unknown): Promise<AbsageDaten | null> {
+  const d = await leseToken("termin-absage", token);
+  return typeof d?.b === "string" && typeof d?.e === "string" && typeof d?.s === "number" ? d : null;
 }
 
 /* ---------- Eingaben prüfen ---------- */

@@ -24,6 +24,8 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
   sql(`CREATE TABLE IF NOT EXISTS zaehler (kunde TEXT NOT NULL, tag TEXT NOT NULL, art TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (kunde, tag, art))`);
   sql(`CREATE TABLE IF NOT EXISTS termin (kunde TEXT NOT NULL, id TEXT NOT NULL, start INTEGER NOT NULL, ende INTEGER NOT NULL, titel TEXT NOT NULL, loeschen INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
   sql(`CREATE INDEX IF NOT EXISTS termin_zeit ON termin (kunde, start)`);
+  sql(`CREATE TABLE IF NOT EXISTS vormerkung (kunde TEXT NOT NULL, id TEXT NOT NULL, start INTEGER NOT NULL, ende INTEGER NOT NULL, daten TEXT NOT NULL, ablauf INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
+  sql(`CREATE INDEX IF NOT EXISTS vormerkung_zeit ON vormerkung (kunde, start)`);
   sql(`CREATE TABLE IF NOT EXISTS website (kunde TEXT PRIMARY KEY, stand TEXT NOT NULL)`);
   sql(`CREATE TABLE IF NOT EXISTS login (hash TEXT PRIMARY KEY, email TEXT NOT NULL, bis INTEGER NOT NULL)`);
 
@@ -64,7 +66,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       return true;
     },
     async kundeLoeschen(id) {
-      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler", "website", "termin"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
+      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler", "website", "termin", "vormerkung"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
       sql(`DELETE FROM kunde WHERE id = ?`, id);
     },
     async versionen(id) {
@@ -76,8 +78,8 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
 
     async vorgangAnlegen(kunde, v) {
       const id = neueId().slice(0, 24), t = jetzt();
-      sql(`INSERT INTO vorgang (kunde, id, art, status, dringlichkeit, titel, daten, erstellt, loeschen) VALUES (?, ?, ?, 'neu', ?, ?, ?, ?, ?)`,
-        kunde, id, v.art, v.dringlichkeit || "normal", v.titel.slice(0, 200), JSON.stringify(v.daten), t, t + v.tage * TAG);
+      sql(`INSERT INTO vorgang (kunde, id, art, status, dringlichkeit, titel, daten, erstellt, loeschen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        kunde, id, v.art, (v.status || "neu").slice(0, 40), v.dringlichkeit || "normal", v.titel.slice(0, 200), JSON.stringify(v.daten), t, t + v.tage * TAG);
       return id;
     },
     async vorgaenge(kunde, filter = {}) {
@@ -133,6 +135,26 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       sql(`DELETE FROM termin WHERE kunde = ? AND id = ?`, kunde, id);
       return true;
     },
+    async vormerkungAnlegen(kunde, v) {
+      const id = neueId().slice(0, 24);
+      sql(`INSERT INTO vormerkung (kunde, id, start, ende, daten, ablauf) VALUES (?, ?, ?, ?, ?, ?)`,
+        kunde, id, Math.round(v.start), Math.round(v.ende), JSON.stringify(v.daten), jetzt() + v.stunden * 3_600_000);
+      return id;
+    },
+    async vormerkungen(kunde, von, bis) {
+      return sql(`SELECT id, start, ende, daten, ablauf FROM vormerkung WHERE kunde = ? AND ablauf > ? AND ende > ? AND start < ? ORDER BY start`, kunde, jetzt(), Math.round(von), Math.round(bis))
+        .map((r) => ({ id: r.id, start: Number(r.start), ende: Number(r.ende), daten: JSON.parse(r.daten), ablauf: Number(r.ablauf) }));
+    },
+    async vormerkungLesen(kunde, id) {
+      const r = sql(`SELECT id, start, ende, daten, ablauf FROM vormerkung WHERE kunde = ? AND id = ?`, kunde, id)[0];
+      if (!r || Number(r.ablauf) <= jetzt()) return null;
+      return { id: r.id, start: Number(r.start), ende: Number(r.ende), daten: JSON.parse(r.daten), ablauf: Number(r.ablauf) };
+    },
+    async vormerkungLoeschen(kunde, id) {
+      if (!sql(`SELECT 1 AS da FROM vormerkung WHERE kunde = ? AND id = ?`, kunde, id).length) return false;
+      sql(`DELETE FROM vormerkung WHERE kunde = ? AND id = ?`, kunde, id);
+      return true;
+    },
     async zaehle(kunde, art, n = 1) {
       sql(`INSERT INTO zaehler (kunde, tag, art, n) VALUES (?, ?, ?, ?) ON CONFLICT (kunde, tag, art) DO UPDATE SET n = n + excluded.n`, kunde, tagVon(jetzt()), art, n);
     },
@@ -167,6 +189,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       sql(`DELETE FROM vorgang WHERE loeschen <= ?`, t);
       const alteTermine = Number(sql(`SELECT COUNT(*) AS n FROM termin WHERE loeschen <= ?`, t)[0].n);
       sql(`DELETE FROM termin WHERE loeschen <= ?`, t);
+      sql(`DELETE FROM vormerkung WHERE ablauf <= ?`, t);
       sql(`DELETE FROM zaehler WHERE tag < ?`, tagVon(t - 400 * TAG));
       sql(`DELETE FROM login WHERE bis < ?`, t);
       return dateien.length + n + alteTermine;

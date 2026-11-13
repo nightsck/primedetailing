@@ -157,6 +157,10 @@ export const KundeSchema = z.object({
     }).prefault({}),
     terminBot: z.object({
       aktiv: z.boolean().default(false),
+      bestaetigen: z.boolean().default(false)
+        .describe("Anfrage statt Buchung: Der Bot sagt keinen Termin zu, sondern schickt eine Anfrage an den Betrieb. Erst wenn dort jemand auf „Bestätigen“ klickt, bekommt der Kunde die Zusage. Die Zeit ist bis dahin vorgemerkt, damit sie niemand doppelt anfragt. Sinnvoll, wenn der Bot den Kalender des Betriebs nicht sehen kann (Outlook, Apple, Papier)."),
+      bestaetigenStunden: z.number().int().min(2).max(168).default(48)
+        .describe("So lange gilt eine Terminanfrage. Antwortet der Betrieb nicht, wird die Vormerkung frei und die Zeit ist wieder buchbar."),
       kalenderId: text(200).default("").describe("Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. Leer lassen, wenn der Betrieb kein Google Kalender nutzt (Outlook, Apple, Papier): dann verwaltet der Termin-Bot seine Zeiten selbst, und jeder Termin kommt per Mail mit Kalender-Datei. Termine, die der Betrieb selbst einträgt, kennt der Bot dann nicht."),
       termine: z.array(Terminart).max(12).default([]),
       zeiten: z.object(Object.fromEntries(TAGE.map((t) => [t, zeitfenster.default(["sa", "so"].includes(t) ? "" : "8-17")])) as Record<Wochentag, typeof zeitfenster>).prefault({})

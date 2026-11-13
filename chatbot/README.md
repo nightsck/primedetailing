@@ -100,9 +100,22 @@ Der Termin-Bot braucht zwei Dinge: Er muss sehen, was schon belegt ist, und er m
 
 > Die Grenze gehört ins Verkaufsgespräch: Im eigenen Kalender stehen nur die Termine, die der Bot vergeben hat. Trägt der Chef einen Termin direkt in Outlook ein, weiß der Bot nichts davon. Entweder laufen alle Termine über den Bot, oder der Betrieb gibt einen Kalender frei.
 
-**Und wenn der Betrieb Outlook nutzt?** Dann ist Weg 2 heute die Antwort: buchen über den Bot, Termin per `termin.ics` ins Outlook. Was **nicht** funktioniert: ein veröffentlichter ICS-Link aus Outlook. Der ist nur lesbar (eintragen geht also nie), er wird oft vom Administrator gesperrt, und er ist nicht aktuell – Microsoft nennt für abonnierte Kalender „etwa alle drei Stunden“ und bis zu 24 Stunden. Mit so einem Stand bucht man Leute übereinander.
+**Und wenn der Betrieb Outlook nutzt?** Dann Weg 2 plus „Anfrage statt Buchung“ (siehe unten): Der Kunde fragt an, der Betrieb sieht in Outlook nach und bestätigt per Klick, der Termin geht als `termin.ics` ins Outlook. Was **nicht** funktioniert: ein veröffentlichter ICS-Link aus Outlook. Der ist nur lesbar (eintragen geht also nie), er wird oft vom Administrator gesperrt, und er ist nicht aktuell – Microsoft nennt für abonnierte Kalender „etwa alle drei Stunden“ und bis zu 24 Stunden. Mit so einem Stand bucht man Leute übereinander.
 
 Der richtige Weg für Microsoft 365 ist **Microsoft Graph** (noch nicht gebaut): App-Registrierung in Entra, die Anwendungsrechte `Calendars.ReadWrite` und `Schedule.Read.All`, Freigabe durch den Administrator des Kunden und – wichtig fürs Vertrauen – eine `ApplicationAccessPolicy` in Exchange Online, die uns auf genau ein Postfach einschränkt statt auf alle. Freie Zeiten kommen dann über `getSchedule`, der Termin über `POST /users/<id>/events`. Dasselbe Modell wie bei Google, nur ein anderer Anbieter: `eigenerKalender` und `googleKalender` erfüllen beide dieselbe kleine Schnittstelle `Kalender` in `src/termin.ts`, ein `microsoftKalender` kommt daneben.
+
+## Anfrage statt Buchung: der Betrieb bestätigt
+
+Schalter im Admin-Panel („Anfrage statt Buchung“). Dann sagt der Bot nichts zu:
+
+1. Der Kunde sucht sich eine Wunschzeit aus und schickt die Anfrage ab. Er sieht und liest überall „Wunschzeit“, nie „Ihr Termin steht“.
+2. Die Zeit wird **vorgemerkt** (Tabelle `vormerkung`) – so kann sie niemand ein zweites Mal anfragen. Ohne Antwort läuft die Vormerkung nach der eingestellten Frist ab (Standard 48 Stunden) und die Zeit ist wieder frei.
+3. Der Betrieb bekommt eine Mail mit allen Angaben und einem Link. Der Link **zeigt die Anfrage erst nur an**; bestätigt wird mit einem Klick auf der Seite. Das ist Absicht: Mail-Scanner rufen Links im Voraus auf, und ein GET-Link hätte Termine von allein bestätigt.
+4. „Termin bestätigen“ trägt den Termin jetzt erst in den Kalender ein und schickt dem Kunden die Zusage mit `termin.ics` und Absage-Link. „Geht leider nicht“ gibt die Zeit frei und schickt dem Kunden eine freundliche Absage mit Link auf eine andere Zeit.
+
+In der Chef-Übersicht läuft der Vorgang von `angefragt` auf `bestätigt` oder `abgelehnt`.
+
+Das ist der saubere Weg für jeden Betrieb, dessen Kalender der Bot nicht sehen kann – Outlook, Apple, Papier. Der Bot verspricht dann nichts, was der Chef nicht halten kann, und ein Mensch schaut vorher drauf. Jeder Link ist mit einem eigenen Schlüssel signiert: Ein Absage-Link kann keine Anfrage bestätigen und umgekehrt.
 
 ## Feiertage: antworten ja, Termine nein
 

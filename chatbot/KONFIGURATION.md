@@ -116,6 +116,8 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 
 | Feld | Wofür ist das? |
 |---|---|
+| `module.terminBot.bestaetigen` | Anfrage statt Buchung: Der Bot sagt keinen Termin zu, sondern schickt eine Anfrage an den Betrieb. Erst wenn dort jemand auf „Bestätigen“ klickt, bekommt der Kunde die Zusage. Die Zeit ist bis dahin vorgemerkt, damit sie niemand doppelt anfragt. Sinnvoll, wenn der Bot den Kalender des Betriebs nicht sehen kann (Outlook, Apple, Papier). |
+| `module.terminBot.bestaetigenStunden` | So lange gilt eine Terminanfrage. Antwortet der Betrieb nicht, wird die Vormerkung frei und die Zeit ist wieder buchbar. |
 | `module.terminBot.kalenderId` | Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. Leer lassen, wenn der Betrieb kein Google Kalender nutzt (Outlook, Apple, Papier): dann verwaltet der Termin-Bot seine Zeiten selbst, und jeder Termin kommt per Mail mit Kalender-Datei. Termine, die der Betrieb selbst einträgt, kennt der Bot dann nicht. |
 | `module.terminBot.zeiten` | Wann Termine möglich sind, je Wochentag. Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = an dem Tag keine Termine. |
 | `module.terminBot.rasterMin` | Abstand der angebotenen Startzeiten in Minuten (30 = 8:00, 8:30, 9:00 …). |
