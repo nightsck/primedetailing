@@ -11,6 +11,29 @@
   // damit der Button schon vor dem Klick richtig aussieht – ohne Serveranfrage.
 
   const M = V.maskottchen;
+
+  /**
+   * Ist der Betrieb gerade besetzt? Entscheidet, was auf dem Knopf steht.
+   * null = unbekannt (keine oder keine eindeutige Zeitangabe) → neutraler Text.
+   * Gerechnet wird in deutscher Zeit, damit ein Besucher aus dem Ausland nichts Falsches sieht.
+   */
+  const jetztOffen = () => {
+    const z = (V.design || {}).zeiten;
+    if (!Array.isArray(z) || !z.length) return null;
+    try {
+      const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" }));
+      const tag = (d.getDay() + 6) % 7, min = d.getHours() * 60 + d.getMinutes();
+      return z.some((e) => e && e.tag === tag && min >= e.von && min < e.bis);
+    } catch { return null; }
+  };
+  /** Beschriftung des Knopfs: außerhalb der Zeiten laden wir ausdrücklich zum Schreiben ein. */
+  const knopfText = (eigener) => {
+    const offen = jetztOffen();
+    if (eigener) return eigener;
+    const du = (V.design || {}).anrede === "du";
+    if (offen === false) return du ? "Gerade niemand da? Schreib uns" : "Gerade niemand da? Schreiben Sie uns";
+    return "Fragen? Chat starten";
+  };
   const ICON_CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   const ICON_CAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5h6l1.4 2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
@@ -122,7 +145,9 @@
   .panel[hidden],.launch[hidden]{display:none}
 
   /* --- Kopfzeile: wer antwortet hier --- */
-  header{display:flex;align-items:center;gap:11px;padding:13px 12px 13px 15px;background:var(--karte);border-bottom:1px solid var(--line-weich);flex:none}
+  header{display:flex;align-items:center;gap:11px;padding:13px 12px 13px 15px;background:color-mix(in srgb,var(--karte) 86%,transparent);
+    -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);border-bottom:1px solid var(--line-weich);flex:none;position:relative;z-index:2}
+  @supports not (backdrop-filter:blur(2px)){header{background:var(--karte)}}
   .avatar{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;
     background:var(--p);color:var(--pt);font:600 16px/1 inherit;font-family:inherit;letter-spacing:.01em;overflow:hidden}
   .avatar.figur{background:var(--p-06);padding:3px}
@@ -139,7 +164,7 @@
   .log{flex:1;overflow-y:auto;padding:18px 16px 10px;display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth;overscroll-behavior:contain}
   .log::-webkit-scrollbar{width:10px}
   .log::-webkit-scrollbar-thumb{background:#d6dae0;border-radius:99px;border:3px solid var(--flaeche)}
-  .msg{max-width:88%;padding:11px 14px;border-radius:var(--r-blase);white-space:pre-wrap;word-wrap:break-word;animation:blase .22s cubic-bezier(.2,.8,.3,1)}
+  .msg{max-width:88%;padding:11px 14px;font-variant-numeric:tabular-nums;border-radius:var(--r-blase);white-space:pre-wrap;word-wrap:break-word;animation:blase .22s cubic-bezier(.2,.8,.3,1)}
   @keyframes blase{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .bot{background:var(--karte);align-self:flex-start;border-bottom-left-radius:6px;border:1px solid var(--line-weich);box-shadow:0 1px 2px rgba(16,24,40,.04)}
   .user{background:var(--p);color:var(--pt);align-self:flex-end;border-bottom-right-radius:6px}
@@ -165,6 +190,31 @@
   .chip:hover{background:var(--p-06);border-color:var(--p-text)}
   .chip:active{background:var(--p-12)}
 
+  /* --- Preiskarte: der Betrag ist die Hauptsache, nicht eine Zahl im Satz --- */
+  .card.preis{gap:0;padding:0;overflow:hidden}
+  .card.preis>h4{padding:15px 16px 11px;background:var(--p-06);border-bottom:1px solid var(--line-weich)}
+  .card.preis>.preis-hinweis:last-child{padding-bottom:14px}
+  .preis-kopf{display:flex;align-items:baseline;gap:12px;padding:15px 16px 14px;background:var(--p-06);border-bottom:1px solid var(--line-weich)}
+  .preis-name{flex:1;min-width:0;font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+  .preis-wert{display:flex;align-items:baseline;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .preis-wert b{font-size:23px;font-weight:650;letter-spacing:-.02em;color:var(--p-text)}
+  .preis-ab{font-size:13px;color:var(--m)}
+  .preis-teile{display:grid;font-size:14px;font-variant-numeric:tabular-nums}
+  .preis-teile>div{display:flex;justify-content:space-between;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line-weich)}
+  .preis-teile>div:last-child{border-bottom:0}
+  .preis-teile>div>span:first-child{color:var(--m);min-width:0}
+  .preis-teile>div>span:last-child{white-space:nowrap;font-weight:550}
+  .preis-teile.gross>div{padding:11px 16px;font-size:14.5px}
+  .preis-teile.gross>div>span:first-child{color:var(--t)}
+  .preis-teile .tipp>span:last-child{color:var(--p-text);font-weight:650}
+  .marke{display:inline-block;font-style:normal;font-size:11px;font-weight:600;color:var(--p-text);background:var(--p-06);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+  .preis-liste{margin:0;padding:12px 16px 2px;list-style:none;display:grid;gap:6px;font-size:14px;color:var(--m)}
+  .preis-liste li{display:flex;gap:9px;align-items:flex-start;line-height:1.45}
+  .preis-liste li:before{content:"";flex:none;width:15px;height:15px;margin-top:2px;border-radius:50%;background:var(--p-12);
+    background-image:linear-gradient(transparent,transparent);box-shadow:inset 0 0 0 1px var(--p-24)}
+  .preis-hinweis{margin:0;padding:11px 16px 0;font-size:12.5px;line-height:1.5;color:var(--m)}
+  .card.preis .row{padding:13px 16px 15px}
+
   /* --- Karten (Anfrage, Kontakt) --- */
   .card{border:1px solid var(--line-weich);border-radius:var(--r-karte);padding:15px;background:var(--karte);align-self:stretch;display:grid;gap:11px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
   .card h4{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
@@ -184,13 +234,16 @@
   .err{color:#b42318;font-size:12.5px;min-height:0}
 
   /* --- Eingabe: ein Feld, Knopf sitzt darin --- */
-  form.send{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 10px;background:var(--karte);border-top:1px solid var(--line-weich);flex:none}
+  form.send{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 10px;background:color-mix(in srgb,var(--karte) 88%,transparent);
+    -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);border-top:1px solid var(--line-weich);flex:none;position:relative;z-index:2}
+  @supports not (backdrop-filter:blur(2px)){form.send,.foot{background:var(--karte)}}
   form.send textarea{flex:1;font:inherit;font-size:15.5px;border:1px solid var(--line);border-radius:14px;padding:11px 13px;resize:none;height:44px;max-height:120px;color:var(--t);background:var(--flaeche);
     transition:border-color .15s,box-shadow .15s,background .15s}
   form.send textarea::placeholder{color:#8b949f}
   form.send textarea:focus{outline:0;background:var(--karte);border-color:var(--p-text);box-shadow:0 0 0 3px var(--p-12)}
   form.send button{width:44px;height:44px;border:0;border-radius:50%;background:var(--p);color:var(--pt);cursor:pointer;display:grid;place-items:center;flex:none;
-    transition:filter .15s,opacity .15s}
+    transition:filter .18s,opacity .18s,transform .18s cubic-bezier(.2,.8,.3,1)}
+  form.send button[type=submit].leer{opacity:.4;transform:scale(.94)}
   form.send button:hover{filter:brightness(1.08)}
   form.send button svg{width:18px;height:18px;margin-left:-1px}
   form.send button.cam{background:var(--flaeche);color:var(--m);border:1px solid var(--line);border-radius:50%}
@@ -198,7 +251,8 @@
   form.send button.cam svg{width:20px;height:20px;margin:0}
   .msg.user img{display:block;max-width:210px;max-height:230px;border-radius:10px;margin:-4px -6px 7px;object-fit:cover}
   .msg.user .cap:empty{display:none}
-  .foot{font-size:11.5px;line-height:1.5;color:var(--m);text-align:center;padding:0 14px 10px;background:var(--karte)}
+  .foot{font-size:11.5px;line-height:1.5;color:var(--m);text-align:center;padding:0 14px 10px;background:color-mix(in srgb,var(--karte) 88%,transparent);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);position:relative;z-index:2}
   .foot a{color:var(--m);text-underline-offset:2px}
 
   @media (max-width:520px){
@@ -228,8 +282,8 @@
     connectedCallback() {
       this.root = this.attachShadow({ mode: "open" });
       this.root.innerHTML = `<style>${css(V.design || {})}</style>` + (M
-        ? `<button class="launch mit-figur" part="launcher" aria-label="Chat mit ${esc(M.name)} öffnen"><span class="figur">${M.svg}</span><span>${esc((V.design || {}).launcherText || "Fragen? Chat starten")}</span></button>`
-        : `<button class="launch" part="launcher" aria-label="Chat öffnen">${ICON_CHAT}<span>Fragen? Chat starten</span></button>`);
+        ? `<button class="launch mit-figur" part="launcher" aria-label="Chat mit ${esc(M.name)} öffnen"><span class="figur">${M.svg}</span><span>${esc(knopfText((V.design || {}).launcherText))}</span></button>`
+        : `<button class="launch" part="launcher" aria-label="Chat öffnen">${ICON_CHAT}<span>${esc(knopfText((V.design || {}).launcherText))}</span></button>`);
       if (M && M.teaser && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         this.teaserTimer = setTimeout(() => {
           if (this.geladen) return;
@@ -295,7 +349,15 @@
       this.fotos = 0;
       p.querySelector("form").addEventListener("submit", (e) => { e.preventDefault(); this.senden(this.eingabe.value); });
       this.eingabe.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.senden(this.eingabe.value); } });
-      this.eingabe.addEventListener("input", () => { this.eingabe.style.height = "42px"; this.eingabe.style.height = Math.min(110, this.eingabe.scrollHeight) + "px"; });
+      this.sendKnopf = p.querySelector('form.send button[type="submit"]');
+      const knopfStand = () => this.sendKnopf.classList.toggle("leer", !this.eingabe.value.trim());
+      knopfStand();
+      this.eingabe.addEventListener("input", () => {
+        this.eingabe.style.height = "44px";
+        this.eingabe.style.height = Math.min(120, this.eingabe.scrollHeight) + "px";
+        knopfStand();
+      });
+      this.nachSenden = knopfStand;
 
       this.botText(c.start.begruessung);
       if (c.start.kiHinweis) this.notiz(c.start.kiHinweis + (c.demo ? " (Demo-Modus ohne KI)" : ""));
@@ -376,7 +438,7 @@
       if (bild) { const img = document.createElement("img"); img.onload = () => this.scroll(); img.src = bild; img.alt = "Ihr Foto"; u.appendChild(img); }
       const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = text; u.appendChild(cap);
       this.log.appendChild(u);
-      this.eingabe.value = ""; this.eingabe.style.height = "42px";
+      this.eingabe.value = ""; this.eingabe.style.height = "44px"; if (this.nachSenden) this.nachSenden();
       const typing = document.createElement("div"); typing.className = "typing" + (M ? " figur-tippt" : "");
       typing.innerHTML = (M ? `<span class="figur">${M.svg}</span>` : "") + "<i></i><i></i><i></i>";
       typing.setAttribute("aria-label", (M ? M.name : "Assistent") + " schreibt …");
@@ -417,6 +479,31 @@
       if (ui.typ === "buttons") return this.chips(ui.optionen || []);
       if (ui.typ === "uebergabe") return this.uebergabe();
       if (ui.typ === "anfrage_formular") return this.formular(ui.felder || {});
+      if (ui.typ === "preis") return this.preiskarte(ui);
+      if (ui.typ === "preisliste") return this.preisliste(ui);
+    }
+
+    /** Ein Preis, sichtbar statt im Fließtext: Leistung, Betrag, was dazugehört. */
+    preiskarte(ui) {
+      const d = document.createElement("div"); d.className = "card preis";
+      const zusatz = (ui.zusatz || []).filter((z) => z && z.name);
+      d.innerHTML = `<div class="preis-kopf"><div class="preis-name">${esc(ui.titel || "")}</div>
+        <div class="preis-wert">${ui.ab ? '<span class="preis-ab">ab</span>' : ""}<b>${esc(ui.preis || "")}</b></div></div>
+        ${zusatz.length ? `<div class="preis-teile">${[{ name: "Grundpreis", preis: ui.grundpreis }, ...zusatz].map((z) => `<div><span>${esc(z.name)}</span><span>${esc(z.preis || "")}</span></div>`).join("")}</div>` : ""}
+        ${(ui.leistungen || []).length ? `<ul class="preis-liste">${ui.leistungen.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
+        ${ui.hinweis ? `<p class="preis-hinweis">${esc(ui.hinweis)}</p>` : ""}
+        <div class="row"><button class="btn btn-p" type="button" data-f>Anfrage starten</button></div>`;
+      d.querySelector("[data-f]").addEventListener("click", () => this.formular({}));
+      this.log.appendChild(d); this.scroll();
+    }
+
+    /** Mehrere Leistungen zum Vergleichen. */
+    preisliste(ui) {
+      const d = document.createElement("div"); d.className = "card preis";
+      d.innerHTML = `<h4>${esc(ui.titel || "Leistungen")}</h4>
+        <div class="preis-teile gross">${(ui.zeilen || []).map((z) => `<div${z.empfohlen ? ' class="tipp"' : ""}><span>${esc(z.name)}${z.empfohlen ? ' <i class="marke">Empfehlung</i>' : ""}</span><span>${esc(z.preis)}</span></div>`).join("")}</div>
+        <p class="preis-hinweis">Was genau dazugehört, sage ich Ihnen gern – fragen Sie einfach nach einer Leistung.</p>`;
+      this.log.appendChild(d); this.scroll();
     }
 
     uebergabe() {

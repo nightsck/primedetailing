@@ -6,6 +6,7 @@
 import { baueLaufzeit, type Laufzeit, type Preisliste } from "../kontext.ts";
 import type { Betrieb } from "../bewerber.ts";
 import type { Kunde } from "./schema.ts";
+import { leseZeiten } from "../oeffnungszeiten.ts";
 
 const slug = (s: string) => s.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -74,6 +75,8 @@ export function botConfigVon(k: Kunde): any {
     design: {
       primaer: a.primaerfarbe, akzent: a.akzentfarbe, hintergrund: "#ffffff", radius: "14px", position: a.position,
       launcherHintergrund: a.primaerfarbe, launcherTextfarbe: "#ffffff", launcherText: a.knopfText,
+      // Damit der Knopf weiß, ob gerade jemand da ist (null = Zeile nicht eindeutig, dann kein Hinweis)
+      zeiten: leseZeiten(s.oeffnungszeiten), anrede: k.ton.anrede,
     },
     start: {
       // Die erste Nachricht sagt sofort, dass hier eine KI schreibt. Mit eigenem Bot-Namen: „Hier ist Sarah, Ihr persönlicher KI-Assistent …“

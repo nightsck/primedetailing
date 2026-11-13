@@ -97,7 +97,7 @@ export const KundeSchema = z.object({
     primaerfarbe: farbe.default("#1f2a37").describe("Hauptfarbe des Chat-Fensters (Kopfzeile, Knöpfe). Am besten die Firmenfarbe."),
     akzentfarbe: farbe.default("#c99a2e").describe("Zweite Farbe für Hervorhebungen."),
     position: z.enum(["rechts", "links"]).default("rechts").describe("Ecke, in der der Chat-Knopf sitzt."),
-    knopfText: text(30).default("Fragen? Chat").describe("Text auf dem Chat-Knopf."),
+    knopfText: text(30).default("").describe("Eigener Text auf dem Chat-Knopf. Leer = der Knopf wählt selbst: während der Öffnungszeiten „Fragen? Chat starten“, außerhalb „Gerade niemand da? Schreiben Sie uns“ (nur wenn die Öffnungszeiten eindeutig eingetragen sind)."),
     begruessung: text(400).default("").describe("Erste Nachricht des Bots. Leer = Standardtext mit Bot-Name und Firmenname."),
     logoBuchstaben: text(3).default("").describe("1–3 Buchstaben als Logo auf der Bewerber-Seite, z. B. MM. Leer = Anfangsbuchstaben der Firma."),
   }).prefault({}),

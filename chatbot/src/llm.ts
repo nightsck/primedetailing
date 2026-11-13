@@ -171,15 +171,22 @@ async function demoAntwort(verlauf: Msg[], emit: Emit, mitFoto = false): Promise
   } else if (paket) {
     const r: any = runTool("get_preis", { paket: paket.id });
     erlaubt.push(...r.betraege);
-    text = paket.preis === null
-      ? `${paket.name} gibt es auf Anfrage, weil es vom Einzelfall abhängt. Soll ich eine Anfrage vorbereiten?`
-      : `${paket.name} kostet ${preisText(paket)}. Enthalten: ${paket.leistungen.slice(0, 4).join(", ")}. ${paket.ab ? "Der endgültige Preis wird vor dem Termin bestätigt. " : ""}Soll ich eine Anfrage vorbereiten?`;
+    if (paket.preis === null) {
+      text = `${paket.name} gibt es auf Anfrage, weil es vom Einzelfall abhängt. Soll ich eine Anfrage vorbereiten?`;
+    } else {
+      // Der Betrag steht in der Karte – der Text sagt nur, was man damit tun kann
+      text = paket.ab ? `Das ist der Richtwert – genau wird er nach einem kurzen Blick auf das Objekt.` : `Der Preis steht fest, es kommt nichts dazu.`;
+      if (r.ui) ui.push(r.ui);
+    }
     ui.push({ typ: "buttons", optionen: ["Termin anfragen", "Frage stellen"] });
   } else if (rueckfrage) {
     text = "Danke! Der Grundpreis steht beim Paket. Ob dafür ein Aufschlag anfällt, klären wir persönlich.";
     ui.push({ typ: "buttons", optionen: ["Termin anfragen", "Frage stellen"] });
   } else if (kategorie) {
-    text = `${kategorie.name}: ` + kategorie.pakete.map((p) => `${p.name} (${preisText(p)}${p.empfohlen ? ", Empfehlung" : ""})`).join(", ") + ".";
+    const rl: any = runTool("liste_pakete", { kategorie: kategorie.name });
+    erlaubt.push(...rl.betraege);
+    text = `Das haben wir im Bereich ${kategorie.name}:`;
+    if (rl.ui) ui.push(rl.ui);
     ui.push({ typ: "buttons", optionen: [...kategorie.pakete.slice(0, 3).map((p) => p.name), "Termin anfragen"] });
   } else if (/frage stellen/.test(t)) {
     text = `Klar, was ${du ? "möchtest du" : "möchten Sie"} wissen?`;

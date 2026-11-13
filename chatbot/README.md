@@ -74,6 +74,22 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Preise als Karte statt im Fließtext
+
+Fragt jemand nach einem Preis, schickt der Bot zusätzlich zum Text eine Karte: Leistung, Betrag groß und in Tabellenziffern, was dazugehört, der Hinweis bei „ab“-Preisen und ein Knopf zur Anfrage. Bei einer ganzen Kategorie kommt eine Liste zum Vergleichen.
+
+- Gebaut wird die Karte in `src/tools.ts` (`get_preis`, `liste_pakete` geben sie als `ui` zurück), gezeigt wird sie in `public/widget.js` (`preiskarte`, `preisliste`).
+- Die Beträge kommen weiter nur aus der Preisliste des Kunden; die Prüfung in `guard.ts` gilt unverändert.
+- Glatte Beträge stehen ohne Nachkommastellen: „290 €“ statt „290,00 €“ (`fmtEuroKurz`).
+
+## Der Chat-Knopf richtet sich nach den Öffnungszeiten
+
+Außerhalb der Öffnungszeiten steht auf dem Knopf „Gerade niemand da? Schreiben Sie uns“ statt „Fragen? Chat starten“. Wer abends auf der Seite landet, schreibt dann eher, statt wieder zu gehen.
+
+- `src/oeffnungszeiten.ts` liest die Zeile aus den Stammdaten („Mo–Fr 7–16 Uhr, Sa 9–12 Uhr“). Ist sie nicht eindeutig, gibt es **keinen** Hinweis – eine falsche Angabe wäre schlimmer als gar keine.
+- Gerechnet wird in deutscher Zeit, damit Besucher aus dem Ausland nichts Falsches sehen.
+- Ein eigener Knopftext (Aussehen → „Eigener Text auf dem Chat-Knopf“) gewinnt immer.
+
 ## Aussehen der Bots
 
 Beide Bots teilen sich eine Gestaltung: heller Grund, Antworten als weiße Karten mit feiner Linie, die Firmenfarbe nur als Akzent (eigene Nachricht, Knöpfe, Avatar).

@@ -3,6 +3,10 @@
 import { allePakete, preise, config, type Paket } from "./config.ts";
 import { jeKunde } from "./kontext.ts";
 
+/** Betrag für die Preiskarte: glatte Beträge ohne Nachkommastellen („290 €“ statt „290,00 €“). */
+export const fmtEuroKurz = (n: number) =>
+  Number.isInteger(n) ? n.toLocaleString("de-DE") + " €" : fmtEuro(n);
+
 export const fmtEuro = (n: number) =>
   n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
@@ -101,7 +105,11 @@ export function runTool(name: string, input: any): ToolResult {
     const kats = preise.kategorien.filter((c) => !k || norm(c.name).includes(k) || k.includes(norm(c.name).slice(0, 5)));
     const list = (kats.length ? kats : preise.kategorien).map((c) => ({ kategorie: c.name, pakete: c.pakete.map(paketInfo) }));
     const betraege = list.flatMap((c) => c.pakete).map((p) => findePaket(p.id)!.preis).filter((x): x is number => x !== null);
-    return { result: list, betraege };
+    // Übersicht als Karte: Name und Preis nebeneinander, damit man sie vergleichen kann
+    const zeilen = (kats.length ? kats : preise.kategorien).flatMap((c) => c.pakete.map((p) => ({
+      name: p.name, preis: p.preis === null ? "auf Anfrage" : (p.ab ? "ab " : "") + fmtEuroKurz(p.preis), empfohlen: !!p.empfohlen,
+    }))).slice(0, 8);
+    return { result: list, betraege, ui: zeilen.length > 1 ? { typ: "preisliste", titel: kats.length === 1 ? kats[0].name : "Unsere Leistungen", zeilen } : undefined };
   }
 
   if (name === "get_preis") {
@@ -125,6 +133,17 @@ export function runTool(name: string, input: any): ToolResult {
     if (ab) hinweise.push("„ab“-Preis: endgültiger Preis hängt vom Einzelfall ab und wird vor dem Termin bestätigt.");
     if ((preise as any).zuschlaege) hinweise.push("Zuschläge: " + Object.entries((preise as any).zuschlaege).map(([k, v]) => `${k}: ${v}`).join("; "));
     return {
+      // Die Karte zeigt den Preis sichtbar an, statt ihn im Fließtext zu verstecken.
+      // Der Text der KI steht darüber; die Zahlen kommen aus dieser Karte.
+      ui: {
+        typ: "preis",
+        titel: p.name,
+        preis: fmtEuroKurz(summe),
+        ab,
+        leistungen: p.leistungen.slice(0, 5),
+        hinweis: ab ? "Endgültiger Preis nach Besichtigung – wir bestätigen ihn vor dem Termin." : "",
+        ...(extras.length || aufschlag ? { grundpreis: (p.ab ? "ab " : "") + fmtEuroKurz(p.preis), zusatz: [...extras.map((e) => ({ name: e.name, preis: fmtEuroKurz(e.preis!) })), ...(aufschlag ? [{ name: String(input.variante), preis: fmtEuroKurz(aufschlag) }] : [])] } : {}),
+      },
       result: {
         paket: p.name, grundpreis: (p.ab ? "ab " : "") + fmtEuro(p.preis),
         extras: extras.map((e) => ({ name: e.name, preis: (e.ab ? "ab " : "") + fmtEuro(e.preis!) })),
