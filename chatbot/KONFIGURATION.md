@@ -116,7 +116,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 
 | Feld | Wofür ist das? |
 |---|---|
-| `module.terminBot.kalenderId` | Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. |
+| `module.terminBot.kalenderId` | Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. Leer lassen, wenn der Betrieb kein Google Kalender nutzt (Outlook, Apple, Papier): dann verwaltet der Termin-Bot seine Zeiten selbst, und jeder Termin kommt per Mail mit Kalender-Datei. Termine, die der Betrieb selbst einträgt, kennt der Bot dann nicht. |
 | `module.terminBot.zeiten` | Wann Termine möglich sind, je Wochentag. Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = an dem Tag keine Termine. |
 | `module.terminBot.rasterMin` | Abstand der angebotenen Startzeiten in Minuten (30 = 8:00, 8:30, 9:00 …). |
 | `module.terminBot.pufferMin` | Pause nach jedem Termin in Minuten. |

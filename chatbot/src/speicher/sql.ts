@@ -22,6 +22,8 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
   sql(`CREATE TABLE IF NOT EXISTS datei (kunde TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, typ TEXT NOT NULL, groesse INTEGER NOT NULL, ablauf INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
   sql(`CREATE TABLE IF NOT EXISTS datei_teil (kunde TEXT NOT NULL, id TEXT NOT NULL, nr INTEGER NOT NULL, daten BLOB NOT NULL, PRIMARY KEY (kunde, id, nr))`);
   sql(`CREATE TABLE IF NOT EXISTS zaehler (kunde TEXT NOT NULL, tag TEXT NOT NULL, art TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (kunde, tag, art))`);
+  sql(`CREATE TABLE IF NOT EXISTS termin (kunde TEXT NOT NULL, id TEXT NOT NULL, start INTEGER NOT NULL, ende INTEGER NOT NULL, titel TEXT NOT NULL, loeschen INTEGER NOT NULL, PRIMARY KEY (kunde, id))`);
+  sql(`CREATE INDEX IF NOT EXISTS termin_zeit ON termin (kunde, start)`);
   sql(`CREATE TABLE IF NOT EXISTS website (kunde TEXT PRIMARY KEY, stand TEXT NOT NULL)`);
   sql(`CREATE TABLE IF NOT EXISTS login (hash TEXT PRIMARY KEY, email TEXT NOT NULL, bis INTEGER NOT NULL)`);
 
@@ -62,7 +64,7 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       return true;
     },
     async kundeLoeschen(id) {
-      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler", "website"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
+      for (const t of ["kunde_version", "vorgang", "datei", "datei_teil", "zaehler", "website", "termin"]) sql(`DELETE FROM ${t} WHERE kunde = ?`, id);
       sql(`DELETE FROM kunde WHERE id = ?`, id);
     },
     async versionen(id) {
@@ -116,6 +118,21 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       return out;
     },
 
+    async terminEintragen(kunde, t) {
+      const id = neueId().slice(0, 24);
+      sql(`INSERT INTO termin (kunde, id, start, ende, titel, loeschen) VALUES (?, ?, ?, ?, ?, ?)`,
+        kunde, id, Math.round(t.start), Math.round(t.ende), t.titel.slice(0, 200), Math.round(t.ende) + t.tage * TAG);
+      return id;
+    },
+    async terminBelegt(kunde, von, bis) {
+      return sql(`SELECT id, start, ende, titel FROM termin WHERE kunde = ? AND ende > ? AND start < ? ORDER BY start`, kunde, Math.round(von), Math.round(bis))
+        .map((r) => ({ id: r.id, start: Number(r.start), ende: Number(r.ende), titel: r.titel }));
+    },
+    async terminLoeschen(kunde, id) {
+      if (!sql(`SELECT 1 AS da FROM termin WHERE kunde = ? AND id = ?`, kunde, id).length) return false;
+      sql(`DELETE FROM termin WHERE kunde = ? AND id = ?`, kunde, id);
+      return true;
+    },
     async zaehle(kunde, art, n = 1) {
       sql(`INSERT INTO zaehler (kunde, tag, art, n) VALUES (?, ?, ?, ?) ON CONFLICT (kunde, tag, art) DO UPDATE SET n = n + excluded.n`, kunde, tagVon(jetzt()), art, n);
     },
@@ -148,9 +165,11 @@ export function speicherAufSql(sql: Sql, jetzt: () => number = Date.now): Speich
       for (const d of dateien) { sql(`DELETE FROM datei_teil WHERE kunde = ? AND id = ?`, d.kunde, d.id); sql(`DELETE FROM datei WHERE kunde = ? AND id = ?`, d.kunde, d.id); }
       const n = Number(sql(`SELECT COUNT(*) AS n FROM vorgang WHERE loeschen <= ?`, t)[0].n);
       sql(`DELETE FROM vorgang WHERE loeschen <= ?`, t);
+      const alteTermine = Number(sql(`SELECT COUNT(*) AS n FROM termin WHERE loeschen <= ?`, t)[0].n);
+      sql(`DELETE FROM termin WHERE loeschen <= ?`, t);
       sql(`DELETE FROM zaehler WHERE tag < ?`, tagVon(t - 400 * TAG));
       sql(`DELETE FROM login WHERE bis < ?`, t);
-      return dateien.length + n;
+      return dateien.length + n + alteTermine;
     },
   };
 }

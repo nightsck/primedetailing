@@ -90,6 +90,20 @@ Außerhalb der Öffnungszeiten steht auf dem Knopf „Gerade niemand da? Schreib
 - Gerechnet wird in deutscher Zeit, damit Besucher aus dem Ausland nichts Falsches sehen.
 - Ein eigener Knopftext (Aussehen → „Eigener Text auf dem Chat-Knopf“) gewinnt immer.
 
+## Kalender: Google, eigener Kalender – und Outlook
+
+Der Termin-Bot braucht zwei Dinge: Er muss sehen, was schon belegt ist, und er muss den neuen Termin eintragen. Dafür gibt es zwei Wege.
+
+**1. Google Kalender (Kalender-ID eingetragen).** Der Betrieb gibt einen Kalender für unser Dienstkonto frei. Der Bot liest die belegten Zeiten live und schreibt den Termin hinein. Was die Mitarbeiter selbst eintragen, sieht der Bot sofort – das ist der beste Fall.
+
+**2. Eigener Kalender (Kalender-ID leer).** Der Bot verwaltet seine Zeiten selbst (Tabelle `termin`, ein Block je Buchung, Trennung je Kunde). Betrieb und Kunde bekommen den Termin per Mail mit `termin.ics` – die Datei übernimmt Outlook, Apple Kalender und Google gleichermaßen. In der Chef-Übersicht steht der Termin wie immer.
+
+> Die Grenze gehört ins Verkaufsgespräch: Im eigenen Kalender stehen nur die Termine, die der Bot vergeben hat. Trägt der Chef einen Termin direkt in Outlook ein, weiß der Bot nichts davon. Entweder laufen alle Termine über den Bot, oder der Betrieb gibt einen Kalender frei.
+
+**Und wenn der Betrieb Outlook nutzt?** Dann ist Weg 2 heute die Antwort: buchen über den Bot, Termin per `termin.ics` ins Outlook. Was **nicht** funktioniert: ein veröffentlichter ICS-Link aus Outlook. Der ist nur lesbar (eintragen geht also nie), er wird oft vom Administrator gesperrt, und er ist nicht aktuell – Microsoft nennt für abonnierte Kalender „etwa alle drei Stunden“ und bis zu 24 Stunden. Mit so einem Stand bucht man Leute übereinander.
+
+Der richtige Weg für Microsoft 365 ist **Microsoft Graph** (noch nicht gebaut): App-Registrierung in Entra, die Anwendungsrechte `Calendars.ReadWrite` und `Schedule.Read.All`, Freigabe durch den Administrator des Kunden und – wichtig fürs Vertrauen – eine `ApplicationAccessPolicy` in Exchange Online, die uns auf genau ein Postfach einschränkt statt auf alle. Freie Zeiten kommen dann über `getSchedule`, der Termin über `POST /users/<id>/events`. Dasselbe Modell wie bei Google, nur ein anderer Anbieter: `eigenerKalender` und `googleKalender` erfüllen beide dieselbe kleine Schnittstelle `Kalender` in `src/termin.ts`, ein `microsoftKalender` kommt daneben.
+
 ## Feiertage: antworten ja, Termine nein
 
 Das Bundesland steht in den Stammdaten (leer = nur die bundesweiten Feiertage). Daraus rechnet `src/feiertage.ts` die gesetzlichen Feiertage aus – bundesweite und die des Landes, bewegliche über die Osterformel, also auch für künftige Jahre.

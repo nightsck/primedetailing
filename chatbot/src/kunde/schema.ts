@@ -157,7 +157,7 @@ export const KundeSchema = z.object({
     }).prefault({}),
     terminBot: z.object({
       aktiv: z.boolean().default(false),
-      kalenderId: text(200).default("").describe("Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei."),
+      kalenderId: text(200).default("").describe("Kalender-ID aus Google Kalender (endet meist auf @group.calendar.google.com). Der Kunde gibt diesen Kalender für unser Dienstkonto frei. Leer lassen, wenn der Betrieb kein Google Kalender nutzt (Outlook, Apple, Papier): dann verwaltet der Termin-Bot seine Zeiten selbst, und jeder Termin kommt per Mail mit Kalender-Datei. Termine, die der Betrieb selbst einträgt, kennt der Bot dann nicht."),
       termine: z.array(Terminart).max(12).default([]),
       zeiten: z.object(Object.fromEntries(TAGE.map((t) => [t, zeitfenster.default(["sa", "so"].includes(t) ? "" : "8-17")])) as Record<Wochentag, typeof zeitfenster>).prefault({})
         .describe("Wann Termine möglich sind, je Wochentag. Schreibweise: 8-12, 13-17 oder 7:30-16. Leer = an dem Tag keine Termine."),

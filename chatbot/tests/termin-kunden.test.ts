@@ -140,6 +140,36 @@ test("Feiertage: der Tag wird als geschlossen angezeigt und die Buchung abgelehn
   _setKalender(null);
 });
 
+test("Ohne Google Kalender: der Bot verwaltet die Zeiten selbst (Outlook, Apple, Papier)", async () => {
+  const s = await neuerSpeicher(); _reset(); _setKalender(null);
+  // Termin-Bot an, aber keine Kalender-ID
+  await anlegen(s, beispiel("maler-mueller", "maler", { module: { kundenChat: { aktiv: true },
+    terminBot: { aktiv: true, kalenderId: "", vorlaufStunden: 0, tageVoraus: 60 } } }));
+  const mo = naechsterMontag();
+
+  let z: any = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${mo}&tage=1`)).json();
+  assert.ok(z.ok && z.tage[0].slots.includes("09:00"), "freie Zeiten auch ohne Google");
+
+  const r: any = await (await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: mo })).json();
+  assert.equal(r.ok, true);
+  // Der Block liegt in unserem Speicher und die Zeit ist danach weg
+  const bloecke = await s.terminBelegt("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000);
+  assert.equal(bloecke.length, 1);
+  assert.match(bloecke[0].titel, /Farbberatung – Eva Beispiel/);
+  z = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${mo}&tage=1`)).json();
+  assert.ok(!z.tage[0].slots.includes("09:00"), "gebuchte Zeit ist weg");
+  assert.equal((await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: mo, name: "Zweiter" }, "4.4.4.6")).status, 409, "keine Doppelbuchung");
+  // In der Chef-Übersicht steht der Termin wie immer
+  assert.equal((await s.vorgaenge("maler-mueller", { art: "termin" })).length, 1);
+  // Nur der eigene Kunde kommt an den Block: ein zweiter Kunde sieht nichts
+  assert.deepEqual(await s.terminBelegt("elektro-schmidt", Date.now(), Date.now() + 90 * 86_400_000), []);
+  // Absagen gibt die Zeit wieder frei
+  assert.equal((await post("/k/maler-mueller/api/termin/absagen", { token: r.token })).status, 200);
+  assert.deepEqual(await s.terminBelegt("maler-mueller", Date.now(), Date.now() + 90 * 86_400_000), []);
+  z = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${mo}&tage=1`)).json();
+  assert.ok(z.tage[0].slots.includes("09:00"), "wieder frei");
+});
+
 test("Ohne erreichbaren Kalender: klare Meldung statt falscher Zeiten", async () => {
   const s = await neuerSpeicher(); _reset(); _setKalender(() => ({ belegt: async () => { throw new Error("403"); }, eintragen: async () => "x", loeschen: async () => {} }));
   await anlegen(s, maler());

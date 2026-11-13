@@ -63,8 +63,13 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
   // Termin-Bot
   if (k.module.terminBot.aktiv) {
     const t = k.module.terminBot;
-    dazu(s.kalender, "rot", "Termin-Bot: Google-Dienstkonto ist am Server hinterlegt", "Am Server fehlt GOOGLE_SA_JSON. Ohne Kalender kann niemand buchen. Siehe SECRETS.md.");
-    dazu(!!t.kalenderId, "rot", "Termin-Bot: Kalender-ID ist eingetragen", "Unter „Module → Termin-Bot“ die Kalender-ID des Kunden eintragen und mit „Kalender prüfen“ testen.", "module");
+    // Ohne Kalender-ID verwaltet der Bot die Zeiten selbst – dann braucht es kein Google.
+    if (t.kalenderId) {
+      dazu(s.kalender, "rot", "Termin-Bot: Google-Dienstkonto ist am Server hinterlegt", "Am Server fehlt GOOGLE_SA_JSON. Ohne Kalender kann niemand buchen. Siehe SECRETS.md.");
+      dazu(true, "gelb", "Termin-Bot: Kalender geprüft?", "Mit „Kalender prüfen“ testen, ob der Kunde den Kalender wirklich freigegeben hat.", "module");
+    } else {
+      dazu(true, "gelb", "Termin-Bot: eigener Kalender (kein Google)", "Der Bot verwaltet seine Zeiten selbst. Termine, die der Betrieb direkt in Outlook oder auf Papier einträgt, kennt er nicht – das mit dem Kunden klären.", "module");
+    }
     dazu(t.termine.length > 0, "rot", "Termin-Bot: mindestens eine Terminart", "Unter „Module → Termin-Bot“ eine Terminart anlegen (z. B. Besichtigung, 45 Minuten).", "module");
     dazu(!!terminBetriebVon(k) || !t.termine.length, "rot", "Termin-Bot: an mindestens einem Wochentag sind Termine möglich", "Unter „Module → Termin-Bot“ die Zeiten je Wochentag eintragen, z. B. 8-12, 13-17.", "module");
     dazu(!t.termine.some((x) => x.ort === "kunde") || t.fahrtMin > 0, "gelb", "Termin-Bot: Fahrzeit für Termine beim Kunden", "Es gibt Termine vor Ort, aber 0 Minuten Fahrzeit. Dann liegen Termine direkt hintereinander.", "module");

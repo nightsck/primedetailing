@@ -20,6 +20,7 @@ import { BETRIEBE, terminArt, terminZeitraum, freieZeiten, istDatum, plusTage, z
 import { pruefeLimit } from "./limits.ts";
 import { env } from "./config.ts";
 import { sendeMail, mailAktiv, gueltigeMail, type Mail } from "./mail.ts";
+import type { Speicher } from "./speicher/schnittstelle.ts";
 
 export type Belegt = { start: number; ende: number };
 export interface Kalender {
@@ -30,6 +31,25 @@ export interface Kalender {
 
 const kurz = (s: unknown, max: number) => String(s ?? "").replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 const wert = (c: any, k: string): string => String(c?.env?.[k] ?? process.env[k] ?? "").trim();
+
+/* ---------- Eigener Kalender (ohne Google) ---------- */
+/**
+ * Kalender im eigenen Speicher. Für Betriebe, die kein Google Kalender nutzen –
+ * Outlook, Apple, oder nur ein Kalender an der Wand. Der Termin-Bot verwaltet dann
+ * seine Zeiten selbst; der Betrieb bekommt jeden Termin per Mail mit `termin.ics`
+ * und sieht ihn in der Chef-Übersicht.
+ *
+ * Wichtig und ehrlich: Hier stehen nur die Termine, die der Bot selbst vergeben hat.
+ * Was der Betrieb direkt in seinen eigenen Kalender einträgt, weiß der Bot nicht.
+ * Wer das braucht, gibt einen Google Kalender frei (Microsoft 365 später über Graph).
+ */
+export function eigenerKalender(sp: Speicher, kundeId: string, tage = 400): Kalender {
+  return {
+    belegt: async (von, bis) => (await sp.terminBelegt(kundeId, von, bis)).map((t) => ({ start: t.start, ende: t.ende })),
+    eintragen: async (e) => sp.terminEintragen(kundeId, { start: e.start, ende: e.ende, titel: e.titel, tage }),
+    loeschen: async (id) => { await sp.terminLoeschen(kundeId, id); },
+  };
+}
 
 /* ---------- Google Kalender ---------- */
 const enc = new TextEncoder();

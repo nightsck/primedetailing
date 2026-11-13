@@ -29,6 +29,8 @@ export type Vorgang = {
   titel: string; daten: Record<string, unknown>; erstellt: number; loeschenAm: number;
 };
 export type DateiMeta = { id: string; name: string; typ: string; groesse: number };
+/** Belegte Zeit im eigenen Kalender (ohne Google). */
+export type TerminBlock = { id: string; start: number; ende: number; titel: string };
 
 export interface Speicher {
   kundenListe(): Promise<KundeZeile[]>;
@@ -51,6 +53,15 @@ export interface Speicher {
   dateiHolen(kunde: string, id: string): Promise<{ meta: DateiMeta; daten: ArrayBuffer } | null>;
   /** Abgeschickte Unterlagen behalten (sonst werden sie nach 2 Tagen gelöscht). Gibt die gefundenen zurück. */
   dateienBehalten(kunde: string, ids: string[], tage: number): Promise<DateiMeta[]>;
+
+  /**
+   * Eigener Kalender – für Betriebe ohne Google Kalender (z. B. Outlook, Apple oder Papier).
+   * Hier liegen nur die Zeiten, die der Termin-Bot selbst vergeben hat.
+   */
+  terminEintragen(kunde: string, t: { start: number; ende: number; titel: string; tage: number }): Promise<string>;
+  /** Blöcke, die sich mit [von, bis) überschneiden. */
+  terminBelegt(kunde: string, von: number, bis: number): Promise<TerminBlock[]>;
+  terminLoeschen(kunde: string, id: string): Promise<boolean>;
 
   /** Zählt ein Ereignis für die Auswertung (ohne Personenbezug): z. B. "chat", "anfrage", "bewerbung". */
   zaehle(kunde: string, art: string, n?: number): Promise<void>;
@@ -80,7 +91,7 @@ let lokal: Speicher | null = null;
 export function setzeSpeicher(s: Speicher | null) { lokal = s; }
 
 const METHODEN = ["kundenListe", "kundeLesen", "kundeSpeichern", "kundeVeroeffentlichen", "kundeLoeschen", "versionen", "versionLesen",
-  "vorgangAnlegen", "vorgaenge", "vorgangStatus", "vorgangLoeschen", "dateiAblegen", "dateiHolen", "dateienBehalten",
+  "vorgangAnlegen", "vorgaenge", "vorgangStatus", "vorgangLoeschen", "dateiAblegen", "dateiHolen", "dateienBehalten", "terminEintragen", "terminBelegt", "terminLoeschen",
   "zaehle", "auswertung", "summeMonat", "loginMerken", "loginPruefen", "loginLoeschen", "websiteMerken", "websiteLesen", "aufraeumen"] as const;
 
 /** Der Speicher für diese Anfrage. Auf Cloudflare über die Bindung KUNDEN, sonst der lokal gesetzte. */

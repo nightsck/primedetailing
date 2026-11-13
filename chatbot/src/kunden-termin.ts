@@ -16,7 +16,7 @@ import { terminArt, terminZeitraum, freieZeiten, istDatum, plusTage, zeitpunkt, 
 import { feiertagAm } from "./feiertage.ts";
 import type { Kunde } from "./kunde/schema.ts";
 import { terminBetriebVon, pruefeSicherheitsregeln } from "./kunde/umwandeln.ts";
-import { kalenderMitId, absageToken, leseAbsageToken, wannText, icsDatei } from "./termin.ts";
+import { kalenderMitId, eigenerKalender, absageToken, leseAbsageToken, wannText, icsDatei } from "./termin.ts";
 import { AUSWERTUNG_ANWEISUNG, leseAuswertung } from "./betrieb.ts";
 import { kurzeAnfrage } from "./llm.ts";
 import { istInjection } from "./guard.ts";
@@ -37,6 +37,16 @@ const TEXT = {
   kalender: "Der Kalender ist gerade nicht erreichbar. Bitte später noch einmal versuchen oder direkt beim Betrieb melden.",
   fehler: "Das hat nicht geklappt. Bitte noch einmal versuchen.",
 };
+
+/**
+ * Der Kalender dieses Kunden: der freigegebene Google Kalender, sonst unser eigener.
+ * Ohne Kalender-ID verwaltet der Bot die Zeiten selbst – so läuft der Termin-Bot
+ * auch bei Betrieben mit Outlook, Apple oder ganz ohne digitalen Kalender.
+ */
+function terminKalender(c: any, k: Kunde) {
+  const id = k.module.terminBot.kalenderId;
+  return id ? kalenderMitId(c, id) : eigenerKalender(speicherVon(c), k.id, Math.max(60, k.rechtliches.aufbewahrungTage));
+}
 
 /**
  * Prüft die Angaben einer Buchung. `b` = Betrieb aus terminBetriebVon.
@@ -130,7 +140,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     const k = c.get("kunde") as Kunde, betrieb = terminBetriebVon(k), q = c.req.query();
     const t = betrieb && terminArt(betrieb, q.termin);
     if (!betrieb || !t) return c.json({ ok: false, fehler: "Unbekannte Terminart." }, 400);
-    const kal = kalenderMitId(c, k.module.terminBot.kalenderId);
+    const kal = terminKalender(c, k);
     if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
     const von = istDatum(q.von) ? q.von : undefined;
     const tage = Math.max(1, Math.min(21, Number(q.tage) || 14));
@@ -152,7 +162,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     if (aktuell().test) return c.json({ ok: true, test: true, wann: wannText(d.t, d.z), ort: d.ort });
     const sperre = await pruefeLimit(c, "anfrage");
     if (sperre) return c.json({ ok: false, fehler: sperre }, 429);
-    const kal = kalenderMitId(c, k.module.terminBot.kalenderId);
+    const kal = terminKalender(c, k);
     if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
     try {
       // Kurz vor dem Eintragen noch einmal prüfen: Ist die Zeit wirklich noch frei?
@@ -183,7 +193,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     const was = `${art ? art.name : "Termin"} am ${new Intl.DateTimeFormat("de-DE", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(t.s))} Uhr`;
     if (b.nurZeigen) return c.json({ ok: true, was });
     if (aktuell().test) return c.json({ ok: true, test: true, was });
-    const kal = kalenderMitId(c, k.module.terminBot.kalenderId);
+    const kal = terminKalender(c, k);
     if (!kal) return c.json({ ok: false, fehler: TEXT.kalender }, 503);
     try {
       await kal.loeschen(t.e);
