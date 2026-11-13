@@ -9,4 +9,10 @@ const s = await neuerSpeicher();
 const k = beispiel("maler-mueller", "maler", { zugang: { aktiv: true } });
 k.wissen.leistungen[0].preis = 290; k.wissen.leistungen[0].ab = true; k.wissen.leistungen[1].preis = 180;
 await anlegen(s, k);
+// Farbproben: derselbe Betrieb mit kräftigen Firmenfarben, um das Design zu prüfen
+for (const [id, farbe, name] of [["gelb", "#ffd400", "Gelb"], ["gruen", "#2e9e5b", "Grün"], ["hell", "#f2f2f2", "Hellgrau"]] as const) {
+  const f = beispiel("farbe-" + id, "maler", { stammdaten: { firmenname: "Farbprobe " + name, email: "test@farbprobe.de" }, aussehen: { primaerfarbe: farbe, botName: "Lena" } });
+  f.wissen.leistungen[0].preis = 290; f.wissen.leistungen[0].ab = true;
+  await anlegen(s, f);
+}
 serve({ fetch: app.fetch, port: 8799 }, () => console.log("bereit"));

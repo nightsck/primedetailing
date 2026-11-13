@@ -6,23 +6,17 @@
 import type { Kunde } from "../kunde/schema.ts";
 import { bewerberBetriebVon } from "../kunde/umwandeln.ts";
 import { JOBS_JS, JOBS_CSS } from "../daten.generated.ts";
+import { palette } from "../farben.ts";
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
 export const json = (o: unknown) => JSON.stringify(o).replace(/</g, "\\u003c");
 
-/** Ist die Farbe hell? Dann braucht sie dunkle Schrift (und umgekehrt). */
-function hell(hex: string): boolean {
-  const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
-}
-
-/** Farben der Seite aus der Firmenfarbe: heller Grund, Firmenfarbe für Knöpfe und Kopfzeile. */
+/** Farben der Seite aus der Firmenfarbe: heller Grund, Firmenfarbe für Knöpfe und Kopfzeile.
+ *  Die Rechnung dahinter steht in farben.ts und hält jede Firmenfarbe lesbar. */
 function farben(k: Kunde): string {
-  const p = k.aussehen.primaerfarbe, aufP = hell(p) ? "#16181c" : "#ffffff";
-  // Als Textfarbe auf Weiß taugt die Firmenfarbe nur, wenn sie dunkel genug ist
-  const text = hell(p) ? "#1f2a37" : p;
+  const c = palette({ primaer: k.aussehen.primaerfarbe, akzent: k.aussehen.akzentfarbe, hintergrund: "#f6f5f2" });
   return `:root{color-scheme:light;--paper:#f6f5f2;--surface:#ffffff;--mist:#efeeea;--mist-2:#eceae5;--ink:#1b1e23;--ink-2:#000000;--slate:#4d535c;--faint:#6b717a;
---line:#e2e0da;--line-strong:#cbc8c0;--gold:${p};--gold-hi:${p};--gold-deep:${text};--gold-ink:${aufP};--gold-soft:${p}1f;--err:#b3261e;--ok:#1f7a45;
+--line:#e2e0da;--line-strong:#cbc8c0;--gold:${c.p};--gold-hi:${c.p};--gold-deep:${c.pText};--gold-ink:${c.pt};--gold-soft:${c.p06};--gold-line:${c.p24};--err:#b3261e;--ok:#1f7a45;
 --r:12px;--r-sm:9px;--r-lg:18px;--header-h:0px;--wrap:1080px;--gutter:20px;--font-display:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}`;
 }
 

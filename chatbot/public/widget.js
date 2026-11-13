@@ -16,15 +16,78 @@
   const ICON_CAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5h6l1.4 2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
   const ICON_SEND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></svg>';
 
-  const css = (d) => `
-  :host{all:initial;--p:${d.primaer||"#1f2a37"};--a:${d.akzent||"#c99a2e"};--bg:${d.hintergrund||"#fff"};--r:${d.radius||"14px"};
-    --t:#1d232b;--m:#5b6573;--line:#e6e8ec;--soft:#f5f6f8;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--t)}
+  // --- Farben: Die Firmenfarbe kann alles sein, von Hellgelb bis Schwarz. Daraus leiten wir
+  // lesbare Partnerfarben ab, statt überall Weiß auf Firmenfarbe zu setzen.
+  const hex = (c) => {
+    const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || "").trim());
+    if (!m) return null;
+    const h = m[1].length === 3 ? m[1].replace(/./g, (x) => x + x) : m[1];
+    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  };
+  const kanal = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const helligkeit = (rgb) => 0.2126 * kanal(rgb[0]) + 0.7152 * kanal(rgb[1]) + 0.0722 * kanal(rgb[2]);
+  const kontrast = (a, b) => { const [h, d] = [helligkeit(a), helligkeit(b)].sort((x, y) => y - x); return (h + 0.05) / (d + 0.05); };
+  const zuHex = (rgb) => "#" + rgb.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  const mischen = (a, b, t) => zuHex(a.map((v, i) => v + (b[i] - v) * t));
+  /** Farben, die zur Firmenfarbe passen und immer lesbar bleiben. */
+  const palette = (d) => {
+    const p = hex(d.primaer) || [31, 42, 55], a = hex(d.akzent) || [201, 154, 46];
+    const weiss = [255, 255, 255], schwarz = [17, 20, 24];
+    // Schrift auf der Firmenfarbe: Weiß oder Dunkel, je nachdem was besser lesbar ist
+    const auf = kontrast(p, weiss) >= kontrast(p, schwarz) ? "#fff" : "#11141a";
+    // Firmenfarbe als Schriftfarbe auf hellem Grund: so lange abdunkeln, bis sie gut lesbar ist
+    let text = p;
+    for (let i = 0; i < 24 && kontrast(text, [252, 252, 253]) < 4.6; i++) text = text.map((v) => v * 0.9);
+    // Flächen und Ränder aus der Firmenfarbe mischen. Ist sie selbst sehr hell (Gelb, Hellgrau),
+    // nehmen wir die abgedunkelte Fassung – sonst wären Ränder und Vorschläge kaum zu sehen.
+    const basis = helligkeit(p) > 0.5 ? text : p;
+    // Flächenfarbe (Knopf, eigene Nachricht): Hebt sich die Firmenfarbe kaum vom Fenstergrund ab,
+    // nehmen wir die abgedunkelte Fassung – sonst sieht der Besucher seine eigene Nachricht fast nicht.
+    // Ein kräftiges Gelb hebt sich durch seine Farbigkeit ab, ein Hellgrau nicht: deshalb zählt beides.
+    const grund = hex(d.hintergrund) || [246, 247, 249];
+    const farbigkeit = (Math.max(...p) - Math.min(...p)) / (Math.max(...p) || 1);
+    const flaeche = farbigkeit < 0.18 && kontrast(p, grund) < 1.6 ? text : p;
+    const aufFlaeche = kontrast(flaeche, weiss) >= kontrast(flaeche, schwarz) ? "#fff" : "#11141a";
+    return {
+      p: zuHex(flaeche), pt: aufFlaeche, pText: zuHex(text),
+      p06: mischen(weiss, basis, 0.07), p12: mischen(weiss, basis, 0.14), p24: mischen(weiss, basis, 0.28),
+      a: d.akzent || "#c99a2e", aText: (() => { let t = a; for (let i = 0; i < 24 && kontrast(t, [252, 252, 253]) < 4.6; i++) t = t.map((v) => v * 0.9); return zuHex(t); })(),
+    };
+  };
+
+  const css = (d) => {
+    const c = palette(d);
+    const links = d.position === "links";
+    return `
+  /* Grundlage: Das Fenster ist ein ruhiger Rahmen, die Firmenfarbe setzt Akzente.
+     So sieht es mit jeder Kundenfarbe gut aus – auch mit Knallgelb oder Schwarz. */
+  :host{all:initial;
+    --p:${c.p};              /* Firmenfarbe */
+    --pt:${c.pt};            /* Schrift auf der Firmenfarbe (automatisch lesbar) */
+    --p-text:${c.pText};     /* Firmenfarbe als Schrift auf hellem Grund */
+    --p-06:${c.p06};         /* Firmenfarbe als Fläche, sehr leicht */
+    --p-12:${c.p12};
+    --p-24:${c.p24};
+    --a:${c.a};--a-text:${c.aText};
+    --flaeche:${d.hintergrund || "#f6f7f9"};   /* Grund des Fensters */
+    --karte:#fff;                               /* Blasen und Karten liegen darauf */
+    --t:#13171d;--m:#5c6672;--line:#e3e6ea;--line-weich:#edeff2;
+    --r:${d.radius || "18px"};--r-blase:16px;--r-karte:14px;--r-knopf:11px;
+    --schatten:0 1px 2px rgba(16,24,40,.04),0 8px 24px -8px rgba(16,24,40,.12);
+    --schatten-gross:0 2px 4px rgba(16,24,40,.04),0 24px 56px -12px rgba(16,24,40,.26);
+    font:15.5px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--t);
+    -webkit-font-smoothing:antialiased}
   *{box-sizing:border-box}
-  .launch{position:fixed;${d.position==="links"?"left":"right"}:20px;bottom:20px;z-index:2147483000;display:flex;align-items:center;gap:8px;
-    border:0;border-radius:999px;background:var(--p);color:#fff;padding:13px 18px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;
-    box-shadow:0 6px 20px rgba(16,24,40,.18)}
+
+  /* --- Knopf unten in der Ecke --- */
+  .launch{position:fixed;${links ? "left" : "right"}:20px;bottom:20px;z-index:2147483000;display:flex;align-items:center;gap:9px;
+    border:0;border-radius:999px;background:var(--p);color:var(--pt);padding:13px 20px 13px 17px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;
+    box-shadow:0 2px 6px rgba(16,24,40,.12),0 12px 28px -8px rgba(16,24,40,.3);
+    transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .18s}
+  .launch:hover{transform:translateY(-2px);box-shadow:0 3px 8px rgba(16,24,40,.14),0 18px 36px -10px rgba(16,24,40,.34)}
+  .launch:active{transform:translateY(0)}
   .launch svg{width:20px;height:20px}
-  .launch.mit-figur{background:${d.launcherHintergrund||"var(--p)"};color:${d.launcherTextfarbe||"#fff"};padding:5px 18px 5px 6px;border:2px solid var(--a)}
+  .launch.mit-figur{background:${d.launcherHintergrund || "var(--p)"};color:${d.launcherTextfarbe || "var(--pt)"};padding:5px 20px 5px 6px}
   .figur{display:grid;place-items:center;flex:none}
   .figur svg{width:100%;height:100%;overflow:visible}
   .launch .figur{width:44px;height:44px;transform-origin:50% 90%;animation:winken 7s ease-in-out 2s infinite}
@@ -34,69 +97,129 @@
   .figur .tuch{transform-origin:150px 135px;animation:wisch 1.2s ease-in-out infinite}
   .launch .figur .tuch{animation:none}
   @keyframes wisch{0%,100%{transform:rotate(0)}50%{transform:rotate(-18deg)}}
-  .avatar{width:38px;height:38px;border-radius:50%;background:#eaf6fd;padding:3px}
-  .teaser{position:fixed;${d.position==="links"?"left":"right"}:20px;bottom:86px;z-index:2147483000;max-width:240px;background:#fff;color:var(--t);
-    border-radius:14px;padding:10px 32px 10px 13px;font-size:14px;box-shadow:0 10px 30px rgba(16,24,40,.2);animation:rein .35s ease-out}
-  .teaser:after{content:"";position:absolute;${d.position==="links"?"left":"right"}:34px;bottom:-7px;width:14px;height:14px;background:#fff;transform:rotate(45deg)}
-  .teaser button{position:absolute;top:4px;right:4px;border:0;background:none;color:var(--m);font-size:18px;line-height:1;cursor:pointer;padding:4px}
+
+  /* --- Kurzer Hinweis über dem Knopf --- */
+  .teaser{position:fixed;${links ? "left" : "right"}:20px;bottom:88px;z-index:2147483000;max-width:250px;background:var(--karte);color:var(--t);
+    border:1px solid var(--line-weich);border-radius:var(--r-karte);padding:11px 34px 11px 14px;font-size:14.5px;line-height:1.45;
+    box-shadow:var(--schatten);animation:rein .3s cubic-bezier(.2,.8,.3,1)}
+  .teaser:after{content:"";position:absolute;${links ? "left" : "right"}:34px;bottom:-6px;width:12px;height:12px;background:var(--karte);
+    border-right:1px solid var(--line-weich);border-bottom:1px solid var(--line-weich);transform:rotate(45deg)}
+  .teaser button{position:absolute;top:5px;right:5px;border:0;background:none;color:var(--m);font-size:17px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:7px}
+  .teaser button:hover{background:var(--line-weich)}
   .teaser[hidden]{display:none}
-  @keyframes rein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .typing.figur-tippt{background:none;padding:0;gap:6px;align-items:center}
-  .typing .figur{width:30px;height:30px;animation:huepf .9s ease-in-out infinite}
-  .launch:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--a);outline-offset:2px}
-  .panel{position:fixed;${d.position==="links"?"left":"right"}:20px;bottom:20px;z-index:2147483001;width:380px;max-width:calc(100vw - 32px);
-    height:min(620px,calc(100vh - 40px));background:var(--bg);border:1px solid var(--line);border-radius:var(--r);
-    box-shadow:0 18px 50px rgba(16,24,40,.22);display:flex;flex-direction:column;overflow:hidden}
+  @keyframes rein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .launch:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--p-text);outline-offset:2px}
+  input:focus-visible,textarea:focus-visible{outline:0}
+  @supports not selector(:focus-visible){input:focus,textarea:focus{outline:0}}
+
+  /* --- Fenster --- */
+  .panel{position:fixed;${links ? "left" : "right"}:20px;bottom:20px;z-index:2147483001;width:396px;max-width:calc(100vw - 32px);
+    height:min(640px,calc(100vh - 40px));background:var(--flaeche);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--schatten-gross);display:flex;flex-direction:column;overflow:hidden;
+    animation:auf .24s cubic-bezier(.2,.8,.3,1)}
+  @keyframes auf{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
   .panel[hidden],.launch[hidden]{display:none}
-  header{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 16px;border-bottom:1px solid var(--line)}
+
+  /* --- Kopfzeile: wer antwortet hier --- */
+  header{display:flex;align-items:center;gap:11px;padding:13px 12px 13px 15px;background:var(--karte);border-bottom:1px solid var(--line-weich);flex:none}
+  .avatar{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:var(--p);color:var(--pt);font:600 16px/1 inherit;font-family:inherit;letter-spacing:.01em;overflow:hidden}
+  .avatar.figur{background:var(--p-06);padding:3px}
   .who{flex:1;min-width:0}
-  .who b{display:block;font-size:15px}
-  .who span{font-size:12.5px;color:var(--m)}
-  .badge{display:inline-block;font-size:11px;font-weight:600;color:var(--p);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
-  .x{border:0;background:transparent;color:var(--m);width:34px;height:34px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
-  .x:hover{background:var(--soft)} .x svg{width:20px;height:20px}
-  .log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
-  .msg{max-width:86%;padding:10px 13px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
-  .bot{background:var(--soft);align-self:flex-start;border-top-left-radius:4px}
-  .user{background:var(--p);color:#fff;align-self:flex-end;border-top-right-radius:4px}
-  .msg ul{margin:4px 0;padding-left:18px} .msg li{margin:2px 0}
-  .msg a{color:inherit}
-  .note{font-size:12.5px;color:var(--m);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:8px 11px;align-self:stretch}
-  .typing{display:inline-flex;gap:4px;align-self:flex-start;padding:12px 14px;background:var(--soft);border-radius:12px}
-  .typing i{width:6px;height:6px;border-radius:50%;background:var(--m);opacity:.4;animation:b 1s infinite}
-  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
-  @keyframes b{50%{opacity:1;transform:translateY(-2px)}}
-  @media (prefers-reduced-motion:reduce){.typing i,.figur,.figur .tuch,.launch .figur,.typing .figur,.teaser{animation:none!important}.log{scroll-behavior:auto}}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start}
-  .chip{border:1px solid var(--line);background:#fff;color:var(--t);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
-  .chip:hover{border-color:var(--p)}
-  .card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;align-self:stretch;display:grid;gap:8px}
-  .card h4{margin:0;font-size:14.5px}
-  .card label{font-size:12.5px;color:var(--m);display:grid;gap:3px}
-  .card input,.card textarea{font:inherit;font-size:14px;color:var(--t);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;background:#fff}
-  .card textarea{min-height:56px;resize:vertical}
-  .consent{display:flex!important;grid-template-columns:none;gap:8px;align-items:flex-start}
-  .consent input{width:auto;margin-top:3px}
+  .who b{display:block;font-size:15.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who .status{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--m);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .punkt{width:6px;height:6px;border-radius:50%;background:#2e9e5b;flex:none}
+  .badge{display:inline-block;font-size:11.5px;font-weight:600;color:var(--p-text);background:var(--p-06);border-radius:6px;padding:2px 7px;margin-left:7px;vertical-align:1.5px;letter-spacing:.01em}
+  .x{border:0;background:transparent;color:var(--m);width:36px;height:36px;border-radius:10px;cursor:pointer;display:grid;place-items:center;flex:none}
+  .x:hover{background:var(--line-weich);color:var(--t)} .x svg{width:20px;height:20px}
+
+  /* --- Verlauf --- */
+  .log>:first-child{margin-top:auto}
+  .log{flex:1;overflow-y:auto;padding:18px 16px 10px;display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth;overscroll-behavior:contain}
+  .log::-webkit-scrollbar{width:10px}
+  .log::-webkit-scrollbar-thumb{background:#d6dae0;border-radius:99px;border:3px solid var(--flaeche)}
+  .msg{max-width:88%;padding:11px 14px;border-radius:var(--r-blase);white-space:pre-wrap;word-wrap:break-word;animation:blase .22s cubic-bezier(.2,.8,.3,1)}
+  @keyframes blase{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .bot{background:var(--karte);align-self:flex-start;border-bottom-left-radius:6px;border:1px solid var(--line-weich);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .user{background:var(--p);color:var(--pt);align-self:flex-end;border-bottom-right-radius:6px}
+  .msg ul{margin:5px 0;padding-left:19px} .msg li{margin:3px 0}
+  .msg a{color:inherit;text-underline-offset:2px}
+  .bot a{color:var(--p-text)}
+  .note{font-size:12.5px;line-height:1.5;color:var(--m);background:var(--p-06);border-radius:var(--r-karte);padding:10px 13px;align-self:stretch}
+
+  .typing{display:inline-flex;gap:5px;align-items:center;align-self:flex-start;padding:13px 15px;background:var(--karte);border:1px solid var(--line-weich);border-radius:var(--r-blase);border-bottom-left-radius:6px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--m);opacity:.35;animation:b 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+  @keyframes b{30%{opacity:.9;transform:translateY(-3px)}60%{opacity:.35;transform:none}}
+  .typing.figur-tippt{background:none;border:0;padding:0 0 0 2px;gap:6px}
+  .typing .figur{width:30px;height:30px;animation:huepf .9s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){
+    .typing i,.figur,.figur .tuch,.launch .figur,.typing .figur,.teaser,.panel,.msg{animation:none!important}
+    .launch{transition:none}.log{scroll-behavior:auto}}
+
+  /* --- Vorschläge --- */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;align-self:flex-start;max-width:100%}
+  .chip{border:1px solid var(--p-24);background:var(--karte);color:var(--p-text);border-radius:999px;padding:8px 14px;font:500 14.5px/1.3 inherit;font-family:inherit;cursor:pointer;
+    transition:background .15s,border-color .15s}
+  .chip:hover{background:var(--p-06);border-color:var(--p-text)}
+  .chip:active{background:var(--p-12)}
+
+  /* --- Karten (Anfrage, Kontakt) --- */
+  .card{border:1px solid var(--line-weich);border-radius:var(--r-karte);padding:15px;background:var(--karte);align-self:stretch;display:grid;gap:11px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card h4{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .card label{font-size:12.5px;color:var(--m);display:grid;gap:4px}
+  .card input,.card textarea{font:inherit;font-size:15px;color:var(--t);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;background:var(--karte);
+    transition:border-color .15s,box-shadow .15s}
+  .card input:focus,.card textarea:focus{outline:0;border-color:var(--p-text);box-shadow:0 0 0 3px var(--p-12)}
+  .card textarea{min-height:60px;resize:vertical}
+  .consent{display:flex!important;grid-template-columns:none;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.5}
+  .consent input{width:auto;margin-top:2px;accent-color:var(--p)}
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{border:0;border-radius:9px;padding:9px 13px;font:600 14px/1.2 inherit;font-family:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-  .btn-p{background:var(--p);color:#fff} .btn-g{background:var(--soft);color:var(--t);border:1px solid var(--line)}
-  .btn[disabled]{opacity:.6;cursor:default}
+  .btn{border:0;border-radius:var(--r-knopf);padding:10px 15px;font:600 14.5px/1.2 inherit;font-family:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+    transition:filter .15s,background .15s}
+  .btn-p{background:var(--p);color:var(--pt)} .btn-p:hover{filter:brightness(1.08)}
+  .btn-g{background:var(--flaeche);color:var(--t);border:1px solid var(--line)} .btn-g:hover{background:var(--line-weich)}
+  .btn[disabled]{opacity:.55;cursor:default;filter:none}
   .err{color:#b42318;font-size:12.5px;min-height:0}
-  form.send{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
-  form.send textarea{flex:1;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;resize:none;height:42px;max-height:110px;color:var(--t)}
-  form.send button{width:42px;height:42px;border:0;border-radius:10px;background:var(--p);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
-  form.send button svg{width:18px;height:18px}
-  form.send button.cam{background:var(--soft);color:var(--t);border:1px solid var(--line)}
-  form.send button.cam svg{width:20px;height:20px}
-  .msg.user img{display:block;max-width:200px;max-height:220px;border-radius:8px;margin:-3px -5px 6px;object-fit:cover}
+
+  /* --- Eingabe: ein Feld, Knopf sitzt darin --- */
+  form.send{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 10px;background:var(--karte);border-top:1px solid var(--line-weich);flex:none}
+  form.send textarea{flex:1;font:inherit;font-size:15.5px;border:1px solid var(--line);border-radius:14px;padding:11px 13px;resize:none;height:44px;max-height:120px;color:var(--t);background:var(--flaeche);
+    transition:border-color .15s,box-shadow .15s,background .15s}
+  form.send textarea::placeholder{color:#8b949f}
+  form.send textarea:focus{outline:0;background:var(--karte);border-color:var(--p-text);box-shadow:0 0 0 3px var(--p-12)}
+  form.send button{width:44px;height:44px;border:0;border-radius:50%;background:var(--p);color:var(--pt);cursor:pointer;display:grid;place-items:center;flex:none;
+    transition:filter .15s,opacity .15s}
+  form.send button:hover{filter:brightness(1.08)}
+  form.send button svg{width:18px;height:18px;margin-left:-1px}
+  form.send button.cam{background:var(--flaeche);color:var(--m);border:1px solid var(--line);border-radius:50%}
+  form.send button.cam:hover{background:var(--line-weich);color:var(--t);filter:none}
+  form.send button.cam svg{width:20px;height:20px;margin:0}
+  .msg.user img{display:block;max-width:210px;max-height:230px;border-radius:10px;margin:-4px -6px 7px;object-fit:cover}
   .msg.user .cap:empty{display:none}
-  .foot{font-size:11.5px;color:var(--m);text-align:center;padding:0 12px 9px}
-  .foot a{color:var(--m)}
+  .foot{font-size:11.5px;line-height:1.5;color:var(--m);text-align:center;padding:0 14px 10px;background:var(--karte)}
+  .foot a{color:var(--m);text-underline-offset:2px}
+
   @media (max-width:520px){
-    .panel{left:0;right:0;bottom:0;top:0;width:100%;max-width:none;height:100%;border-radius:0;border:0}
-    .launch{bottom:16px;${d.position==="links"?"left":"right"}:16px}
+    .panel{left:0;right:0;bottom:0;top:0;width:100%;max-width:none;height:100%;height:100dvh;border-radius:0;border:0;animation:none}
+    header{padding-top:max(13px,env(safe-area-inset-top))}
+    .launch{bottom:max(16px,env(safe-area-inset-bottom));${links ? "left" : "right"}:16px}
+    .log{padding:16px 14px 8px}
+    .msg{max-width:92%}
+    form.send{padding-bottom:max(10px,env(safe-area-inset-bottom))}
     form.send textarea{font-size:16px}
+    .foot{padding-bottom:max(10px,env(safe-area-inset-bottom))}
   }`;
+  };
+
+  /** Oben steht, mit wem man spricht: der Name des Assistenten, wenn er einen eigenen hat – sonst der Betrieb. */
+  const eigenerName = (c) => { const n = (c.betrieb.botName || "").trim(); return n && n.toLowerCase() !== "assistent" ? n : ""; };
+  const kopfTitel = (c) => eigenerName(c) || (c.betrieb.name || "Assistent").trim() || "Assistent";
+  const kopfUnter = (c, mitFigur) => {
+    const firma = (c.betrieb.name || "").trim();
+    return mitFigur || eigenerName(c) ? (firma || "Antwortet sofort") : "Antwortet sofort";
+  };
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ss = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch {} } };
@@ -150,8 +273,8 @@
       p.className = "panel"; p.hidden = true;
       p.setAttribute("role", "dialog"); p.setAttribute("aria-label", c.betrieb.botName);
       p.innerHTML = `
-        <header>${M ? `<span class="figur avatar">${M.svg}</span>` : ""}<div class="who"><b>${esc(M ? M.name : (c.betrieb.name || c.betrieb.botName))}<span class="badge">KI-Assistent</span></b>
-        <span>${M ? esc(c.betrieb.name) + " · antwortet sofort" : "Antwortet sofort · Team meldet sich persönlich"}</span></div>
+        <header>${M ? `<span class="figur avatar">${M.svg}</span>` : `<span class="avatar" aria-hidden="true">${esc(kopfTitel(c)[0].toUpperCase())}</span>`}<div class="who"><b>${esc(M ? M.name : kopfTitel(c))}<span class="badge">KI-Assistent</span></b>
+        <span class="status"><i class="punkt"></i>${esc(kopfUnter(c, !!M))}</span></div>
         <button class="x" aria-label="Chat schließen">${ICON_X}</button></header>
         <div class="log" aria-live="polite"></div>
         <form class="send">${c.foto ? `<button type="button" class="cam" aria-label="Foto senden" title="${esc(c.foto.hinweis || "Foto senden")}">${ICON_CAM}</button><input type="file" accept="image/*" hidden>` : ""}<textarea rows="1" maxlength="${Number(c.maxZeichen) || 800}" placeholder="${this.du ? "Schreib" : "Schreiben Sie"} Ihre Frage …" aria-label="Nachricht"></textarea>

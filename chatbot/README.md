@@ -74,6 +74,15 @@ Preise ändern: nur `preise.json` bearbeiten und Server neu starten.
 - **Foto-Check:** Kunde schickt ein Foto, der Bot schätzt den Zustand ein und empfiehlt ein Paket mit Preis aus der Preisliste. Fotos werden im Browser verkleinert (Standortdaten entfernt), nur an die KI geschickt und nicht gespeichert. Ein- und ausschaltbar über `foto` in `config/bot.config.json`.
 - **KI-Kennzeichnung** gleich in der ersten Nachricht (EU AI Act Art. 50) und Hinweis im Fußbereich.
 
+## Aussehen der Bots
+
+Beide Bots teilen sich eine Gestaltung: heller Grund, Antworten als weiße Karten mit feiner Linie, die Firmenfarbe nur als Akzent (eigene Nachricht, Knöpfe, Avatar).
+
+- **Jede Firmenfarbe funktioniert.** `src/farben.ts` rechnet aus der eingestellten Farbe die passenden Partnerfarben aus: Schrift auf der Farbe wird weiß oder dunkel, je nachdem was lesbar ist; Grau- und Weißtöne werden für Flächen abgedunkelt, damit man die eigene Nachricht sieht. Geprüft wird das in `tests/farben.test.ts` mit zwölf Farben.
+- **Dieselbe Rechnung steht doppelt**: in `src/farben.ts` (Server) und in `public/widget.js` (Chat-Fenster, lädt eigenständig im Browser des Besuchers). Ein Test vergleicht beide – ändert sich eine, muss die andere mit.
+- **Wo was steht:** Chat-Fenster in `public/widget.js` (ganz oben die Farben, darunter das CSS), Bewerber-Chat in `src/assets/jobs.css` und `src/seiten/bewerben.ts`.
+- **Ausprobieren:** `npm run beispiel` startet einen Server mit Beispielkunden, darunter `farbe-gelb`, `farbe-gruen` und `farbe-hell` – dieselbe Firma in kräftigen Farben, um das Design zu prüfen.
+
 ## Website des Kunden automatisch einlesen
 
 Pro Kunde einschaltbar: Admin-Panel → Reiter **Wissen** → Karte **Website automatisch einlesen**.
