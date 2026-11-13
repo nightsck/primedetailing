@@ -7,6 +7,7 @@ import { baueLaufzeit, type Laufzeit, type Preisliste } from "../kontext.ts";
 import type { Betrieb } from "../bewerber.ts";
 import type { Kunde } from "./schema.ts";
 import { leseZeiten } from "../oeffnungszeiten.ts";
+import { feiertagAm, kommendeFeiertage, LAENDER } from "../feiertage.ts";
 
 const slug = (s: string) => s.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -30,6 +31,40 @@ export function preislisteVon(k: Kunde): Preisliste {
  * @param website  Text, den der Server von der Website des Kunden gelesen hat (website.ts). Steht als eigener
  *                 Abschnitt am Ende, klar als Daten gekennzeichnet; die eingetragenen Angaben haben Vorrang.
  */
+/** Heutiges Datum in deutscher Zeit (YYYY-MM-DD) – auf dem Server läuft UTC. */
+export function heuteBerlin(jetzt = Date.now()): string {
+  const d = new Date(new Date(jetzt).toLocaleString("en-US", { timeZone: "Europe/Berlin" }));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const WOCHENTAGE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+/** „Freitag, 25. Dezember 2026“ */
+function langesDatum(iso: string): string {
+  const d = new Date(iso + "T12:00:00Z");
+  return `${WOCHENTAGE[d.getUTCDay()]}, ${d.getUTCDate()}. ${MONATE[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+/**
+ * Feiertage für die Wissensbasis. Der Bot soll an Feiertagen antworten, aber keine
+ * Termine zusagen – und er soll nicht raten, ob geöffnet ist. Deshalb nennen wir nur
+ * die Daten und sagen klar, was er damit darf.
+ */
+function feiertagsWissen(k: Kunde, jetzt = Date.now()): string[] {
+  const land = k.stammdaten.bundesland;
+  const heute = heuteBerlin(jetzt);
+  const heutiger = feiertagAm(heute, land);
+  const naechste = kommendeFeiertage(heute, land, 4).filter((f) => f.datum > heute);
+  const z = ["## Datum und Feiertage", `- Heute ist ${langesDatum(heute)}.`];
+  z.push(heutiger
+    ? `- Heute ist ${heutiger} – ein gesetzlicher Feiertag${land ? ` in ${LAENDER[land as keyof typeof LAENDER]}` : ""}.`
+    : "- Heute ist kein gesetzlicher Feiertag.");
+  if (naechste.length) z.push(`- Nächste gesetzliche Feiertage: ${naechste.map((f) => `${langesDatum(f.datum)} (${f.name})`).join("; ")}.`);
+  z.push("- An gesetzlichen Feiertagen werden keine Termine vergeben. Eine Anfrage kannst du trotzdem vorbereiten; das Team meldet sich am nächsten Arbeitstag.");
+  z.push("- Ob der Betrieb an einem Feiertag geöffnet hat, steht hier nicht – das sagst du offen und verweist an das Team. Rechne keine weiteren Feiertage selbst aus und nenne nur die oben genannten Daten.");
+  return z;
+}
+
 export function wissenVon(k: Kunde, website?: { text: string; zeit: number } | null): string {
   const s = k.stammdaten, z: string[] = [`# Wissensbasis ${s.firmenname}`, "", "## Firma", `- Name: ${s.firmenname} (${s.brancheText})`];
   const adresse = [s.strasse, [s.plz, s.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -38,6 +73,7 @@ export function wissenVon(k: Kunde, website?: { text: string; zeit: number } | n
   if (s.einsatzgebiet) z.push(`- Einsatzgebiet: ${s.einsatzgebiet}`);
   z.push(`- Kontakt: ${[s.telefon && "Telefon " + s.telefon, "E-Mail " + s.email].filter(Boolean).join(", ")}`);
   if (s.ansprechpartner) z.push(`- Ansprechpartner: ${s.ansprechpartner}`);
+  z.push("", ...feiertagsWissen(k));
   if (k.wissen.hinweis) z.push("", "## Aktueller Hinweis (gilt im Moment, bei passenden Fragen nennen)", `- ${k.wissen.hinweis}`);
   if (k.wissen.zahlung) z.push("", "## Bezahlung", `- ${k.wissen.zahlung}`);
   if (k.wissen.anfahrt) z.push("", "## Anfahrt", `- ${k.wissen.anfahrt}`);
@@ -77,6 +113,8 @@ export function botConfigVon(k: Kunde): any {
       launcherHintergrund: a.primaerfarbe, launcherTextfarbe: "#ffffff", launcherText: a.knopfText,
       // Damit der Knopf weiß, ob gerade jemand da ist (null = Zeile nicht eindeutig, dann kein Hinweis)
       zeiten: leseZeiten(s.oeffnungszeiten), anrede: k.ton.anrede,
+      // Kurzliste für den Knopf: an Feiertagen vergibt niemand Termine.
+      feiertage: kommendeFeiertage(heuteBerlin(), s.bundesland, 12).map((f) => ({ d: f.datum, n: f.name })),
     },
     start: {
       // Die erste Nachricht sagt sofort, dass hier eine KI schreibt. Mit eigenem Bot-Namen: „Hier ist Sarah, Ihr persönlicher KI-Assistent …“

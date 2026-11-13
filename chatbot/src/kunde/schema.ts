@@ -82,6 +82,8 @@ export const KundeSchema = z.object({
     branche: text(40).default("handwerk").describe("Branchen-Vorlage, mit der der Kunde angelegt wurde."),
     brancheText: text(80).min(2, "Bitte kurz beschreiben, was der Betrieb macht.").describe("So beschreibt der Bot den Betrieb, z. B. „Malerbetrieb“ oder „mobile Fahrzeugaufbereitung“."),
     strasse: text(100).default(""), plz: text(5).default(""), ort: text(60).default(""),
+    bundesland: z.enum(["", "bw", "by", "be", "bb", "hb", "hh", "he", "mv", "ni", "nw", "rp", "sl", "sn", "st", "sh", "th"]).default("")
+      .describe("Für die gesetzlichen Feiertage: An Feiertagen vergibt der Termin-Bot keine Termine, und der Chat-Knopf sagt, dass gerade niemand da ist. Der Chat antwortet weiter ganz normal. Leer = nur die bundesweiten Feiertage."),
     telefon: text(30).default(""),
     whatsapp: z.string().regex(/^\d{8,15}$/, "Nur Ziffern mit Ländervorwahl, z. B. 4917112345678").or(z.literal("")).default("")
       .describe("WhatsApp-Nummer nur aus Ziffern mit 49 vorn. Leer = kein WhatsApp-Knopf."),

@@ -90,6 +90,19 @@ Außerhalb der Öffnungszeiten steht auf dem Knopf „Gerade niemand da? Schreib
 - Gerechnet wird in deutscher Zeit, damit Besucher aus dem Ausland nichts Falsches sehen.
 - Ein eigener Knopftext (Aussehen → „Eigener Text auf dem Chat-Knopf“) gewinnt immer.
 
+## Feiertage: antworten ja, Termine nein
+
+Das Bundesland steht in den Stammdaten (leer = nur die bundesweiten Feiertage). Daraus rechnet `src/feiertage.ts` die gesetzlichen Feiertage aus – bundesweite und die des Landes, bewegliche über die Osterformel, also auch für künftige Jahre.
+
+An einem Feiertag:
+
+- **Der Chat läuft normal weiter.** Er kennt das heutige Datum und die nächsten vier Feiertage und sagt, wann der Betrieb wieder arbeitet.
+- **Der Termin-Bot vergibt nichts.** Der Tag wird gar nicht angeboten, und die Buchung selbst lehnt ihn ab – ein alter Browser-Tab oder ein gebastelter Aufruf kommt nicht durch (`pruefeTerminAngaben`).
+- **Die Terminseite sagt den Grund**: unter den freien Tagen steht z. B. „Geschlossen: Fr 25.12. (1. Weihnachtstag)“.
+- **Der Chat-Knopf** sagt „Heute ist Feiertag – schreiben Sie uns“. Ein eigener Knopftext gewinnt auch hier.
+
+Was der Bot **nicht** behauptet: ob der Betrieb an einem Feiertag geöffnet hat. Das weiß nur der Betrieb (eine Bäckerei am 1. Mai, ein Restaurant an Weihnachten). Er nennt das Datum und verweist an das Team. Wer an Feiertagen arbeitet, lässt das Bundesland leer oder setzt einen eigenen Knopftext.
+
 ## Aussehen der Bots
 
 Beide Bots teilen sich eine Gestaltung: heller Grund, Antworten als weiße Karten mit feiner Linie, die Firmenfarbe nur als Akzent (eigene Nachricht, Knöpfe, Avatar).

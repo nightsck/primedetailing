@@ -34,6 +34,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 |---|---|
 | `stammdaten.branche` | Branchen-Vorlage, mit der der Kunde angelegt wurde. |
 | `stammdaten.brancheText` | So beschreibt der Bot den Betrieb, z. B. „Malerbetrieb“ oder „mobile Fahrzeugaufbereitung“. |
+| `stammdaten.bundesland` | Für die gesetzlichen Feiertage: An Feiertagen vergibt der Termin-Bot keine Termine, und der Chat-Knopf sagt, dass gerade niemand da ist. Der Chat antwortet weiter ganz normal. Leer = nur die bundesweiten Feiertage. |
 | `stammdaten.whatsapp` | WhatsApp-Nummer nur aus Ziffern mit 49 vorn. Leer = kein WhatsApp-Knopf. |
 | `stammdaten.email` | Allgemeine Kontakt-Adresse des Betriebs. Steht im Chat als Kontakt. |
 | `stammdaten.website` | Website des Betriebs. Von dort darf das Chat-Fenster geladen werden. |
@@ -49,7 +50,7 @@ Felder ohne Erklärung (z. B. Straße, PLZ, Telefon) sind selbsterklärend und h
 | `aussehen.primaerfarbe` | Hauptfarbe des Chat-Fensters (Kopfzeile, Knöpfe). Am besten die Firmenfarbe. |
 | `aussehen.akzentfarbe` | Zweite Farbe für Hervorhebungen. |
 | `aussehen.position` | Ecke, in der der Chat-Knopf sitzt. |
-| `aussehen.knopfText` | Text auf dem Chat-Knopf. |
+| `aussehen.knopfText` | Eigener Text auf dem Chat-Knopf. Leer = der Knopf wählt selbst: während der Öffnungszeiten „Fragen? Chat starten“, außerhalb „Gerade niemand da? Schreiben Sie uns“ (nur wenn die Öffnungszeiten eindeutig eingetragen sind). |
 | `aussehen.begruessung` | Erste Nachricht des Bots. Leer = Standardtext mit Bot-Name und Firmenname. |
 | `aussehen.logoBuchstaben` | 1–3 Buchstaben als Logo auf der Bewerber-Seite, z. B. MM. Leer = Anfangsbuchstaben der Firma. |
 

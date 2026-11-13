@@ -13,6 +13,7 @@
 import type { Hono } from "hono";
 // @ts-ignore – gemeinsame Rechenregeln mit der Website (reines JavaScript)
 import { terminArt, terminZeitraum, freieZeiten, istDatum, plusTage, zeitpunkt, isoBerlin, hoeher, TZ } from "../../src/assets/betriebe.js";
+import { feiertagAm } from "./feiertage.ts";
 import type { Kunde } from "./kunde/schema.ts";
 import { terminBetriebVon, pruefeSicherheitsregeln } from "./kunde/umwandeln.ts";
 import { kalenderMitId, absageToken, leseAbsageToken, wannText, icsDatei } from "./termin.ts";
@@ -37,11 +38,17 @@ const TEXT = {
   fehler: "Das hat nicht geklappt. Bitte noch einmal versuchen.",
 };
 
-/** Prüft die Angaben einer Buchung. `b` = Betrieb aus terminBetriebVon. */
-export function pruefeTerminAngaben(betrieb: any, e: any): { ok: true; d: any } | { ok: false; fehler: string } {
+/**
+ * Prüft die Angaben einer Buchung. `b` = Betrieb aus terminBetriebVon.
+ * `land` = Bundesland für die Feiertage: An Feiertagen wird nicht gebucht, auch wenn
+ * jemand die Anzeige umgeht (alter Browser-Tab, direkter Aufruf).
+ */
+export function pruefeTerminAngaben(betrieb: any, e: any, land?: string): { ok: true; d: any } | { ok: false; fehler: string } {
   const t = terminArt(betrieb, e?.termin);
   if (!t) return { ok: false, fehler: "Unbekannte Terminart." };
   if (!istDatum(e.datum)) return { ok: false, fehler: "Datum fehlt." };
+  const feier = feiertagAm(e.datum, land as any);
+  if (feier) return { ok: false, fehler: `An diesem Tag ist ${feier} – da haben wir geschlossen. Bitte einen anderen Tag wählen.` };
   const name = kurz(e.name, 80), telefon = kurz(e.telefon, 40), email = kurz(e.email, 100).toLowerCase();
   if (!name) return { ok: false, fehler: "Bitte den Namen eintragen." };
   if (!telefon && !email) return { ok: false, fehler: "Bitte Telefon oder E-Mail eintragen." };
@@ -130,7 +137,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     const ab = von || new Date().toISOString().slice(0, 10);
     try {
       const belegt = await kal.belegt(zeitpunkt(plusTage(ab, -1), 0), zeitpunkt(plusTage(ab, tage + 4), 0));
-      return c.json({ ok: true, tage: freieZeiten(betrieb, t.id, { von, tage, belegt }) });
+      return c.json({ ok: true, tage: freieZeiten(betrieb, t.id, { von, tage, belegt, feiertag: (d: string) => feiertagAm(d, k.stammdaten.bundesland) }) });
     } catch (e: any) { console.error("[termin-zeiten]", e?.message || e); return c.json({ ok: false, fehler: TEXT.kalender }, 502); }
   });
 
@@ -138,7 +145,7 @@ export function terminAnfrageRouten(app: Hono, wurzel = "/k/:kunde", vorher: any
     if (Number(c.req.header("content-length") || 0) > 8_000) return c.json({ ok: false, fehler: TEXT.fehler }, 413);
     const k = c.get("kunde") as Kunde, betrieb = terminBetriebVon(k);
     if (!betrieb) return c.json({ ok: false, fehler: TEXT.fehler }, 404);
-    const p = pruefeTerminAngaben(betrieb, await c.req.json().catch(() => ({})));
+    const p = pruefeTerminAngaben(betrieb, await c.req.json().catch(() => ({})), k.stammdaten.bundesland);
     if (!p.ok) return c.json({ ok: false, fehler: p.fehler }, 400);
     const d = p.d;
     // Vorschau im Admin-Panel: alles geprüft, aber nichts eintragen und nichts verschicken

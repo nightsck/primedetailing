@@ -26,6 +26,7 @@ const CSS = `<style>
 .ta-zwei{display:grid;gap:0 12px}@media(min-width:560px){.ta-zwei{grid-template-columns:1fr 1fr}}
 .ta-haken{display:flex;gap:10px;align-items:flex-start;margin:4px 0 16px;font-size:14.5px}.ta-haken input{width:20px;height:20px;flex:none;margin-top:2px}
 .ta-fehler{color:var(--err);margin:0 0 12px;font-weight:600}
+.ta-feier{margin:14px 0 0;font-size:.92rem;opacity:.72}
 .ta-hinweis{border:2px solid var(--err);border-radius:var(--r);padding:14px 16px;margin:0 0 14px;background:var(--surface)}
 .ta-hinweis b{color:var(--err);display:block;margin-bottom:4px}
 .ta-ok{border-left:4px solid var(--ok)}
@@ -87,7 +88,10 @@ async function ladeTage(mehr) {
   if (!r.ok) { $('#tage').innerHTML = '<p class="ta-fehler">' + esc(r.fehler || 'Die freien Zeiten konnten nicht geladen werden.') + '</p>' + (D.telefon ? '<p>Rufen Sie uns gern an: ' + esc(D.telefon) + '</p>' : ''); $('#mehr').hidden = true; return; }
   const offen = r.tage.filter(t => t.slots.length);
   const html = offen.map(t => '<div class="ta-tag"><h3>' + WT[t.wd] + ', ' + schoen(t.datum) + '</h3><div class="ta-chips">' + t.slots.map(z => '<button type="button" data-datum="' + t.datum + '" data-zeit="' + z + '" aria-pressed="false">' + z + ' Uhr</button>').join('') + '</div></div>').join('');
-  if (!mehr) $('#tage').innerHTML = html || '<p>In den nächsten zwei Wochen ist nichts mehr frei.</p>'; else $('#tage').insertAdjacentHTML('beforeend', html || '<div class="ta-tag"><p>In diesen zwei Wochen ist nichts frei.</p></div>');
+  // Feiertage fehlen in der Liste – damit niemand rätselt, sagen wir warum.
+  const feier = r.tage.filter(t => t.feiertag).map(t => WT[t.wd].slice(0, 2) + ' ' + schoen(t.datum) + ' (' + t.feiertag + ')');
+  const feierHtml = feier.length ? '<p class="ta-feier">Geschlossen: ' + esc(feier.join(', ')) + '</p>' : '';
+  if (!mehr) $('#tage').innerHTML = (html || '<p>In den nächsten zwei Wochen ist nichts mehr frei.</p>') + feierHtml; else $('#tage').insertAdjacentHTML('beforeend', (html || '<div class="ta-tag"><p>In diesen zwei Wochen ist nichts frei.</p></div>') + feierHtml);
   S.geladen++;
   const letzter = r.tage.length ? r.tage[r.tage.length - 1].datum : null;
   // Nächster Abschnitt beginnt am Tag nach dem letzten gezeigten; nach sechs Wochen ist Schluss

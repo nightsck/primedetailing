@@ -184,7 +184,12 @@ const ueberschneidet = (a1, a2, belegt) => belegt.some((x) => a1 < x.ende && a2 
  * Freie Startzeiten je Tag. `belegt` = Liste {start, ende} in ms (aus dem Kalender
  * oder, in der Vorführung ohne Kalender, aus den Buchungen in diesem Browser).
  */
-export function freieZeiten(b, tId, { von, tage = 14, belegt = [], jetzt = Date.now() } = {}) {
+/**
+ * Freie Termine je Tag.
+ * @param feiertag  optional: (datum) => Name des Feiertags oder null. An solchen Tagen
+ *                  gibt es keine Termine; der Tag wird mit Grund zurückgegeben.
+ */
+export function freieZeiten(b, tId, { von, tage = 14, belegt = [], jetzt = Date.now(), feiertag = null } = {}) {
   const t = terminArt(b, tId); if (!t) return [];
   const start = istDatum(von) ? von : heute(jetzt);
   const grenze = plusTage(heute(jetzt), b.horizont);
@@ -194,6 +199,8 @@ export function freieZeiten(b, tId, { von, tage = 14, belegt = [], jetzt = Date.
   for (let i = 0; i < Math.min(tage, 42); i++) {
     const datum = plusTage(start, i);
     if (datum > grenze) break;
+    const feier = feiertag ? feiertag(datum) : null;
+    if (feier) { out.push({ datum, wd: wochentag(datum), offen: false, slots: [], feiertag: feier }); continue; }
     const slots = [];
     if (t.ganztag) {
       const z = terminZeitraum(b, tId, datum);

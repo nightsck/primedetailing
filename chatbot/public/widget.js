@@ -17,7 +17,19 @@
    * null = unbekannt (keine oder keine eindeutige Zeitangabe) → neutraler Text.
    * Gerechnet wird in deutscher Zeit, damit ein Besucher aus dem Ausland nichts Falsches sieht.
    */
+  /** Datum in deutscher Zeit, als "2026-12-25". */
+  const heuteDe = () => {
+    const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" }));
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+  };
+  /** Name des heutigen Feiertags oder null. An Feiertagen vergibt niemand Termine. */
+  const feiertagHeute = () => {
+    const liste = (V.design || {}).feiertage;
+    if (!Array.isArray(liste) || !liste.length) return null;
+    try { const f = liste.find((e) => e && e.d === heuteDe()); return f ? f.n : null; } catch { return null; }
+  };
   const jetztOffen = () => {
+    try { if (feiertagHeute()) return false; } catch {}
     const z = (V.design || {}).zeiten;
     if (!Array.isArray(z) || !z.length) return null;
     try {
@@ -28,10 +40,10 @@
   };
   /** Beschriftung des Knopfs: außerhalb der Zeiten laden wir ausdrücklich zum Schreiben ein. */
   const knopfText = (eigener) => {
-    const offen = jetztOffen();
     if (eigener) return eigener;
     const du = (V.design || {}).anrede === "du";
-    if (offen === false) return du ? "Gerade niemand da? Schreib uns" : "Gerade niemand da? Schreiben Sie uns";
+    if (feiertagHeute()) return du ? "Heute ist Feiertag – schreib uns" : "Heute ist Feiertag – schreiben Sie uns";
+    if (jetztOffen() === false) return du ? "Gerade niemand da? Schreib uns" : "Gerade niemand da? Schreiben Sie uns";
     return "Fragen? Chat starten";
   };
   const ICON_CHAT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor"/></svg>';

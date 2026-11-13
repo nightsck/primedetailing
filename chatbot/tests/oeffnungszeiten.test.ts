@@ -35,11 +35,11 @@ test("Unklare Angaben ergeben keinen Hinweis", () => {
 test("Der Chat-Knopf richtet sich nach den Öffnungszeiten", async () => {
   const { readFileSync } = await import("node:fs");
   const quelle = readFileSync(new URL("../public/widget.js", import.meta.url), "utf8");
-  const von = quelle.indexOf("const jetztOffen = ()"), bis = quelle.indexOf("class WebsiteChat");
+  const von = quelle.indexOf("/** Datum in deutscher Zeit"), bis = quelle.indexOf("class WebsiteChat");
   assert.ok(von > 0 && bis > von, "Knopf-Logik im Chat-Fenster gefunden");
 
-  const text = (zeiten: unknown, jetzt: string, eigener = "", anrede = "sie") => {
-    const V = { design: { zeiten, launcherText: eigener, anrede } };
+  const text = (zeiten: unknown, jetzt: string, eigener = "", anrede = "sie", feiertage: unknown[] = []) => {
+    const V = { design: { zeiten, launcherText: eigener, anrede, feiertage } };
     const bau = new Function("V", "Date", quelle.slice(von, bis) + "; return knopfText(V.design.launcherText);");
     const fest = new Date(jetzt);
     class FesteZeit extends Date {
@@ -59,4 +59,12 @@ test("Der Chat-Knopf richtet sich nach den Öffnungszeiten", async () => {
   // Ohne verlässliche Zeiten keine Behauptung
   assert.match(text(null, "2026-11-16T21:30:00+01:00"), /Fragen\? Chat starten/);
   assert.match(text([], "2026-11-16T21:30:00+01:00"), /Fragen\? Chat starten/);
+
+  // Feiertag: Der Knopf sagt es und lädt zum Schreiben ein – auch mitten in der Öffnungszeit.
+  const weihnachten = [{ d: "2026-12-25", n: "1. Weihnachtstag" }, { d: "2026-12-26", n: "2. Weihnachtstag" }];
+  assert.match(text(MoFr, "2026-12-25T10:00:00+01:00", "", "sie", weihnachten), /Heute ist Feiertag – schreiben Sie uns/);
+  assert.match(text(MoFr, "2026-12-25T10:00:00+01:00", "", "du", weihnachten), /Heute ist Feiertag – schreib uns/);
+  assert.equal(text(MoFr, "2026-12-25T10:00:00+01:00", "Jetzt anfragen", "sie", weihnachten), "Jetzt anfragen", "eigener Text gewinnt auch am Feiertag");
+  // Tag davor ist ein normaler Donnerstag
+  assert.match(text(MoFr, "2026-12-24T10:00:00+01:00", "", "sie", weihnachten), /Fragen\? Chat starten/);
 });

@@ -156,7 +156,7 @@ const T = {
     ${feld('stammdaten.firmenname', 'Firmenname')}${feld('stammdaten.brancheText', 'Was macht der Betrieb?')}
     ${feld('stammdaten.strasse', 'Straße und Hausnummer')}<div class="raster zwei">${feld('stammdaten.plz', 'PLZ')}${feld('stammdaten.ort', 'Ort')}</div>
     ${feld('stammdaten.telefon', 'Telefon')}${feld('stammdaten.whatsapp', 'WhatsApp', 'text', { platz: '4917112345678' })}${feld('stammdaten.email', 'E-Mail', 'mail')}
-    ${feld('stammdaten.website', 'Website', 'text', { platz: 'https://www.beispiel.de' })}${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.einsatzgebiet', 'Einsatzgebiet')}${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}
+    ${feld('stammdaten.website', 'Website', 'text', { platz: 'https://www.beispiel.de' })}${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.bundesland', 'Bundesland (für die Feiertage)', 'wahl', { optionen: LAENDER })}${feld('stammdaten.einsatzgebiet', 'Einsatzgebiet')}${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}
     </div><div class="karte"><h2>Vertrag</h2>
     ${feld('id', 'Kunden-ID', 'text', { fest: true })}
     ${feld('status', 'Status', 'wahl', { optionen: optionen(S.start.status) })}
@@ -349,11 +349,12 @@ const SCHRITTE = ['Branche', 'Betrieb', 'Aussehen', 'Paket & Module', 'Mails & R
 function vNeu() {
   const n = S.neu; S.K = n.k;
   const erlaubt = (S.start.pakete.find(p => p.id === n.k.paket) || { module: [] }).module;
+  const LAENDER = [['', 'nur bundesweite Feiertage'], ['bw', 'Baden-Württemberg'], ['by', 'Bayern'], ['be', 'Berlin'], ['bb', 'Brandenburg'], ['hb', 'Bremen'], ['hh', 'Hamburg'], ['he', 'Hessen'], ['mv', 'Mecklenburg-Vorpommern'], ['ni', 'Niedersachsen'], ['nw', 'Nordrhein-Westfalen'], ['rp', 'Rheinland-Pfalz'], ['sl', 'Saarland'], ['sn', 'Sachsen'], ['st', 'Sachsen-Anhalt'], ['sh', 'Schleswig-Holstein'], ['th', 'Thüringen']];
   const schritt = [
     () => `<h2>Welche Branche?</h2><p class="hilfe" style="margin-bottom:12px">Die Vorlage bringt passende Leistungen, Fragen, Stellen und Regeln mit. Alles lässt sich danach ändern.</p><div class="wahl">${S.start.vorlagen.map(v => `<button data-akt="branche" data-b="${v.id}" class="${n.k.stammdaten.branche === v.id ? 'an' : ''}">${esc(v.name)}</button>`).join('')}</div>`,
     () => `<h2>Der Betrieb</h2>${feld('stammdaten.firmenname', 'Firmenname *')}${feld('id', 'Kunden-ID *', 'text', { platz: 'wird aus dem Firmennamen gebildet' })}${feld('stammdaten.brancheText', 'Was macht der Betrieb? *')}
       ${feld('stammdaten.email', 'E-Mail des Betriebs *', 'mail')}<div class="raster zwei">${feld('stammdaten.telefon', 'Telefon')}${feld('stammdaten.website', 'Website', 'text', { platz: 'https://www.beispiel.de' })}</div>
-      ${feld('stammdaten.strasse', 'Straße und Hausnummer')}<div class="raster zwei">${feld('stammdaten.plz', 'PLZ')}${feld('stammdaten.ort', 'Ort')}</div>${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}`,
+      ${feld('stammdaten.strasse', 'Straße und Hausnummer')}<div class="raster zwei">${feld('stammdaten.plz', 'PLZ')}${feld('stammdaten.ort', 'Ort')}</div><div class="raster zwei">${feld('stammdaten.oeffnungszeiten', 'Öffnungszeiten')}${feld('stammdaten.bundesland', 'Bundesland (für die Feiertage)', 'wahl', { optionen: LAENDER })}</div>${feld('stammdaten.ansprechpartner', 'Ansprechpartner')}`,
     () => `<h2>Aussehen und Ton</h2>${feld('aussehen.botName', 'Name des Bots')}<div class="raster zwei">${feld('aussehen.primaerfarbe', 'Hauptfarbe (Firmenfarbe)', 'farbe')}${feld('ton.anrede', 'Anrede im Kunden-Chat', 'wahl', { optionen: [['Sie', 'Sie'], ['du', 'du']] })}</div>`,
     () => `<h2>Paket und Module</h2>${feld('paket', 'Paket', 'wahl', { optionen: S.start.pakete.map(p => [p.id, p.name]) })}
       ${feld('module.bewerberChat.aktiv', 'Bewerber-Chat einschalten', 'haken', { aus: !erlaubt.includes('bewerberChat') })}${feld('module.kundenChat.aktiv', 'Kunden-Chat einschalten', 'haken', { aus: !erlaubt.includes('kundenChat'), hilfe: erlaubt.includes('kundenChat') ? '' : 'Im gewählten Paket nicht enthalten.' })}
@@ -414,7 +415,7 @@ async function ladeAuswertung() { const r = await api(`/kunden/${S.id}/auswertun
 const verlassen = () => !S.geaendert || confirm('Es gibt ungespeicherte Änderungen. Trotzdem weiter?');
 function leererKunde() {
   const in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
-  return { id: '', status: 'test', paket: 'bewerber', testBis: in30, stammdaten: { firmenname: '', branche: '', brancheText: '', email: '', telefon: '', website: '', strasse: '', plz: '', ort: '', oeffnungszeiten: '', ansprechpartner: '' },
+  return { id: '', status: 'test', paket: 'bewerber', testBis: in30, stammdaten: { firmenname: '', branche: '', brancheText: '', email: '', telefon: '', website: '', strasse: '', plz: '', ort: '', oeffnungszeiten: '', bundesland: '', ansprechpartner: '' },
     aussehen: { botName: 'Assistent', primaerfarbe: '#1f2a37' }, ton: { anrede: 'Sie' }, module: { kundenChat: { aktiv: false }, bewerberChat: { aktiv: true }, terminBot: { aktiv: false }, anfrageChat: { aktiv: false } }, benachrichtigungen: { anfragen: [], bewerbungen: [] }, rechtliches: { datenschutzUrl: '' } };
 }
 

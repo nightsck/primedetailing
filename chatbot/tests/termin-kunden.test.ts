@@ -11,6 +11,7 @@ const { _setKalender } = await import("../src/termin.ts");
 const { _setClient } = await import("../src/llm.ts");
 const { terminBetriebVon, leseZeitfenster, pruefeSicherheitsregeln } = await import("../src/kunde/umwandeln.ts");
 const { stufeEin } = await import("../src/kunden-termin.ts");
+const { kommendeFeiertage } = await import("../src/feiertage.ts");
 // @ts-ignore
 const { freieZeiten, zeitpunkt } = await import("../../src/assets/betriebe.js");
 
@@ -104,6 +105,38 @@ test("Buchen: steht im Kalender, in der Chef-Übersicht und ist danach belegt; D
   assert.equal((await post("/k/maler-mueller/api/termin/absagen", { token: r.token })).status, 200);
   assert.equal(kal.get("maler@group.calendar.google.com")!.length, 0);
   assert.equal((await post("/k/maler-mueller/api/termin/absagen", { token: r.token + "x" })).status, 400, "veränderter Link");
+  _setKalender(null);
+});
+
+test("Feiertage: der Tag wird als geschlossen angezeigt und die Buchung abgelehnt – auch ohne die Anzeige", async () => {
+  const s = await neuerSpeicher(); _reset(); testKalender();
+  await anlegen(s, maler());
+  await anlegen(s, beispiel("sachsen-maler", "maler", {
+    stammdaten: { firmenname: "Maler Sachsen", email: "info@sachsen-maler.de", brancheText: "Malerbetrieb", oeffnungszeiten: "Mo–Fr 7–16 Uhr", bundesland: "sn" },
+    rechtliches: { datenschutzUrl: "https://www.sachsen-maler.de/datenschutz" },
+    module: { kundenChat: { aktiv: true }, terminBot: { aktiv: true, kalenderId: "sn@group.calendar.google.com", vorlaufStunden: 0 } } }));
+  const heute = new Date().toISOString().slice(0, 10);
+
+  // Nächster bundesweiter Feiertag, der auf einen Werktag Mo–Fr fällt (da ist der Maler offen).
+  const feier = kommendeFeiertage(heute, "", 12).find((f) => { const d = new Date(f.datum + "T12:00:00Z").getUTCDay(); return d >= 1 && d <= 5; })!;
+  assert.ok(feier, "es gibt einen kommenden Feiertag an einem Werktag");
+
+  const z: any = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${feier.datum}&tage=1`)).json();
+  assert.equal(z.tage[0].offen, false, "Feiertag ist zu");
+  assert.deepEqual(z.tage[0].slots, []);
+  assert.equal(z.tage[0].feiertag, feier.name, "der Grund steht dabei");
+
+  // Buchung über die API: auch ein alter Tab oder ein gebastelter Aufruf kommt nicht durch.
+  const r = await post("/k/maler-mueller/api/termin/buchen", { ...BUCHUNG, datum: feier.datum });
+  assert.equal(r.status, 400);
+  assert.match(((await r.json()) as any).fehler, new RegExp(feier.name));
+
+  // Landesfeiertag: gilt nur im eigenen Bundesland. Buß- und Bettag ist nur in Sachsen frei.
+  const bub = kommendeFeiertage(heute, "sn", 24).find((f) => f.name.startsWith("Buß"))!;
+  assert.ok(bub, "Buß- und Bettag liegt in den nächsten zwei Jahren");
+  assert.equal((await post("/k/sachsen-maler/api/termin/buchen", { ...BUCHUNG, datum: bub.datum }, "4.4.4.9")).status, 400, "in Sachsen zu");
+  const andernorts = await (await app.request(`${B}/k/maler-mueller/api/termin/zeiten?termin=farbberatung&von=${bub.datum}&tage=1`)).json() as any;
+  assert.equal(andernorts.tage[0].feiertag, undefined, "woanders ein normaler Arbeitstag");
   _setKalender(null);
 });
 
