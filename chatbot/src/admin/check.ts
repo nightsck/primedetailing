@@ -71,6 +71,10 @@ export function pruefeEinrichtung(c: any, k: Kunde, stand: { live: boolean; offe
       dazu(t.bestaetigen, "gelb", "Termin-Bot: ohne Google Kalender besser „Anfrage statt Buchung“",
         "Der Bot sieht den Kalender des Betriebs nicht. Mit „Anfrage statt Buchung“ sagt er nichts zu, sondern lässt den Betrieb per Mail bestätigen – so bucht niemand über einen Termin, den der Chef selbst eingetragen hat.", "module");
     }
+    dazu(k.benachrichtigungen.termine.length > 0, "gelb", "Termin-Bot: eigene Adresse für Termin-Mails",
+      t.bestaetigen
+        ? "Unter „Module → Termin-Bot“ eintragen, wer die Terminanfragen bekommt und bestätigt (z. B. info@…). Ohne Eintrag geht alles an die Kontakt-Adresse aus den Stammdaten."
+        : "Unter „Module → Termin-Bot“ eintragen, wer neue und abgesagte Termine bekommt. Ohne Eintrag geht alles an die Kontakt-Adresse aus den Stammdaten.", "module");
     dazu(t.termine.length > 0, "rot", "Termin-Bot: mindestens eine Terminart", "Unter „Module → Termin-Bot“ eine Terminart anlegen (z. B. Besichtigung, 45 Minuten).", "module");
     dazu(!!terminBetriebVon(k) || !t.termine.length, "rot", "Termin-Bot: an mindestens einem Wochentag sind Termine möglich", "Unter „Module → Termin-Bot“ die Zeiten je Wochentag eintragen, z. B. 8-12, 13-17.", "module");
     dazu(!t.termine.some((x) => x.ort === "kunde") || t.fahrtMin > 0, "gelb", "Termin-Bot: Fahrzeit für Termine beim Kunden", "Es gibt Termine vor Ort, aber 0 Minuten Fahrzeit. Dann liegen Termine direkt hintereinander.", "module");

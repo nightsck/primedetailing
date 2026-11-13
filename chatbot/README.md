@@ -110,10 +110,12 @@ Schalter im Admin-Panel („Anfrage statt Buchung“). Dann sagt der Bot nichts 
 
 1. Der Kunde sucht sich eine Wunschzeit aus und schickt die Anfrage ab. Er sieht und liest überall „Wunschzeit“, nie „Ihr Termin steht“.
 2. Die Zeit wird **vorgemerkt** (Tabelle `vormerkung`) – so kann sie niemand ein zweites Mal anfragen. Ohne Antwort läuft die Vormerkung nach der eingestellten Frist ab (Standard 48 Stunden) und die Zeit ist wieder frei.
-3. Der Betrieb bekommt eine Mail mit allen Angaben und einem Link. Der Link **zeigt die Anfrage erst nur an**; bestätigt wird mit einem Klick auf der Seite. Das ist Absicht: Mail-Scanner rufen Links im Voraus auf, und ein GET-Link hätte Termine von allein bestätigt.
+3. Der Betrieb bekommt eine Mail an die Adressen aus „Termin-Mails gehen an“ (leer = Kontakt-Adresse aus den Stammdaten) – mit allen Angaben und einem Link. Der Link **zeigt die Anfrage erst nur an**; bestätigt wird mit einem Klick auf der Seite. Das ist Absicht: Mail-Scanner rufen Links im Voraus auf, und ein GET-Link hätte Termine von allein bestätigt.
 4. „Termin bestätigen“ trägt den Termin jetzt erst in den Kalender ein und schickt dem Kunden die Zusage mit `termin.ics` und Absage-Link. „Geht leider nicht“ gibt die Zeit frei und schickt dem Kunden eine freundliche Absage mit Link auf eine andere Zeit.
 
-In der Chef-Übersicht läuft der Vorgang von `angefragt` auf `bestätigt` oder `abgelehnt`.
+Mehrere Adressen sind kein Problem: Alle bekommen dieselbe Mail, wer zuerst klickt entscheidet, und der Zweite sieht „schon entschieden“. So kann `info@` entscheiden, ohne dass der Chef gefragt werden muss.
+
+Die Chef-Übersicht ist dabei nur die Ablage: Dort läuft der Vorgang von `angefragt` auf `bestätigt` oder `abgelehnt`, damit später nachvollziehbar ist, wer wann was angefragt hat. Arbeiten muss dort niemand – das geht alles per Mail.
 
 Das ist der saubere Weg für jeden Betrieb, dessen Kalender der Bot nicht sehen kann – Outlook, Apple, Papier. Der Bot verspricht dann nichts, was der Chef nicht halten kann, und ein Mensch schaut vorher drauf. Jeder Link ist mit einem eigenen Schlüssel signiert: Ein Absage-Link kann keine Anfrage bestätigen und umgekehrt.
 

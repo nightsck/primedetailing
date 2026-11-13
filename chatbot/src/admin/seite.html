@@ -204,6 +204,8 @@ const T = {
       ${feld('module.terminBot.aktiv', 'Termin-Bot einschalten', 'haken', { aus: !erlaubt.includes('terminBot') })}
       ${feld('module.terminBot.kalenderId', 'Kalender-ID (Google Kalender)', 'text', { platz: 'leer = eigener Kalender' })}
       <div class="raster zwei">${feld('module.terminBot.bestaetigen', 'Anfrage statt Buchung (Betrieb bestätigt)', 'haken')}${feld('module.terminBot.bestaetigenStunden', 'Anfrage gilt (Stunden)', 'zahl')}</div>
+      ${feld('benachrichtigungen.termine', 'Termin-Mails gehen an (eine Adresse pro Zeile)', 'zeilen', { zeilen: 2, hilfe: ' ' })}
+      <p class="hilfe" style="margin:-6px 0 14px">${terminMailZiel()}</p>
       <p class="hilfe" style="margin:-6px 0 14px">${S.start.server.kalenderKonto ? `Der Kunde gibt seinen Kalender für diese Adresse frei („Änderungen an Terminen vornehmen“): <b style="color:var(--h)">${esc(S.start.server.kalenderKonto)}</b>` : '<b style="color:var(--rot)">Am Server ist noch kein Google-Dienstkonto hinterlegt (GOOGLE_SA_JSON, siehe SECRETS.md).</b>'} <button class="btn klein" data-akt="kalendertest">Kalender prüfen</button><br>Leer lassen, wenn der Betrieb kein Google Kalender nutzt (Outlook, Apple, Papier): Der Bot verwaltet seine Zeiten dann selbst und schickt jeden Termin per Mail mit Kalender-Datei. Termine, die der Betrieb selbst einträgt, kennt er dann nicht.</p>
       <h3>Wann sind Termine möglich?</h3><p class="hilfe" style="margin-bottom:10px">${esc(hilfe('module.terminBot.zeiten'))}</p>
       <div class="raster drei">${[['mo', 'Montag'], ['di', 'Dienstag'], ['mi', 'Mittwoch'], ['do', 'Donnerstag'], ['fr', 'Freitag'], ['sa', 'Samstag'], ['so', 'Sonntag']].map(([t, n]) => feld('module.terminBot.zeiten.' + t, n, 'text', { platz: 'geschlossen', hilfe: ' ' })).join('')}</div>
@@ -351,6 +353,18 @@ function vNeu() {
   const n = S.neu; S.K = n.k;
   const erlaubt = (S.start.pakete.find(p => p.id === n.k.paket) || { module: [] }).module;
   const LAENDER = [['', 'nur bundesweite Feiertage'], ['bw', 'Baden-Württemberg'], ['by', 'Bayern'], ['be', 'Berlin'], ['bb', 'Brandenburg'], ['hb', 'Bremen'], ['hh', 'Hamburg'], ['he', 'Hessen'], ['mv', 'Mecklenburg-Vorpommern'], ['ni', 'Niedersachsen'], ['nw', 'Nordrhein-Westfalen'], ['rp', 'Rheinland-Pfalz'], ['sl', 'Saarland'], ['sn', 'Sachsen'], ['st', 'Sachsen-Anhalt'], ['sh', 'Schleswig-Holstein'], ['th', 'Thüringen']];
+  /** Wohin Termin-Mails tatsächlich gehen – leeres Feld heißt: an die Kontakt-Adresse. */
+  function terminMailZiel() {
+    const liste = (hol(S.K, 'benachrichtigungen.termine') || []).filter(Boolean);
+    const fallback = hol(S.K, 'stammdaten.email') || '';
+    const ziel = liste.length ? liste : (fallback ? [fallback] : []);
+    if (!ziel.length) return '<b style="color:var(--rot)">Noch keine Adresse: Ohne E-Mail bekommt der Betrieb keine Termine mit.</b>';
+    const wie = hol(S.K, 'module.terminBot.bestaetigen')
+      ? 'Dorthin geht jede Terminanfrage mit dem Link zum Bestätigen. Wer zuerst klickt, entscheidet – bei mehreren Adressen sieht der Zweite, dass es schon erledigt ist.'
+      : 'Dorthin geht jeder gebuchte und jeder abgesagte Termin.';
+    return '<b style="color:var(--h)">' + ziel.map(esc).join(', ') + '</b> – ' + wie + (liste.length ? '' : ' (Kontakt-Adresse aus den Stammdaten, weil das Feld leer ist.)');
+  }
+
   const schritt = [
     () => `<h2>Welche Branche?</h2><p class="hilfe" style="margin-bottom:12px">Die Vorlage bringt passende Leistungen, Fragen, Stellen und Regeln mit. Alles lässt sich danach ändern.</p><div class="wahl">${S.start.vorlagen.map(v => `<button data-akt="branche" data-b="${v.id}" class="${n.k.stammdaten.branche === v.id ? 'an' : ''}">${esc(v.name)}</button>`).join('')}</div>`,
     () => `<h2>Der Betrieb</h2>${feld('stammdaten.firmenname', 'Firmenname *')}${feld('id', 'Kunden-ID *', 'text', { platz: 'wird aus dem Firmennamen gebildet' })}${feld('stammdaten.brancheText', 'Was macht der Betrieb? *')}
