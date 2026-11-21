@@ -112,6 +112,8 @@ Faustregel: Was auf keinen Fall falsch sein darf, wird eine **feste Antwort**. W
 
 ## Abnahme-Checkliste (zum selbst Durchklicken, Ziel unter 30 Minuten)
 
+Vorher (oder vor jedem Bereitstellen) den Probelauf starten: `npm run abnahme` im Ordner `chatbot`. Er spielt die Punkte unten ohne echte KI, Mail und Google im Arbeitsspeicher durch und sagt, ob die Technik dahinter stimmt. Was er nicht prüfen kann (echte Antworten der KI, ob Mails wirklich ankommen, Google-Kalender, Handy), bleibt hier zum Durchklicken.
+
 Testkunde „Malerbetrieb Müller“:
 
 - [ ] Im Admin-Panel anmelden: Code kommt per Mail, Anmeldung klappt. Den Link in der Mail zweimal öffnen und erst dann auf „Anmelden“ klicken: klappt trotzdem.
@@ -129,7 +131,8 @@ Testkunde „Malerbetrieb Müller“:
 - [ ] Status eines Eintrags ändern („Angebot geschrieben“): bleibt nach „Neu laden“ erhalten.
 - [ ] Auswertung zeigt die Nachrichten, die Anfrage und die Bewerbung von heute.
 - [ ] Bot-Namen ändern und nur speichern: live steht noch der alte Name. Nach „Veröffentlichen“ der neue.
-- [ ] Termin-Bot (Paket „Komplett“): Kalender-ID eines eigenen Test-Kalenders eintragen, „Kalender prüfen“ meldet Erfolg. Im Kalender einen Termin für morgen 10 Uhr eintragen: Diese Zeit wird online nicht angeboten.
+- [ ] Paket auf „Komplett“ stellen, Termin-Bot und Anfrage-Chat einschalten und unter **Stammdaten eine Telefonnummer** eintragen (ohne Nummer bleibt der Punkt rot und Veröffentlichen wird abgelehnt: Bei einem Notfall verweist die Anfrage-Seite auf diese Nummer).
+- [ ] Termin-Bot: Kalender-ID eines eigenen Test-Kalenders eintragen, „Kalender prüfen“ meldet Erfolg. Im Kalender einen Termin für morgen 10 Uhr eintragen: Diese Zeit wird online nicht angeboten.
 - [ ] Online einen Termin buchen: steht im Google-Kalender, Bestätigungs-Mail mit Kalender-Datei kommt an. Dieselbe Zeit ist danach nicht mehr buchbar.
 - [ ] Link „Termin absagen“ aus der Mail öffnen: erst Rückfrage, nach Klick ist der Termin aus dem Kalender weg und beide Seiten bekommen eine Mail.
 - [ ] Anfrage-Chat: „Wasser tritt aus“ eintippen. Roter Hinweis erscheint sofort. Absenden: Mail mit „NOTFALL:“ im Betreff, Eintrag in der Übersicht ist rot markiert.

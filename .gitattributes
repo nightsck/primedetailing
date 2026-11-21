@@ -1,0 +1,2 @@
+# Windows-Skripte brauchen CRLF, sonst springt cmd.exe bei „goto“ manchmal falsch
+*.cmd text eol=crlf

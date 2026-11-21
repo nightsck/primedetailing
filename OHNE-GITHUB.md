@@ -20,7 +20,10 @@ Dieser Ordner ist jetzt das Original. Lege eine Kopie an einen zweiten Ort (exte
 
 ## 2. Einmalig einrichten (ca. 10 Minuten)
 
-1. **Node.js installieren:** nodejs.org → Version 22 (LTS) oder neuer. Danach PC neu starten.
+**Wichtig, solange Cloudflare noch mit GitHub verbunden ist:** Jede Änderung, die auf `main` landet (auch ein Merge), geht sofort live. Und umgekehrt würde ein späterer Push auf `main` einen Stand vom PC wieder überschreiben. Darum diese Reihenfolge einhalten:
+
+0. **Den aktuellen Stand auf den PC holen.** Die Kopie in `E:\Claude KI\Backup\primedetailing-chatbot` ist vom 28.10. und viel älter als das, was live läuft. Bereitgestellt wird immer der Ordner, aus dem du `bots-bereitstellen.cmd` startest. Darum zuerst den Stand von `main` (oder den freigegebenen PR) als ZIP herunterladen bzw. von Claude in einen Ordner legen lassen, z. B. `E:\ClaudeCode\primedetailing`.
+1. **Node.js installieren:** nodejs.org → aktuelle LTS-Version (mindestens 22.18, das Skript prüft das). Danach PC neu starten.
 2. **Bei Cloudflare anmelden:** Eingabeaufforderung im Ordner `chatbot` öffnen und eingeben:
    ```
    npx wrangler login
@@ -30,9 +33,17 @@ Dieser Ordner ist jetzt das Original. Lege eine Kopie an einen zweiten Ort (exte
 
 ## 3. Chat-Server bereitstellen
 
-Doppelklick auf **`bots-bereitstellen.cmd`**. Das Skript installiert die Pakete, lässt alle Tests laufen und stellt nur bereit, wenn sie bestehen.
+Doppelklick auf **`bots-bereitstellen.cmd`**. Das Skript
 
-Beim ersten Mal mit diesem Stand geht damit auch der Umbau live: das Admin-Panel unter `/admin` und die Datenbank für Kunden (Cloudflare legt sie selbst an). Vorher in Cloudflare die vier Einträge aus `chatbot/SECRETS.md` setzen: `ADMIN_LOGIN`, `SESSION_SECRET`, `BREVO_API_KEY`, `MAIL_ABSENDER`.
+1. prüft die Node-Version,
+2. installiert genau die Paket-Versionen aus `package-lock.json` (`npm ci`),
+3. lässt alle Tests und den Probelauf der Abnahme-Checkliste laufen (`npm run abnahme`) und bricht ab, wenn etwas rot ist,
+4. fragt noch einmal nach (Strg+C bricht ab),
+5. stellt bereit und ruft danach `/health` und das Admin-Panel auf.
+
+Was dabei gesetzt wird, steht vollständig in `chatbot/wrangler.toml`: Name, Datenbanken (Durable Objects), der 10-Minuten-Takt fürs CRM, die Adresse `…workers.dev` und die Route `app.ki-für-meinen-betrieb.de/*`. Variablen, die nur im Dashboard stehen (z. B. `KILL_SWITCH`, `KONTAKT_MAIL`, `TERMIN_KALENDER`), bleiben dank `keep_vars = true` erhalten, Secrets sowieso.
+
+Die Secrets sind seit dem 12.11. gesetzt (`SESSION_SECRET`, `BREVO_API_KEY`, `MAIL_ABSENDER`, `GOOGLE_SA_JSON`, `ANTHROPIC_API_KEY`). `ADMIN_LOGIN` nur setzen, wenn außer kifuermeinenbetrieb@gmail.com weitere Adressen ins Admin-Panel sollen. Liste und Bedeutung: `chatbot/SECRETS.md`.
 
 Zurück zur vorherigen Fassung, falls etwas nicht stimmt: Cloudflare → Worker `primedetailing-chat` → Deployments → ältere Fassung → **Rollback**.
 

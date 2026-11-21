@@ -7,6 +7,17 @@ compatibility_flags = ["nodejs_compat"]
 # beim nächsten Deploy nicht überschreiben
 keep_vars = true
 
+# Adressen des Workers. Stehen hier, damit das Bereitstellen vom PC (bots-bereitstellen.cmd)
+# genau das einrichtet, was bisher im Dashboard gesetzt war:
+#  - primedetailing-chat.tom-schindler999.workers.dev (Widget auf primedetailing.eu, Website-Chat)
+#  - app.ki-für-meinen-betrieb.de (Admin-Panel, CRM, Kunden-Bots). Route statt Custom Domain,
+#    weil Cloudflare Custom Domains mit Umlaut nicht anlegen kann. Dazu gehört der AAAA-Eintrag
+#    „app“ → 100:: (proxied) im DNS der Zone, der bleibt unverändert.
+workers_dev = true
+routes = [
+  { pattern = "app.xn--ki-fr-meinen-betrieb-sec.de/*", zone_name = "xn--ki-fr-meinen-betrieb-sec.de" },
+]
+
 # Öffentliche Einstellungen (Geheimnisse NICHT hier, sondern per `npx wrangler secret put …`)
 [vars]
 LLM_PROVIDER = "anthropic"

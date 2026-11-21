@@ -12,6 +12,7 @@
     "start": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env src/node.ts",
     "dev": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env --watch src/node.ts",
     "test": "node scripts/daten-bauen.mjs && node --test tests/*.test.ts",
+    "abnahme": "node scripts/daten-bauen.mjs && node tests/abnahme-durchlauf.ts",
     "evals": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/run-evals.ts",
     "selbsttest": "node scripts/daten-bauen.mjs && node --env-file-if-exists=.env tests/selbsttest-live.ts",
     "worker:dev": "node scripts/daten-bauen.mjs && wrangler dev",
